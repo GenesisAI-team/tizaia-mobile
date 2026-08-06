@@ -1,13 +1,7 @@
-agent: opencode
+agent: codex
 runtime: process
 workspace: worktree
 defaultBranch: main
-
-tracker:
-  plugin: github
-
-scm:
-  plugin: github
 
 symlinks:
   - mobile/.env.local
@@ -19,13 +13,12 @@ symlinks:
 agentRulesFile: AGENTS.md
 
 orchestrator:
-  agent: opencode
+  agent: codex
 
 worker:
-  agent: opencode
+  agent: codex
 
 orchestratorSessionStrategy: reuse
-opencodeIssueSessionStrategy: reuse
 
 orchestratorRules: |
   Trabaja siguiendo la metodología SDD del repositorio.

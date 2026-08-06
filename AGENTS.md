@@ -1,144 +1,144 @@
-﻿# AGENTS.md â€” tizaia-mobile (Mobile Teacher App)
+# AGENTS.md — tizaia-mobile (Mobile Teacher App)
 
-## 1. MISIÃ“N DEL PROYECTO
+## 1. MISIÓN DEL PROYECTO
 
 ==================================================
 
-Construir un primer prototipo funcional y entregable de una aplicaciÃ³n mÃ³vil de
+Construir un primer prototipo funcional y entregable de una aplicación móvil de
 apoyo al profesorado.
 
-La aplicaciÃ³n permitirÃ¡, segÃºn la especificaciÃ³n proporcionada:
+La aplicación permitirá, según la especificación proporcionada:
 
-- AutenticaciÃ³n del profesorado.
+- Autenticación del profesorado.
 - Acceso mediante Google Auth.
 - Consulta de un asistente inteligente.
-- NavegaciÃ³n entre Home, Asistencia, Alumnos, Tareas, Mails y Anotaciones.
+- Navegación entre Home, Asistencia, Alumnos, Tareas, Mails y Anotaciones.
 - Registro y consulta de asistencia.
 - Seguimiento de entrega de tareas.
-- Consulta y gestiÃ³n de alumnos.
-- Consulta y creaciÃ³n de anotaciones.
-- Consulta y envÃ­o de comunicaciones.
+- Consulta y gestión de alumnos.
+- Consulta y creación de anotaciones.
+- Consulta y envío de comunicaciones.
 - Comunicaciones individuales, a familias y a grupos.
 - Seguimiento de rachas negativas.
 
 El producto es un MVP Android. No se debe ampliar el alcance con funcionalidades
 no solicitadas.
 
-- AplicaciÃ³n mÃ³vil **Android** de apoyo al profesorado. Primer MVP.
-- El stack tÃ©cnico completo se define en el punto `7. STACK TÃ‰CNICO`.
-- MetodologÃ­a **SDD** (Spec-Driven Development): la fuente de verdad es el documento de especificaciÃ³n (`Especificacion_requisitos_por_historias_de_usuario.docx-1.pdf`) y su extracciÃ³n en `spec/`.
+- Aplicación móvil **Android** de apoyo al profesorado. Primer MVP.
+- El stack técnico completo se define en el punto `7. STACK TÉCNICO`.
+- Metodología **SDD** (Spec-Driven Development): la fuente de verdad es el documento de especificación (`Especificacion_requisitos_por_historias_de_usuario.docx-1.pdf`) y su extracción en `spec/`.
 - Toda tarea debe ser trazable a HU-001..HU-013 y a sus RF asociados. No se inventan umbrales, permisos ni pantallas: lo no especificado queda como pregunta abierta (Q-xxx).
 
 ## 2. FUENTES DE VERDAD
 
 ==================================================
 
-Antes de realizar cualquier cambio, se deberÃ¡n localizar y analizar completamente
+Antes de realizar cualquier cambio, se deberán localizar y analizar completamente
 estos documentos:
 
 1. `Especificacion_requisitos_por_historias_de_usuario.docx-1.pdf`
 
-La informaciÃ³n del proyecto se interpretarÃ¡ teniendo en cuenta, en este orden:
+La información del proyecto se interpretará teniendo en cuenta, en este orden:
 
-1. Instrucciones explÃ­citas de este prompt.
-2. Requisitos normativos del documento de especificaciÃ³n.
-3. Historias de usuario y criterios de aceptaciÃ³n.
+1. Instrucciones explícitas de este prompt.
+2. Requisitos normativos del documento de especificación.
+3. Historias de usuario y criterios de aceptación.
 4. Reglas de negocio, requisitos de datos e integraciones.
-5. Decisiones tÃ©cnicas documentadas por el proyecto.
-6. CÃ³digo existente.
+5. Decisiones técnicas documentadas por el proyecto.
+6. Código existente.
 
 Los bocetos sirven como referencia visual, pero no sustituyen los criterios de
-aceptaciÃ³n ni los requisitos normativos.
+aceptación ni los requisitos normativos.
 
 No se deben inventar requisitos de negocio.
 
-Cuando falte informaciÃ³n:
+Cuando falte información:
 
-- Se registrarÃ¡ como pregunta abierta.
-- Se identificarÃ¡n los IDs afectados.
-- Se diferenciarÃ¡ entre un bloqueo real y una decisiÃ³n reversible.
-- Se continuarÃ¡ con aquello que pueda implementarse de manera segura.
-- No se marcarÃ¡ como validada una decisiÃ³n que siga pendiente.
+- Se registrará como pregunta abierta.
+- Se identificarán los IDs afectados.
+- Se diferenciará entre un bloqueo real y una decisión reversible.
+- Se continuará con aquello que pueda implementarse de manera segura.
+- No se marcará como validada una decisión que siga pendiente.
 
-No se modificarÃ¡ silenciosamente ninguna historia de usuario, requisito, regla de
-negocio o criterio de aceptaciÃ³n.
+No se modificará silenciosamente ninguna historia de usuario, requisito, regla de
+negocio o criterio de aceptación.
 
-## 3. MetodologÃ­a HÃ­brida de Desarrollo: SDD + GitHub Issues + Agent Orchestrator
+## 3. Metodología Híbrida de Desarrollo: SDD + GitHub Issues + Agent Orchestrator
 
-Este proyecto seguirÃ¡ una metodologÃ­a **Spec-Driven Development (SDD)** combinada con GitHub Issues y Agent Orchestrator. La planificaciÃ³n, los requisitos y los criterios de aceptaciÃ³n estarÃ¡n documentados y versionados, mientras que las tareas concretas se ejecutarÃ¡n en entornos aislados y se integrarÃ¡n mediante Pull Requests.
+Este proyecto seguirá una metodología **Spec-Driven Development (SDD)** combinada con GitHub Issues y Agent Orchestrator. La planificación, los requisitos y los criterios de aceptación estarán documentados y versionados, mientras que las tareas concretas se ejecutarán en entornos aislados y se integrarán mediante Pull Requests.
 
 ### 3.1. Fuentes de verdad
 
-La especificaciÃ³n funcional y sus archivos derivados en `spec/` serÃ¡n la fuente principal de verdad del proyecto. El `roadmap.md` recogerÃ¡ la visiÃ³n general, las prioridades y las dependencias. Las GitHub Issues describirÃ¡n el trabajo concreto que debe realizarse, enlazando siempre con la documentaciÃ³n correspondiente sin sustituirla.
+La especificación funcional y sus archivos derivados en `spec/` serán la fuente principal de verdad del proyecto. El `roadmap.md` recogerá la visión general, las prioridades y las dependencias. Las GitHub Issues describirán el trabajo concreto que debe realizarse, enlazando siempre con la documentación correspondiente sin sustituirla.
 
-Agent Orchestrator gestionarÃ¡ las sesiones de trabajo, los worktrees y las ramas aisladas. Las Pull Requests contendrÃ¡n los cambios implementados y su validaciÃ³n. La rama principal representarÃ¡ Ãºnicamente el trabajo revisado e integrado.
+Agent Orchestrator gestionará las sesiones de trabajo, los worktrees y las ramas aisladas. Las Pull Requests contendrán los cambios implementados y su validación. La rama principal representará únicamente el trabajo revisado e integrado.
 
-### 3.2. IdentificaciÃ³n de tareas
+### 3.2. Identificación de tareas
 
-Cada tarea tendrÃ¡ un identificador estable y Ãºnico, por ejemplo `MOB-001`, `AUTH-001` o `PAYMENTS-003`.
+Cada tarea tendrá un identificador estable y único, por ejemplo `MOB-001`, `AUTH-001` o `PAYMENTS-003`.
 
-El identificador deberÃ¡ utilizarse en el roadmap, en la GitHub Issue, en la Pull Request y en las comunicaciones relacionadas. Esto permitirÃ¡ mantener la trazabilidad entre requisitos, implementaciÃ³n, revisiÃ³n y cierre.
+El identificador deberá utilizarse en el roadmap, en la GitHub Issue, en la Pull Request y en las comunicaciones relacionadas. Esto permitirá mantener la trazabilidad entre requisitos, implementación, revisión y cierre.
 
 ### 3.3. Ciclo de vida de una tarea
 
-Las tareas podrÃ¡n encontrarse en los estados `backlog`, `ready`, `in_progress`, `review`, `blocked` o `done`.
+Las tareas podrán encontrarse en los estados `backlog`, `ready`, `in_progress`, `review`, `blocked` o `done`.
 
-`backlog` indica que la tarea todavÃ­a necesita definiciÃ³n. `ready` significa que puede asignarse. `in_progress` indica que existe un agente trabajando en ella. `review` corresponde a una Pull Request pendiente de revisiÃ³n. `blocked` se utilizarÃ¡ cuando exista una dependencia o decisiÃ³n pendiente. `done` solo se alcanzarÃ¡ cuando la Pull Request haya sido revisada, integrada, validada y la issue haya sido cerrada.
+`backlog` indica que la tarea todavía necesita definición. `ready` significa que puede asignarse. `in_progress` indica que existe un agente trabajando en ella. `review` corresponde a una Pull Request pendiente de revisión. `blocked` se utilizará cuando exista una dependencia o decisión pendiente. `done` solo se alcanzará cuando la Pull Request haya sido revisada, integrada, validada y la issue haya sido cerrada.
 
-No se utilizarÃ¡ `implemented` como estado final, porque la existencia de cÃ³digo en una rama no implica que la tarea estÃ© terminada.
+No se utilizará `implemented` como estado final, porque la existencia de código en una rama no implica que la tarea esté terminada.
 
-### 3.4. CreaciÃ³n de GitHub Issues
+### 3.4. Creación de GitHub Issues
 
-Una tarea se convertirÃ¡ en GitHub Issue cuando tenga un objetivo claro, un alcance limitado, criterios de aceptaciÃ³n verificables, dependencias conocidas y procedimientos de validaciÃ³n definidos. TambiÃ©n deberÃ¡ poder ejecutarse dentro del alcance de una Ãºnica Pull Request.
+Una tarea se convertirá en GitHub Issue cuando tenga un objetivo claro, un alcance limitado, criterios de aceptación verificables, dependencias conocidas y procedimientos de validación definidos. También deberá poder ejecutarse dentro del alcance de una única Pull Request.
 
-Las ideas incompletas permanecerÃ¡n inicialmente en `roadmap.md` o en la especificaciÃ³n. La issue se crearÃ¡ cuando la tarea alcance el estado `ready`, utilizando GitHub o `gh` CLI cuando sea necesario.
+Las ideas incompletas permanecerán inicialmente en `roadmap.md` o en la especificación. La issue se creará cuando la tarea alcance el estado `ready`, utilizando GitHub o `gh` CLI cuando sea necesario.
 
 ### 3.5. Estructura de una tarea
 
-Cada tarea deberÃ¡ incluir como mÃ­nimo su referencia a la especificaciÃ³n, el contexto, el alcance, aquello que queda fuera de alcance, los criterios de aceptaciÃ³n, la forma de validaciÃ³n y sus dependencias.
+Cada tarea deberá incluir como mínimo su referencia a la especificación, el contexto, el alcance, aquello que queda fuera de alcance, los criterios de aceptación, la forma de validación y sus dependencias.
 
-La descripciÃ³n debe ser suficientemente clara para que otro agente pueda ejecutarla sin tener que inventar decisiones funcionales ni consultar informaciÃ³n que deberÃ­a estar documentada.
+La descripción debe ser suficientemente clara para que otro agente pueda ejecutarla sin tener que inventar decisiones funcionales ni consultar información que debería estar documentada.
 
-### 3.6. EjecuciÃ³n con Agent Orchestrator
+### 3.6. Ejecución con Agent Orchestrator
 
-Agent Orchestrator se utilizarÃ¡ para coordinar las sesiones de trabajo. El flujo habitual serÃ¡:
+Agent Orchestrator se utilizará para coordinar las sesiones de trabajo. El flujo habitual será:
 
 ```bash
 ao status --json
 ao project ls --json
-ao spawn --project <id-del-proyecto> --issue <numero-de-issue> --name "<nombre-corto>" --harness opencode --prompt "<tarea>"
+ao spawn --project <id-del-proyecto> --issue <numero-de-issue> --name "<nombre-corto>" --prompt "<tarea>"
 ```
 
-Para varias tareas independientes se repetirÃ¡ `ao spawn` con una sesiÃ³n por issue:
+Para varias tareas independientes se repetirá `ao spawn` con una sesión por issue:
 
 ```bash
-ao spawn --project <id-del-proyecto> --issue 23 --name "tarea-23" --harness opencode
-ao spawn --project <id-del-proyecto> --issue 24 --name "tarea-24" --harness opencode
+ao spawn --project <id-del-proyecto> --issue 23 --name "tarea-23"
+ao spawn --project <id-del-proyecto> --issue 24 --name "tarea-24"
 ```
 
-Cada agente trabajarÃƒÂ¡ en su propio worktree y rama. El estado del daemon podrÃƒÂ¡ consultarse mediante `ao status --json` y las sesiones mediante `ao session ls --json`. Agent Orchestrator facilitarÃƒÂ¡ el seguimiento de ramas, Pull Requests, CI, revisiones y conflictos, pero no sustituirÃƒÂ¡ la revisiÃƒÂ³n humana.
+Cada agente trabajará en su propio worktree y rama. El estado del daemon podrá consultarse mediante `ao status --json` y las sesiones mediante `ao session ls --json`. Agent Orchestrator facilitará el seguimiento de ramas, Pull Requests, CI, revisiones y conflictos, pero no sustituirá la revisión humana.
 
 ### 3.7. Reglas para los agentes
 
-Antes de modificar cÃ³digo, cada agente deberÃ¡ leer `AGENTS.md`, la issue asignada y las especificaciones relacionadas. DeberÃ¡ respetar el alcance de la tarea, evitar refactorizaciones no solicitadas y no asumir decisiones que no estÃ©n documentadas.
+Antes de modificar código, cada agente deberá leer `AGENTS.md`, la issue asignada y las especificaciones relacionadas. Deberá respetar el alcance de la tarea, evitar refactorizaciones no solicitadas y no asumir decisiones que no estén documentadas.
 
-El agente deberÃ¡ ejecutar las validaciones indicadas, informar de cualquier bloqueo, crear una Pull Request asociada a la tarea e incluir en ella los cambios realizados, las validaciones y los posibles riesgos. No deberÃ¡ realizar el merge ni cerrar manualmente la issue salvo autorizaciÃ³n expresa. El roadmap se actualizarÃ¡ desde la rama principal para reducir conflictos entre agentes.
+El agente deberá ejecutar las validaciones indicadas, informar de cualquier bloqueo, crear una Pull Request asociada a la tarea e incluir en ella los cambios realizados, las validaciones y los posibles riesgos. No deberá realizar el merge ni cerrar manualmente la issue salvo autorización expresa. El roadmap se actualizará desde la rama principal para reducir conflictos entre agentes.
 
-### 3.8. Pull Requests y finalizaciÃ³n
+### 3.8. Pull Requests y finalización
 
-Toda Pull Request deberÃ¡ identificar la tarea correspondiente, explicar los cambios, indicar las validaciones ejecutadas y mantener un alcance limitado. Cuando corresponda, incluirÃ¡ una referencia como `Closes #<numero>` y deberÃ¡ tener la CI correcta antes de solicitar el merge.
+Toda Pull Request deberá identificar la tarea correspondiente, explicar los cambios, indicar las validaciones ejecutadas y mantener un alcance limitado. Cuando corresponda, incluirá una referencia como `Closes #<numero>` y deberá tener la CI correcta antes de solicitar el merge.
 
-Una tarea se considerarÃ¡ finalizada cuando cumpla los criterios de aceptaciÃ³n, pase las validaciones, sea revisada, se integre en la rama principal, cierre la issue y actualice el estado correspondiente del roadmap.
+Una tarea se considerará finalizada cuando cumpla los criterios de aceptación, pase las validaciones, sea revisada, se integre en la rama principal, cierre la issue y actualice el estado correspondiente del roadmap.
 
 ### 3.9. Excepciones sin GitHub Issue
 
-PodrÃ¡n utilizarse prompts directos con Agent Orchestrator para exploraciones tÃ©cnicas, prototipos temporales, investigaciones o tareas pequeÃ±as que todavÃ­a no justifiquen una issue.
+Podrán utilizarse prompts directos con Agent Orchestrator para exploraciones técnicas, prototipos temporales, investigaciones o tareas pequeñas que todavía no justifiquen una issue.
 
-Para las implementaciones normales se utilizarÃ¡ preferentemente GitHub Issues, porque ofrecen mejor trazabilidad, contexto y coordinaciÃ³n entre agentes.
+Para las implementaciones normales se utilizará preferentemente GitHub Issues, porque ofrecen mejor trazabilidad, contexto y coordinación entre agentes.
 
 ### 3.10. Principio general
 
-La metodologÃ­a se resume en la siguiente regla:
+La metodología se resume en la siguiente regla:
 
 ```text
 Markdown y spec/ para planificar.
@@ -148,23 +148,23 @@ Pull Requests para revisar.
 La rama principal para dar por terminado.
 ```
 
-### 3.11. GitHub CLI como Ãºnica integraciÃ³n
+### 3.11. GitHub CLI como única integración
 
-Todas las operaciones con GitHub deberÃ¡n realizarse exclusivamente mediante el
+Todas las operaciones con GitHub deberán realizarse exclusivamente mediante el
 GitHub CLI local (`gh`) ejecutado desde la terminal. Esta regla incluye la
-consulta de repositorios, la creaciÃ³n y gestiÃ³n de issues, ramas, Pull
+consulta de repositorios, la creación y gestión de issues, ramas, Pull
 Requests, comentarios, revisiones y checks.
 
-No se utilizarÃ¡n la aplicaciÃ³n GitHub integrada, conectores GitHub, MCP de
+No se utilizarán la aplicación GitHub integrada, conectores GitHub, MCP de
 GitHub ni herramientas `codex_apps.github`.
 
-Antes de cualquier operaciÃ³n con GitHub se comprobarÃ¡ la autenticaciÃ³n con:
+Antes de cualquier operación con GitHub se comprobará la autenticación con:
 
 ```bash
 gh auth status
 ```
 
-## 4. VALIDACIÃ“N OBLIGATORIA ANTES DE ABRIR/ACTUALIZAR PR
+## 4. VALIDACIÓN OBLIGATORIA ANTES DE ABRIR/ACTUALIZAR PR
 
 Ejecutar desde `mobile/` (salvo que la tarea indique otro directorio):
 
@@ -174,64 +174,64 @@ pnpm lint
 pnpm test
 ```
 
-Cada PR debe indicar: HU y RF cubiertos, criterios de aceptaciÃ³n verificados y comandos de validaciÃ³n ejecutados.
+Cada PR debe indicar: HU y RF cubiertos, criterios de aceptación verificados y comandos de validación ejecutados.
 
 ## 5. ESTRUCTURA DEL REPOSITORIO
 
 ==================================================
 
-La raÃ­z del proyecto debe mantener esta estructura general:
+La raíz del proyecto debe mantener esta estructura general:
 
 ```text
 /
-â”œâ”€â”€ AGENTS.md
-â”œâ”€â”€ README.md
-â”œâ”€â”€ .gitignore
-â”œâ”€â”€ .env.example
-â”œâ”€â”€ spec/
-â”œâ”€â”€ mobile/
-â”œâ”€â”€ .github/
-â”œâ”€â”€ .opencode/
-â””â”€â”€ otros archivos generales estrictamente necesarios
+├── AGENTS.md
+├── README.md
+├── .gitignore
+├── .env.example
+├── spec/
+├── mobile/
+├── .github/
+├── .opencode/
+└── otros archivos generales estrictamente necesarios
 ```
 
 La carpeta `spec/` debe contener directamente los archivos Markdown generales y
-la Ãºnica subcarpeta permitida, `features/`. No se crearÃ¡n otras subcarpetas.
-Todos los archivos de `spec/` y `spec/features/` serÃ¡n Markdown.
+la única subcarpeta permitida, `features/`. No se crearán otras subcarpetas.
+Todos los archivos de `spec/` y `spec/features/` serán Markdown.
 
-La estructura inicial serÃ¡:
+La estructura inicial será:
 
 ```text
 spec/
-â”œâ”€â”€ 00-mission.md
-â”œâ”€â”€ 01-tech-stack.md
-â”œâ”€â”€ 02-roadmap.md
-â”œâ”€â”€ 03-business-rules.md
-â”œâ”€â”€ 04-data-and-integrations.md
-â”œâ”€â”€ 05-open-questions.md
-â”œâ”€â”€ 06-traceability.md
-â””â”€â”€ features/
-    â”œâ”€â”€ HU-001-acceder-aplicacion.md
-    â”œâ”€â”€ HU-002-consultar-asistente-ia.md
-    â”œâ”€â”€ HU-003-navegar-modulos.md
-    â”œâ”€â”€ HU-004-registrar-consultar-asistencia.md
-    â”œâ”€â”€ HU-005-gestionar-listado-alumnos.md
-    â”œâ”€â”€ HU-006-consultar-seguimiento-alumno.md
-    â”œâ”€â”€ HU-007-registrar-entrega-tareas.md
-    â”œâ”€â”€ HU-008-gestionar-anotaciones.md
-    â”œâ”€â”€ HU-009-crear-anotacion.md
-    â”œâ”€â”€ HU-010-consultar-correos.md
-    â”œâ”€â”€ HU-011-redactar-enviar-correo.md
-    â”œâ”€â”€ HU-012-enviar-comunicaciones-alcance.md
-    â””â”€â”€ HU-013-detectar-rachas-negativas.md
+├── 00-mission.md
+├── 01-tech-stack.md
+├── 02-roadmap.md
+├── 03-business-rules.md
+├── 04-data-and-integrations.md
+├── 05-open-questions.md
+├── 06-traceability.md
+└── features/
+    ├── HU-001-acceder-aplicacion.md
+    ├── HU-002-consultar-asistente-ia.md
+    ├── HU-003-navegar-modulos.md
+    ├── HU-004-registrar-consultar-asistencia.md
+    ├── HU-005-gestionar-listado-alumnos.md
+    ├── HU-006-consultar-seguimiento-alumno.md
+    ├── HU-007-registrar-entrega-tareas.md
+    ├── HU-008-gestionar-anotaciones.md
+    ├── HU-009-crear-anotacion.md
+    ├── HU-010-consultar-correos.md
+    ├── HU-011-redactar-enviar-correo.md
+    ├── HU-012-enviar-comunicaciones-alcance.md
+    └── HU-013-detectar-rachas-negativas.md
 ```
 
-## 6. ESTÃNDARES TÃ‰CNICOS, OPERATIVOS Y DE CALIDAD
+## 6. ESTÁNDARES TÉCNICOS, OPERATIVOS Y DE CALIDAD
 
 ### 6.1. Comandos
 
-Los siguientes comandos quedarÃ¡n definidos como contrato futuro del proyecto y
-deberÃ¡n implementarse como scripts reales en `package.json`:
+Los siguientes comandos quedarán definidos como contrato futuro del proyecto y
+deberán implementarse como scripts reales en `package.json`:
 
 ```bash
 pnpm install
@@ -248,134 +248,134 @@ pnpm supabase:migration:new <nombre>
 pnpm supabase:migration:up
 ```
 
-Los comandos de release y migraciones se utilizarÃ¡n Ãºnicamente cuando proceda.
-No se considerarÃ¡n disponibles hasta que estÃ©n configurados y verificados.
+Los comandos de release y migraciones se utilizarán únicamente cuando proceda.
+No se considerarán disponibles hasta que estén configurados y verificados.
 
 ### 6.2. Convenciones
 
-Se utilizarÃ¡ TypeScript estricto, `camelCase` para variables y funciones,
-`PascalCase` para componentes y tipos, nombres explÃ­citos y ausencia de `any`
-salvo justificaciÃ³n escrita.
+Se utilizará TypeScript estricto, `camelCase` para variables y funciones,
+`PascalCase` para componentes y tipos, nombres explícitos y ausencia de `any`
+salvo justificación escrita.
 
-Las entradas externas deberÃ¡n validarse. La UI, la lÃ³gica de aplicaciÃ³n y el
-acceso a infraestructura estarÃ¡n separados. Los tests se mantendrÃ¡n prÃ³ximos al
+Las entradas externas deberán validarse. La UI, la lógica de aplicación y el
+acceso a infraestructura estarán separados. Los tests se mantendrán próximos al
 comportamiento probado.
 
-Se gestionarÃ¡n explÃ­citamente los estados `loading`, `empty`, `error` y
-`success`. Los errores serÃ¡n controlados y comprensibles. Los componentes serÃ¡n
-pequeÃ±os, enfocados y organizados por features.
+Se gestionarán explícitamente los estados `loading`, `empty`, `error` y
+`success`. Los errores serán controlados y comprensibles. Los componentes serán
+pequeños, enfocados y organizados por features.
 
-Se aplicarÃ¡n DRY, KISS y YAGNI, evitando abstracciones prematuras. Se preferirÃ¡
-la composiciÃ³n frente a la herencia y se utilizarÃ¡ inyecciÃ³n de dependencias en
+Se aplicarán DRY, KISS y YAGNI, evitando abstracciones prematuras. Se preferirá
+la composición frente a la herencia y se utilizará inyección de dependencias en
 integraciones que puedan sustituirse durante los tests.
 
 ### 6.3. No hacer
 
-No se subirÃ¡n archivos `.env`, credenciales ni secretos. No se implementarÃ¡n
-funcionalidades fuera del MVP ni se modificarÃ¡n requisitos silenciosamente.
+No se subirán archivos `.env`, credenciales ni secretos. No se implementarán
+funcionalidades fuera del MVP ni se modificarán requisitos silenciosamente.
 
-No se instalarÃ¡n dependencias sin una razÃ³n documentada. No se utilizarÃ¡n APIs
-sin consultar previamente su documentaciÃ³n oficial mediante Context7. No se
-omitirÃ¡n pruebas para acelerar una Pull Request ni se marcarÃ¡ como READY una PR
+No se instalarán dependencias sin una razón documentada. No se utilizarán APIs
+sin consultar previamente su documentación oficial mediante Context7. No se
+omitirán pruebas para acelerar una Pull Request ni se marcará como READY una PR
 con validaciones fallidas.
 
-No se mezclarÃ¡n tareas independientes en una misma PR ni se trabajarÃ¡
-directamente sobre la rama principal. No se desactivarÃ¡ RLS para resolver
-errores ni se almacenarÃ¡n datos docentes sensibles en logs.
+No se mezclarán tareas independientes en una misma PR ni se trabajará
+directamente sobre la rama principal. No se desactivará RLS para resolver
+errores ni se almacenarán datos docentes sensibles en logs.
 
-No se crearÃ¡ una arquitectura innecesariamente compleja, no se desarrollarÃ¡ una
-versiÃ³n iOS en este MVP y no se mantendrÃ¡n funcionalidades fuera del alcance
+No se creará una arquitectura innecesariamente compleja, no se desarrollará una
+versión iOS en este MVP y no se mantendrán funcionalidades fuera del alcance
 aprobado.
 
 ### 6.4. Git y Pull Requests
 
-Cada tarea se desarrollarÃ¡ en un worktree y una rama independiente. Las ramas
-deberÃ¡n identificar la tarea correspondiente.
+Cada tarea se desarrollará en un worktree y una rama independiente. Las ramas
+deberán identificar la tarea correspondiente.
 
-Los commits serÃ¡n pequeÃ±os y descriptivos. Cada Pull Request tendrÃ¡ un alcance
-limitado, enlazarÃ¡ con su GitHub Issue e incluirÃ¡ los cambios realizados, las
+Los commits serán pequeños y descriptivos. Cada Pull Request tendrá un alcance
+limitado, enlazará con su GitHub Issue e incluirá los cambios realizados, las
 validaciones ejecutadas y los posibles riesgos.
 
-No se harÃ¡ merge sin revisiÃ³n. La rama principal solo contendrÃ¡ trabajo
+No se hará merge sin revisión. La rama principal solo contendrá trabajo
 revisado, validado e integrado.
 
-### 6.5. VerificaciÃ³n
+### 6.5. Verificación
 
-Cada cambio seguirÃ¡ un ciclo de escribir, ejecutar tests, revisar resultados,
-corregir problemas y volver a validar. La tarea no se considerarÃ¡ terminada
-hasta que las validaciones sean correctas y la revisiÃ³n se haya completado.
+Cada cambio seguirá un ciclo de escribir, ejecutar tests, revisar resultados,
+corregir problemas y volver a validar. La tarea no se considerará terminada
+hasta que las validaciones sean correctas y la revisión se haya completado.
 
 ### 6.6. Memoria y contexto
 
-El contexto persistente se guardarÃ¡ en `spec/`. DespuÃ©s de cada tarea se
-actualizarÃ¡ el archivo de la HU correspondiente, el roadmap y los documentos
+El contexto persistente se guardará en `spec/`. Después de cada tarea se
+actualizará el archivo de la HU correspondiente, el roadmap y los documentos
 afectados.
 
-Los resultados, decisiones y preguntas abiertas deberÃ¡n resumirse en archivos
-del proyecto. No se dependerÃ¡ Ãºnicamente del historial del chat. Cuando sea
-necesario, se compactarÃ¡ el contexto y se recuperarÃ¡ la informaciÃ³n desde los
-archivos antes de continuar una sesiÃ³n.
+Los resultados, decisiones y preguntas abiertas deberán resumirse en archivos
+del proyecto. No se dependerá únicamente del historial del chat. Cuando sea
+necesario, se compactará el contexto y se recuperará la información desde los
+archivos antes de continuar una sesión.
 
 ### 6.7. MCP y herramientas
 
-Se utilizarÃ¡ Supabase MCP para consultar o gestionar recursos de Supabase,
-esquema, autenticaciÃ³n, RLS y migraciones cuando corresponda.
+Se utilizará Supabase MCP para consultar o gestionar recursos de Supabase,
+esquema, autenticación, RLS y migraciones cuando corresponda.
 
-Se utilizarÃ¡ Context7 para consultar documentaciÃ³n oficial y actualizada de
-librerÃ­as, frameworks, SDKs, APIs y herramientas antes de utilizarlos.
+Se utilizará Context7 para consultar documentación oficial y actualizada de
+librerías, frameworks, SDKs, APIs y herramientas antes de utilizarlos.
 
-Para trabajar con Issues, Pull Requests, ramas, checks y revisiones se utilizarÃ¡
+Para trabajar con Issues, Pull Requests, ramas, checks y revisiones se utilizará
 exclusivamente el GitHub CLI local (`gh`).
 
-Se utilizarÃ¡ n8n MCP Ãºnicamente mientras n8n siga
-siendo la soluciÃ³n elegida o estÃ© siendo evaluada para
+Se utilizará n8n MCP únicamente mientras n8n siga
+siendo la solución elegida o esté siendo evaluada para
 `consultar-asistente-ia`.
 
-## 7. STACK TÃ‰CNICO
+## 7. STACK TÉCNICO
 
 ==================================================
 
 ### 7.1. Requisitos obligatorios
 
-- AplicaciÃ³n mÃ³vil exclusivamente Android.
+- Aplicación móvil exclusivamente Android.
 - React Native.
 - TypeScript estricto.
 - Expo.
-- Desarrollo y ejecuciÃ³n mediante Android Studio.
+- Desarrollo y ejecución mediante Android Studio.
 - Supabase como backend principal.
 - Supabase Auth.
 - Google Auth obligatorio.
 - Persistencia de datos en Supabase.
 - GitHub como repositorio y plataforma de Pull Requests.
-- `n8n` como opciÃ³n actualmente especificada para el chat inteligente.
-- La integraciÃ³n de `n8n` deberÃ¡ mantenerse desacoplada para poder sustituirse
-  por un SDK de agentes cuando exista una decisiÃ³n tÃ©cnica documentada.
+- `n8n` como opción actualmente especificada para el chat inteligente.
+- La integración de `n8n` deberá mantenerse desacoplada para poder sustituirse
+  por un SDK de agentes cuando exista una decisión técnica documentada.
 
-No se aÃ±adirÃ¡ soporte para iOS. Si la herramienta de inicializaciÃ³n genera una
-carpeta `ios/`, deberÃ¡ eliminarse, excluirse del alcance y dejarse documentada
-la decisiÃ³n.
+No se añadirá soporte para iOS. Si la herramienta de inicialización genera una
+carpeta `ios/`, deberá eliminarse, excluirse del alcance y dejarse documentada
+la decisión.
 
 ### 7.2. Arquitectura recomendada
 
 ```text
 mobile/
-â”œâ”€â”€ android/
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ app/
-â”‚   â”œâ”€â”€ components/
-â”‚   â”œâ”€â”€ features/
-â”‚   â”œâ”€â”€ navigation/
-â”‚   â”œâ”€â”€ services/
-â”‚   â”œâ”€â”€ infrastructure/
-â”‚   â”œâ”€â”€ shared/
-â”‚   â”œâ”€â”€ config/
-â”‚   â””â”€â”€ test/
-â”œâ”€â”€ package.json
-â”œâ”€â”€ tsconfig.json
-â””â”€â”€ archivos de configuraciÃ³n
+├── android/
+├── src/
+│   ├── app/
+│   ├── components/
+│   ├── features/
+│   ├── navigation/
+│   ├── services/
+│   ├── infrastructure/
+│   ├── shared/
+│   ├── config/
+│   └── test/
+├── package.json
+├── tsconfig.json
+└── archivos de configuración
 ```
 
-Dentro de `src/features/`, el cÃ³digo se organizarÃ¡ por capacidad funcional:
+Dentro de `src/features/`, el código se organizará por capacidad funcional:
 
 - `auth`
 - `assistant`
@@ -386,45 +386,45 @@ Dentro de `src/features/`, el cÃ³digo se organizarÃ¡ por capacidad funcional
 - `mail`
 - `alerts`
 
-No se crearÃ¡n capas vacÃ­as ni clases sin comportamiento. Las interfaces solo se
-utilizarÃ¡n cuando aporten sustituciÃ³n, testabilidad o separaciÃ³n respecto a una
-integraciÃ³n externa.
+No se crearán capas vacías ni clases sin comportamiento. Las interfaces solo se
+utilizarán cuando aporten sustitución, testabilidad o separación respecto a una
+integración externa.
 
-`n8n` seguirÃ¡ siendo una opciÃ³n provisional para `consultar-asistente-ia`; no
-se considerarÃ¡ una decisiÃ³n tecnolÃ³gica definitiva hasta que quede documentada.
+`n8n` seguirá siendo una opción provisional para `consultar-asistente-ia`; no
+se considerará una decisión tecnológica definitiva hasta que quede documentada.
 
-## 8. CALIDAD DEL CÃ“DIGO
+## 8. CALIDAD DEL CÓDIGO
 
 ==================================================
 
-Se aplicarÃ¡n los siguientes principios:
+Se aplicarán los siguientes principios:
 
 - DRY.
 - KISS.
 - YAGNI.
-- Responsabilidad Ãºnica.
+- Responsabilidad única.
 - Bajo acoplamiento.
-- Alta cohesiÃ³n.
-- ComposiciÃ³n sobre herencia.
+- Alta cohesión.
+- Composición sobre herencia.
 - Dependencia de abstracciones en integraciones.
-- Interfaces pequeÃ±as.
-- Funciones puras cuando simplifiquen la lÃ³gica.
-- Tipos explÃ­citos.
-- Estados imposibles difÃ­ciles de representar.
-- ValidaciÃ³n en los lÃ­mites del sistema.
+- Interfaces pequeñas.
+- Funciones puras cuando simplifiquen la lógica.
+- Tipos explícitos.
+- Estados imposibles difíciles de representar.
+- Validación en los límites del sistema.
 - Repositorios sustituibles por implementaciones en memoria durante los tests.
 
-No se aplicarÃ¡n patrones por obligaciÃ³n ni se convertirÃ¡ el MVP en una
+No se aplicarán patrones por obligación ni se convertirá el MVP en una
 arquitectura empresarial innecesaria.
 
-No se crearÃ¡n:
+No se crearán:
 
 - God objects.
-- Servicios globales con mÃºltiples responsabilidades.
-- Componentes de pantalla con toda la lÃ³gica.
+- Servicios globales con múltiples responsabilidades.
+- Componentes de pantalla con toda la lógica.
 - Acceso directo a Supabase desde cualquier componente.
 - Condicionales de proveedor repartidos por la UI.
-- DuplicaciÃ³n de reglas de negocio.
+- Duplicación de reglas de negocio.
 - Cadenas de herencia.
 - Abstracciones sin uso real.
 - Tipos `any` generalizados.
@@ -433,39 +433,39 @@ No se crearÃ¡n:
 
 ==================================================
 
-La aplicaciÃ³n debe estar optimizada para Android. Como mÃ­nimo:
+La aplicación debe estar optimizada para Android. Como mínimo:
 
-- NavegaciÃ³n consistente.
+- Navegación consistente.
 - Estados de carga.
-- Estados vacÃ­os.
+- Estados vacíos.
 - Estados de error.
 - Teclado gestionado correctamente.
 - Scroll correcto.
-- Ãreas tÃ¡ctiles suficientes.
-- BotÃ³n atrÃ¡s de Android coherente.
+- Áreas táctiles suficientes.
+- Botón atrás de Android coherente.
 - Formularios validados.
 - Mensajes comprensibles.
 - Sin scroll horizontal global accidental.
-- DiseÃ±o usable en tamaÃ±os Android representativos.
+- Diseño usable en tamaños Android representativos.
 - Listas eficientes.
 - Identificadores accesibles para testing.
 
-## 10. PRIMERA EJECUCIÃ“N OBLIGATORIA
+## 10. PRIMERA EJECUCIÓN OBLIGATORIA
 
 ==================================================
 
-Empieza inmediatamente con una Ãºnica tarea de bootstrap:
+Empieza inmediatamente con una única tarea de bootstrap:
 
-### BOOTSTRAP-001 â€” Inicializar proyecto, SDD y arnÃ©s de agentes
+### BOOTSTRAP-001 — Inicializar proyecto, SDD y arnés de agentes
 
-No pidas confirmaciÃ³n antes de iniciarla.
+No pidas confirmación antes de iniciarla.
 
 Debe realizar:
 
 1. Inspeccionar el repositorio.
 2. Localizar y analizar los documentos fuente completos.
 3. Inicializar Git cuando sea necesario.
-4. Crear la estructura raÃ­z.
+4. Crear la estructura raíz.
 5. Crear `AGENTS.md`.
 6. Crear todos los archivos iniciales de `spec/` y las historias dentro de `spec/features/`.
 7. Extraer HU-001 a HU-013 sin perder sus criterios.
@@ -473,21 +473,21 @@ Debe realizar:
 9. Crear el roadmap inicial.
 10. Crear la matriz de trazabilidad inicial.
 11. Descomponer cada HU en tareas preliminares.
-12. Inicializar la aplicaciÃ³n React Native Android en `mobile/`.
+12. Inicializar la aplicación React Native Android en `mobile/`.
 13. Configurar TypeScript estricto.
 14. Configurar PNPM.
 15. Configurar lint y formato.
 16. Configurar tests.
 17. Configurar React Navigation.
-18. Crear la configuraciÃ³n base de Supabase sin secretos.
+18. Crear la configuración base de Supabase sin secretos.
 19. Crear interfaces iniciales para repositorios e integraciones.
 20. Crear `.env.example`.
-21. Crear scripts de validaciÃ³n.
+21. Crear scripts de validación.
 22. Configurar CI en GitHub.
 23. Comprobar el build Android inicial.
 24. Crear un README breve y reproducible.
 25. Crear worktree, rama y PR de bootstrap.
-26. Ejecutar reviewer automÃ¡tico.
+26. Ejecutar reviewer automático.
 27. Corregir problemas.
 28. Dejar el PR en READY.
 
@@ -499,25 +499,25 @@ Rama:
 
 ==================================================
 
-Usa Supabase MCP siempre que estÃ© disponible para:
+Usa Supabase MCP siempre que esté disponible para:
 
 - Inspeccionar el proyecto.
-- DiseÃ±ar el esquema.
+- Diseñar el esquema.
 - Crear migraciones.
 - Crear tablas.
-- Crear Ã­ndices necesarios.
+- Crear índices necesarios.
 - Configurar RLS.
-- Crear polÃ­ticas.
+- Crear políticas.
 - Revisar relaciones.
 - Validar consultas.
 - Generar datos de prueba.
 - Inspeccionar errores de backend.
 
-Todo cambio de base de datos debe existir como migraciÃ³n versionada.
+Todo cambio de base de datos debe existir como migración versionada.
 
 Nunca realices cambios manuales no reproducibles.
 
-Como mÃ­nimo, analiza entidades relacionadas con:
+Como mínimo, analiza entidades relacionadas con:
 
 - `teachers`
 - `classes`
@@ -533,23 +533,23 @@ Como mÃ­nimo, analiza entidades relacionadas con:
 - `conversation_messages`
 - `alerts`
 
-No crees todas las tablas automÃ¡ticamente sin contrastarlas con los requisitos.
+No crees todas las tablas automáticamente sin contrastarlas con los requisitos.
 
-Implementa Ãºnicamente aquellas necesarias para las HU seleccionadas y para la
-integridad mÃ­nima del modelo.
+Implementa únicamente aquellas necesarias para las HU seleccionadas y para la
+integridad mínima del modelo.
 
-Aplica estas salvaguardas tÃ©cnicas provisionales:
+Aplica estas salvaguardas técnicas provisionales:
 
 - RLS activado.
 - Acceso autenticado.
-- DenegaciÃ³n por defecto.
-- MÃ­nimo privilegio.
-- NingÃºn secreto dentro de la aplicaciÃ³n.
+- Denegación por defecto.
+- Mínimo privilegio.
+- Ningún secreto dentro de la aplicación.
 - Claves privadas solo en backend o variables seguras.
 - Logs sin datos docentes sensibles.
 
-Cuando el modelo de propiedad de los datos no estÃ© definido, regÃ­stralo como
-pregunta abierta y utiliza datos demo o polÃ­ticas restrictivas.
+Cuando el modelo de propiedad de los datos no esté definido, regístralo como
+pregunta abierta y utiliza datos demo o políticas restrictivas.
 
 ## 12. ASISTENTE INTELIGENTE
 
@@ -563,10 +563,10 @@ Responsabilidades:
 
 - Enviar mensaje.
 - Recibir respuesta.
-- Mantener identificador de conversaciÃ³n.
+- Mantener identificador de conversación.
 - Gestionar errores.
 - Gestionar timeouts.
-- Permitir sustituciÃ³n por fake durante tests.
+- Permitir sustitución por fake durante tests.
 
 Implementaciones posibles:
 
@@ -574,7 +574,7 @@ Implementaciones posibles:
 - `OpenAIAssistantGateway`
 - `FakeAssistantGateway`
 
-La especificaciÃ³n existente establece n8n como integraciÃ³n principal.
+La especificación existente establece n8n como integración principal.
 
 Antes de sustituirla crea un RFC que compare:
 
@@ -598,33 +598,33 @@ Usa el MCP de n8n para:
 - Revisar ejecuciones.
 - Validar entradas y salidas.
 - Detectar errores.
-- Documentar la versiÃ³n del flujo.
+- Documentar la versión del flujo.
 
-Si no te llega ningÃºn dato, implementa el contrato, el fake, la configuraciÃ³n y
-las pruebas, pero registra la validaciÃ³n real como bloqueo externo.
+Si no te llega ningún dato, implementa el contrato, el fake, la configuración y
+las pruebas, pero registra la validación real como bloqueo externo.
 
 ## 13. CONTEXT7
 
 ==================================================
 
-Usa Context7 antes de incorporar o modificar cÃ³digo dependiente de:
+Usa Context7 antes de incorporar o modificar código dependiente de:
 
 - React Native.
 - React Navigation.
 - Supabase JS.
 - Google Sign-In.
-- LibrerÃ­as de testing.
+- Librerías de testing.
 - Cualquier SDK de agentes.
-- LibrerÃ­as de almacenamiento seguro.
-- Cualquier dependencia cuya API pueda variar por versiÃ³n.
+- Librerías de almacenamiento seguro.
+- Cualquier dependencia cuya API pueda variar por versión.
 
-Consulta la documentaciÃ³n de la versiÃ³n exacta.
+Consulta la documentación de la versión exacta.
 
 No inventes APIs.
 
-Registra en el plan tÃ©cnico:
+Registra en el plan técnico:
 
 - Biblioteca consultada.
-- VersiÃ³n.
-- DecisiÃ³n tomada.
+- Versión.
+- Decisión tomada.
 - Enlace o referencia documental cuando sea posible.
