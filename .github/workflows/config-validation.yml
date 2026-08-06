@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Validate JSON
         shell: pwsh
@@ -48,6 +50,7 @@ jobs:
             }
           }
 
-      - name: Check patch whitespace
+      - name: Check PR patch whitespace
+        if: github.event_name == 'pull_request'
         shell: bash
-        run: git diff --check
+        run: git diff --check "origin/${{ github.base_ref }}...HEAD"
