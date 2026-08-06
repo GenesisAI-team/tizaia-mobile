@@ -164,6 +164,15 @@ Antes de cualquier operación con GitHub se comprobará la autenticación con:
 gh auth status
 ```
 
+### 3.12. Kanban del proyecto
+
+El Kanban de trabajo es https://github.com/orgs/GenesisAI-team/projects/2. Las
+transiciones son exactas: issue preparada = `Backlog`; worker AO iniciado =
+`In progress`; PR abierta = `Review`; PR mergeada e issue cerrada = `Done`.
+AO actualiza el Project directamente mediante `gh project item-edit`. La PR
+vinculada no se añade como tarjeta separada. No deben hacerse commits
+adicionales solo para mover el Kanban.
+
 ## 4. VALIDACIÓN OBLIGATORIA ANTES DE ABRIR/ACTUALIZAR PR
 
 Ejecutar desde `mobile/` (salvo que la tarea indique otro directorio):
