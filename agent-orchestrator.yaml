@@ -1,0 +1,59 @@
+agent: codex
+runtime: process
+workspace: worktree
+defaultBranch: main
+
+symlinks:
+  - mobile/.env.local
+
+# Activar tras mergear BOOTSTRAP-001 (cuando exista mobile/pnpm-lock.yaml):
+# postCreate:
+#   - pnpm install --frozen-lockfile
+
+agentRulesFile: AGENTS.md
+
+orchestrator:
+  agent: codex
+
+worker:
+  agent: codex
+
+orchestratorSessionStrategy: reuse
+
+orchestratorRules: |
+  Trabaja siguiendo la metodología SDD del repositorio.
+  No escribas código directamente.
+  Divide el trabajo en issues pequeñas, independientes y verificables.
+  Cada issue debe indicar HU, RF, criterios de aceptación y comandos de validación.
+  Mantén como máximo tres implementaciones simultáneas.
+  No lances tareas con dependencias todavía no integradas.
+
+reactions:
+  ci-failed:
+    auto: true
+    action: send-to-agent
+    retries: 3
+    message: |
+      Analiza los checks fallidos, reproduce el error, corrige únicamente
+      la causa necesaria, ejecuta las validaciones y actualiza el PR.
+
+  changes-requested:
+    auto: true
+    action: send-to-agent
+    retries: 2
+    escalateAfter: "30m"
+
+  merge-conflicts:
+    auto: true
+    action: send-to-agent
+    retries: 2
+
+  agent-stuck:
+    action: notify
+    priority: urgent
+    threshold: "7m"
+
+  approved-and-green:
+    auto: false
+    action: notify
+    priority: action
