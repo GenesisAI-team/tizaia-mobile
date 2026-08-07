@@ -2,12 +2,9 @@
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "supabase": {
-      "type": "local",
-      "command": ["npx", "-y", "@supabase/mcp-server-supabase@latest", "--read-only"],
-      "enabled": true,
-      "environment": {
-        "SUPABASE_ACCESS_TOKEN": "{env:SUPABASE_ACCESS_TOKEN}"
-      }
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref={env:SUPABASE_PROJECT_REF}&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching",
+      "enabled": true
     },
     "n8n-mcp": {
       "type": "remote",
