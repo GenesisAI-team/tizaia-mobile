@@ -5,7 +5,9 @@
 - Node.js LTS, PNPM 10+, Android Studio, Android SDK Platform/Build Tools compatibles con Expo SDK 57 y un emulador o dispositivo Android con depuración USB.
 - Java 17 para Gradle/Expo SDK 57. Configurar `ANDROID_HOME` y añadir `platform-tools` al PATH.
 
-En esta máquina el build nativo no pudo completarse porque `java -version` devuelve 1.8.0_401; Gradle 9.3.1 exige Java 17 o posterior. Instala/configura JDK 17 y repite `pnpm build:android:debug`.
+El entorno de validación usa JDK 17.0.20 (Eclipse Adoptium). Si Gradle toma otra JVM, define `JAVA_HOME` antes de ejecutar el build.
+
+En la última comprobación Gradle inició correctamente, pero el build nativo falló durante CMake/Prefab porque Windows no pudo iniciar los `prefab_command.bat` generados para `expo-modules-core` y `react-native-screens`. Revisar la instalación/configuración de CMake/Prefab del Android SDK.
 
 ## Desarrollo
 
