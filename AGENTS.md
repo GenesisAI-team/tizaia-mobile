@@ -639,3 +639,20 @@ Registra en el plan técnico:
 - Versión.
 - Decisión tomada.
 - Enlace o referencia documental cuando sea posible.
+
+## 14. ERRORES OPERATIVOS
+
+Antes de diagnosticar problemas de Context7 o de la JVM de Gradle, leer
+`ERRORES_COMUNES.md`. Context7 se consulta obligatoriamente mediante las
+herramientas MCP `resolve_library_id` y `query_docs` del runtime del agente;
+no se intentan ejecutar como comandos de PowerShell. `ALL_TOOLS` tampoco es un
+comando ni una variable de PowerShell: solo puede existir como metadata del
+runtime de herramientas del agente.
+
+Para errores de Gradle se debe registrar la salida de `java -version`,
+`where.exe java` y `mobile/android/gradlew.bat --version`, revisar
+`org.gradle.java.home` y el Gradle JDK de Android Studio, y repetir la prueba
+después de `mobile/android/gradlew.bat --stop`. Se permite usar temporalmente
+`JAVA_HOME` con JDK 17 en la sesión actual. Nunca se versionan rutas locales,
+credenciales ni configuraciones de usuario. Si Context7 no está disponible,
+solo se acepta como fallback la documentación oficial y debe quedar registrado.
