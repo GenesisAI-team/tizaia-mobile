@@ -1,5 +1,7 @@
 # Tizaia Android foundation
 
+Consulta la [guía de errores comunes](../ERRORES_COMUNES.md) para diagnosticar Context7, Gradle y JDK.
+
 ## Requisitos
 
 - Node.js LTS, PNPM 10+, Android Studio, Android SDK Platform/Build Tools compatibles con Expo SDK 57 y un emulador o dispositivo Android con depuración USB.

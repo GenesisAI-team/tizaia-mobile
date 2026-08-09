@@ -1,5 +1,7 @@
 # AGENTS.md — tizaia-mobile (Mobile Teacher App)
 
+Antes de diagnosticar incidencias de herramientas o configurar el entorno, leer `ERRORES_COMUNES.md`. Las consultas técnicas deben usar `resolve_library_id` y `query_docs` desde el MCP de Context7 del runtime del agente; no se debe intentar ejecutar `ALL_TOOLS` desde PowerShell ni desde otra shell. Los diagnósticos Gradle deben registrar la JVM reportada por `gradlew.bat --version`.
+
 ## 1. MISIÓN DEL PROYECTO
 
 ==================================================
