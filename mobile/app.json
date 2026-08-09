@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Tizaia",
+    "slug": "tizaia-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.genesisai.tizaia"
+    },
+    "plugins": ["expo-sqlite"],
+    "extra": {
+      "bootstrap": "BOOTSTRAP-001"
+    }
+  }
+}
