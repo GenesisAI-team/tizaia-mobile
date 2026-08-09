@@ -32,6 +32,19 @@ Fallback web oficial (si aplica):
 Motivo del fallback:
 ```
 
+### Registro de la consulta realizada para esta guia
+
+| Campo | Registro |
+| --- | --- |
+| Biblioteca | Gradle |
+| Library ID | `/gradle/gradle` |
+| Version consultada | El wrapper local declara Gradle `9.3.1`; Context7 devolvio referencias `v8.14.3`, `v9_1_0_rc1` y `v9_0_0`, sin fijar una version de consulta solicitada. |
+| Consulta | Seleccion de JVM de Gradle: `JAVA_HOME`, `org.gradle.java.home`, `--version`, parada de daemons y diagnostico de incompatibilidades. |
+| Decision | Usar la salida del wrapper y la JVM del daemon como evidencia, preferir JDK 17 para este proyecto y mantener la configuracion desacoplada de rutas locales. |
+| Fuentes devueltas | [Gradle wrapper](https://github.com/gradle/gradle/blob/master/gradlew), [daemon](https://github.com/gradle/gradle/blob/master/platforms/documentation/docs/src/docs/userguide/reference/runtime-configuration/gradle_daemon.adoc) y [build environment](https://github.com/gradle/gradle/blob/master/platforms/documentation/docs/src/docs/userguide/reference/runtime-configuration/build_environment.adoc). |
+
+Si Context7 no esta disponible, el fallback permitido es consultar directamente la documentacion oficial enlazada y registrar la URL y el motivo. No se sustituyen las fuentes oficiales por resultados no verificados ni se inventan APIs.
+
 ## 2. Gradle, JDK y Android
 
 ### Diagnóstico inicial
