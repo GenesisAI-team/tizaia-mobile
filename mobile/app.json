@@ -5,10 +5,11 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "platforms": ["android"],
+    "scheme": "tizaia",
     "android": {
       "package": "com.genesisai.tizaia"
     },
-    "plugins": ["expo-sqlite"],
+    "plugins": ["expo-sqlite", "expo-web-browser"],
     "extra": {
       "bootstrap": "BOOTSTRAP-001"
     }
