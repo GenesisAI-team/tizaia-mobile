@@ -20,6 +20,12 @@ pnpm dev
 pnpm android
 ```
 
+Para iniciar Expo limpiando la caché:
+
+```powershell
+pnpm start:clear
+```
+
 Las variables `EXPO_PUBLIC_*` son configuración pública del cliente; no guardar secretos. El proyecto solo genera Android (`android/`); no se mantiene soporte iOS.
 
 ## Calidad y native checks
