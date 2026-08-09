@@ -8,5 +8,5 @@
 
 ## Documentación consultada
 
-Expo create-project/TypeScript y CNG, y Supabase Expo React Native quickstart (enlaces en el README). Context7 no estaba disponible como herramienta MCP en esta sesión; no se inventaron APIs y se usaron las guías oficiales actuales.
+Expo create-project/TypeScript y CNG, y Supabase Expo React Native quickstart (enlaces en el README). En la implementación de HU-001 se usaron además Context7 para Supabase JS y las guías oficiales actuales de Expo/Supabase; la anotación previa de que Context7 no estaba disponible era incorrecta.
 
