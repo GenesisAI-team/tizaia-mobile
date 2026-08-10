@@ -1,7 +1,5 @@
-export type RootStackParamList = {
-  Login: undefined;
+export type RootDrawerParamList = {
   Home: undefined;
-  Assistant: undefined;
   Attendance: undefined;
   Students: undefined;
   Tasks: undefined;
