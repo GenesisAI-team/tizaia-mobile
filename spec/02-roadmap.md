@@ -2,9 +2,9 @@
 
 | Orden | Tarea                                 | Trazabilidad                                | Estado                  |
 | ----- | ------------------------------------- | ------------------------------------------- | ----------------------- |
-| 1     | BOOTSTRAP-001 foundation, SDD y arnés | HU-001..HU-013; RNF-UX-001                  | in_progress             |
-| 2     | Auth y sesión                         | HU-001; RF-AUTH; INT-GOOGLE-001             | review                  |
-| 3     | Home, asistente y navegación          | HU-002..HU-003; RF-CHAT/RF-NAV; INT-N8N/RAG | backlog                 |
+| 1     | BOOTSTRAP-001 foundation, SDD y arnés | HU-001..HU-013; RNF-UX-001                  | done                    |
+| 2     | Auth y sesión                         | HU-001; RF-AUTH; INT-GOOGLE-001             | done                    |
+| 3     | Home, asistente y navegación          | HU-002..HU-003; RF-CHAT/RF-NAV; INT-N8N/RAG | review (HU-003)         |
 | 4     | Asistencia y tareas                   | HU-004/HU-007; RF-ASIS/RF-TASK              | backlog                 |
 | 5     | Alumnos y seguimiento                 | HU-005/HU-006; RF-ALUM                      | backlog                 |
 | 6     | Anotaciones                           | HU-008/HU-009; RF-NOTE                      | backlog                 |
