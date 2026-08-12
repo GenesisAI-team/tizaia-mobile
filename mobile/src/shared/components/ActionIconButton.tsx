@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, type AccessibilityState } from 'react-native';
 
 import { colors } from '../theme/designTokens';
 
 type ActionIconButtonProps = {
   accessibilityLabel: string;
+  accessibilityState?: AccessibilityState;
   children: React.ReactNode;
   disabled?: boolean;
   onPress?: () => void;
@@ -16,6 +17,7 @@ const DEFAULT_SIZE = 44;
 /** Botón táctil para iconos de acción; el contenido visual lo aporta el icono hijo. */
 export function ActionIconButton({
   accessibilityLabel,
+  accessibilityState,
   children,
   disabled = false,
   onPress,
@@ -26,6 +28,7 @@ export function ActionIconButton({
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
+      accessibilityState={accessibilityState}
       disabled={disabled}
       hitSlop={8}
       onPress={onPress}
