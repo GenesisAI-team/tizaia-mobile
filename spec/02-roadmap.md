@@ -5,10 +5,10 @@
 | 1     | BOOTSTRAP-001 foundation, SDD y arnés | HU-001..HU-013; RNF-UX-001                  | done                    |
 | 2     | Auth y sesión                         | HU-001; RF-AUTH; INT-GOOGLE-001             | done                    |
 | 3     | Home, asistente y navegación          | HU-002..HU-003; RF-CHAT/RF-NAV; INT-N8N/RAG | review (HU-003)         |
-| 4     | Asistencia y tareas                   | HU-004/HU-007; RF-ASIS/RF-TASK              | backlog                 |
-| 5     | Alumnos y seguimiento                 | HU-005/HU-006; RF-ALUM                      | backlog                 |
-| 6     | Anotaciones                           | HU-008/HU-009; RF-NOTE                      | backlog                 |
-| 7     | Correo y comunicaciones               | HU-010..HU-012; RF-MAIL/RF-COMM             | backlog                 |
+| 4     | Asistencia y tareas                   | HU-004/HU-007; RF-ASIS/RF-TASK              | review (diseño visual)  |
+| 5     | Alumnos y seguimiento                 | HU-005/HU-006; RF-ALUM                      | review (diseño visual)  |
+| 6     | Anotaciones                           | HU-008/HU-009; RF-NOTE                      | review (diseño visual)  |
+| 7     | Correo y comunicaciones               | HU-010..HU-012; RF-MAIL/RF-COMM             | review (diseño visual)  |
 | 8     | Alertas                               | HU-013; RF-FOLLOW                           | blocked by Q-001..Q-003 |
 
 ## Descomposición preliminar por HU
