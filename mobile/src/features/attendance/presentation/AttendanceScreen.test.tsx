@@ -6,7 +6,7 @@ import {
   type ReactTestRenderer,
 } from 'react-test-renderer';
 
-import { CircularStatusButton } from '../../../shared/components/CircularStatusButton';
+import { StatusCircleButton } from '../../../shared/components/StatusCircleButton';
 import { StudentAvatar } from '../../../shared/components/StudentAvatar';
 import { AttendanceScreen } from './AttendanceScreen';
 import {
@@ -116,7 +116,7 @@ describe('AttendanceScreen (diseño visual, issue #17)', () => {
 
   it('renderiza un botón circular por alumno y fecha en la matriz', () => {
     const renderer = renderScreen();
-    expect(renderer.root.findAllByType(CircularStatusButton)).toHaveLength(
+    expect(renderer.root.findAllByType(StatusCircleButton)).toHaveLength(
       MOCK_STUDENTS.length * ATTENDANCE_DATE_COUNT,
     );
   });
@@ -177,7 +177,7 @@ describe('AttendanceScreen (diseño visual, issue #17)', () => {
       ScrollView,
       'attendance-cells-scroll',
     );
-    const buttons = cellsScroll.findAllByType(CircularStatusButton);
+    const buttons = cellsScroll.findAllByType(StatusCircleButton);
     const labels = buttons.map(
       (button) => button.props.accessibilityLabel as string,
     );

@@ -1,10 +1,13 @@
 import { useMemo, useRef } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { CircularStatusButton } from '../../../shared/components/CircularStatusButton';
-import type { CircularStatusVariant } from '../../../shared/components/CircularStatusButton';
+import { StatusCircleButton } from '../../../shared/components/StatusCircleButton';
 import { StudentAvatar } from '../../../shared/components/StudentAvatar';
-import { theme } from '../../../shared/theme';
+import {
+  colors,
+  spacing,
+  typography,
+} from '../../../shared/theme/designTokens';
 import {
   ATTENDANCE_ROW_HEIGHT,
   AVATAR_COLUMN_WIDTH,
@@ -13,17 +16,18 @@ import {
 } from './attendanceLayout';
 import {
   buildRecentDates,
+  getStudentInitials,
   MOCK_STUDENTS,
   mockStatusAt,
 } from './mockAttendance';
 import type { MockAttendanceStatus } from './mockAttendance';
 import { syncHeaderScroll } from './scrollSync';
 
-const STATUS_VARIANTS: Record<MockAttendanceStatus, CircularStatusVariant> = {
-  absent: 'danger',
-  attended: 'success',
-  late: 'warning',
-  unmarked: 'neutral',
+const STATUS_COLORS: Record<MockAttendanceStatus, string> = {
+  absent: colors.danger,
+  attended: colors.success,
+  late: colors.warning,
+  unmarked: colors.surface,
 };
 
 const STATUS_LABELS: Record<MockAttendanceStatus, string> = {
@@ -44,6 +48,7 @@ const handleVisualPress = (): void => undefined;
  * Diseño visual de Asistencia (HU-004, issue #17): matriz con columna fija de
  * avatares, cinco fechas recientes (tres visibles) y scroll horizontal
  * sincronizado entre cabecera y celdas. Solo datos mock; sin lógica RF.
+ * Consume los contratos compartidos de UI-000 (#16, PR #22).
  */
 export function AttendanceScreen(): React.JSX.Element {
   const dates = useMemo(() => buildRecentDates(new Date()), []);
@@ -87,10 +92,10 @@ export function AttendanceScreen(): React.JSX.Element {
             {MOCK_STUDENTS.map((student) => (
               <View key={student.id} style={styles.avatarCell}>
                 <StudentAvatar
-                  name={student.name}
-                  photoUrl={student.photoUrl}
+                  accessibilityLabel={`Foto de ${student.name}`}
+                  imageUri={student.photoUrl}
+                  initials={getStudentInitials(student.name)}
                   size={40}
-                  testID={`attendance-avatar-${student.id}`}
                 />
               </View>
             ))}
@@ -113,11 +118,11 @@ export function AttendanceScreen(): React.JSX.Element {
                         key={date}
                         style={[styles.statusCell, { width: cellWidth }]}
                       >
-                        <CircularStatusButton
+                        <StatusCircleButton
                           accessibilityLabel={`${student.name}, ${label.weekday} ${label.day}: ${STATUS_LABELS[status]}`}
+                          color={STATUS_COLORS[status]}
                           onPress={handleVisualPress}
                           testID={`attendance-cell-${student.id}-${date}`}
-                          variant={STATUS_VARIANTS[status]}
                         />
                       </View>
                     );
@@ -134,19 +139,19 @@ export function AttendanceScreen(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     flex: 1,
   },
   title: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.typography.title,
-    fontWeight: '700',
-    paddingVertical: theme.spacing.lg,
+    color: colors.text,
+    fontSize: typography.title.fontSize,
+    fontWeight: typography.title.fontWeight,
+    paddingVertical: spacing.md,
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
   headerRow: {
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     borderBottomWidth: 1,
     flexDirection: 'row',
   },
@@ -158,19 +163,19 @@ const styles = StyleSheet.create({
   },
   dateCell: {
     alignItems: 'center',
-    borderLeftColor: theme.colors.border,
+    borderLeftColor: colors.border,
     borderLeftWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: spacing.sm,
   },
   dateWeekday: {
-    color: theme.colors.textSecondary,
-    fontSize: theme.typography.caption,
-    fontWeight: '600',
+    color: colors.textMuted,
+    fontSize: typography.caption.fontSize,
+    fontWeight: typography.caption.fontWeight,
   },
   dateDay: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.typography.body,
+    color: colors.text,
+    fontSize: typography.body.fontSize,
     fontWeight: '700',
   },
   body: {
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   avatarColumn: {
-    borderRightColor: theme.colors.border,
+    borderRightColor: colors.border,
     borderRightWidth: 1,
     width: AVATAR_COLUMN_WIDTH,
   },
@@ -195,7 +200,7 @@ const styles = StyleSheet.create({
   },
   statusCell: {
     alignItems: 'center',
-    borderLeftColor: theme.colors.border,
+    borderLeftColor: colors.border,
     borderLeftWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
   },

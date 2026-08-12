@@ -1,70 +1,65 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '../theme';
+import { colors, radius } from '../theme/designTokens';
 
-export type StudentAvatarProps = {
-  name: string;
-  photoUrl?: string | null;
+type StudentAvatarProps = {
+  accessibilityLabel?: string;
+  imageUri?: string;
+  initials?: string;
   size?: number;
-  testID?: string;
 };
 
-/** Iniciales visibles cuando no hay foto: primera letra de hasta dos palabras. */
-export function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
-}
+const DEFAULT_SIZE = 56;
 
-/**
- * Avatar circular de alumno (contrato UI-000, issue #16).
- * Puramente visual: foto si hay `photoUrl`, iniciales en caso contrario.
- */
+/** Avatar/foto cuadrada de alumno usado por las pantallas de listado y matrices. */
 export function StudentAvatar({
-  name,
-  photoUrl,
-  size = 44,
-  testID,
+  accessibilityLabel = 'Foto del alumno',
+  imageUri,
+  initials = 'AL',
+  size = DEFAULT_SIZE,
 }: StudentAvatarProps): React.JSX.Element {
-  const shape = {
-    borderRadius: size / 2,
+  const dimensions = {
+    borderRadius: radius.sm,
     height: size,
     width: size,
   };
+
+  if (imageUri) {
+    return (
+      <Image
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="image"
+        source={{ uri: imageUri }}
+        style={[styles.avatar, dimensions]}
+      />
+    );
+  }
+
   return (
     <View
-      accessibilityLabel={`Foto de ${name}`}
-      style={[styles.container, shape]}
-      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="image"
+      style={[styles.avatar, styles.placeholder, dimensions]}
     >
-      {photoUrl ? (
-        <Image source={{ uri: photoUrl }} style={shape} />
-      ) : (
-        <Text
-          style={[styles.initials, { fontSize: size * 0.4 }]}
-          maxFontSizeMultiplier={1.5}
-        >
-          {getInitials(name)}
-        </Text>
-      )}
+      <Text style={[styles.initials, { fontSize: size / 3.2 }]}>
+        {initials}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
+  avatar: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
     borderWidth: 1,
+  },
+  placeholder: {
+    alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
   initials: {
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
+    color: colors.textMuted,
+    fontWeight: '700',
   },
 });
