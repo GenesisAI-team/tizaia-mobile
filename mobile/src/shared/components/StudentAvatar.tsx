@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius } from '../theme/designTokens';
+import { tizaiaColors } from '../theme/tizaiaTheme';
 
 type StudentAvatarProps = {
   accessibilityLabel?: string;
@@ -9,9 +9,13 @@ type StudentAvatarProps = {
   size?: number;
 };
 
-const DEFAULT_SIZE = 56;
+const DEFAULT_SIZE = 46;
 
-/** Avatar/foto cuadrada de alumno usado por las pantallas de listado y matrices. */
+/**
+ * Avatar circular de alumno/remitente (DESIGN.md §4.5): fondo #B9D9F4 con
+ * iniciales en tinta. Tamaños de diseño: 92/95/98/90/108/96/66/56px
+ * (el componente recibe dp, p. ej. 46 para la variante de 92px).
+ */
 export function StudentAvatar({
   accessibilityLabel = 'Foto del alumno',
   imageUri,
@@ -19,7 +23,7 @@ export function StudentAvatar({
   size = DEFAULT_SIZE,
 }: StudentAvatarProps): React.JSX.Element {
   const dimensions = {
-    borderRadius: radius.sm,
+    borderRadius: size / 2,
     height: size,
     width: size,
   };
@@ -41,7 +45,7 @@ export function StudentAvatar({
       accessibilityRole="image"
       style={[styles.avatar, styles.placeholder, dimensions]}
     >
-      <Text style={[styles.initials, { fontSize: size / 3.2 }]}>
+      <Text style={[styles.initials, { fontSize: size * 0.39 }]}>
         {initials}
       </Text>
     </View>
@@ -50,16 +54,14 @@ export function StudentAvatar({
 
 const styles = StyleSheet.create({
   avatar: {
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderWidth: 1,
+    backgroundColor: tizaiaColors.avatar,
+  },
+  initials: {
+    color: tizaiaColors.ink,
+    fontWeight: '400',
   },
   placeholder: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  initials: {
-    color: colors.textMuted,
-    fontWeight: '700',
   },
 });

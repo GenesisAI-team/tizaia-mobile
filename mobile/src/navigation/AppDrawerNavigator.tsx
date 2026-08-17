@@ -2,7 +2,7 @@ import {
   createDrawerNavigator,
   type DrawerNavigationProp,
 } from '@react-navigation/drawer';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AnnotationsScreen } from '../features/annotations/presentation/AnnotationsScreen';
 import { HomeScreen } from '../features/assistant/presentation/HomeScreen';
@@ -10,7 +10,7 @@ import { AttendanceScreen } from '../features/attendance/presentation/Attendance
 import { MailScreen } from '../features/mail/presentation/MailScreen';
 import { StudentsScreen } from '../features/students/presentation/StudentsScreen';
 import { TasksScreen } from '../features/tasks/presentation/TasksScreen';
-import { AppLogo } from '../shared/components/AppLogo';
+import { dp, tizaiaColors } from '../shared/theme/tizaiaTheme';
 import { AppDrawerContent } from './AppDrawerContent';
 import type { RootDrawerParamList } from './types';
 
@@ -18,6 +18,7 @@ const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
 type Navigation = DrawerNavigationProp<RootDrawerParamList>;
 
+/** Header común (DESIGN.md §4.1): texto LOGO a la izquierda. */
 function HeaderLogo({ navigation }: { navigation: Navigation }) {
   return (
     <Pressable
@@ -28,11 +29,12 @@ function HeaderLogo({ navigation }: { navigation: Navigation }) {
       style={styles.headerButton}
       testID="header-logo"
     >
-      <AppLogo size={32} />
+      <Text style={styles.headerLogo}>LOGO</Text>
     </Pressable>
   );
 }
 
+/** Header común (DESIGN.md §4.1): icono hamburguesa de tres barras. */
 function HeaderMenuButton({ navigation }: { navigation: Navigation }) {
   return (
     <Pressable
@@ -43,7 +45,11 @@ function HeaderMenuButton({ navigation }: { navigation: Navigation }) {
       style={styles.headerButton}
       testID="header-menu-button"
     >
-      <Text style={styles.menuIcon}>☰</Text>
+      <View style={styles.menuIcon}>
+        <View style={styles.menuLine} />
+        <View style={styles.menuLine} />
+        <View style={styles.menuLine} />
+      </View>
     </Pressable>
   );
 }
@@ -82,7 +88,21 @@ const styles = StyleSheet.create({
     minHeight: 48,
     minWidth: 48,
   },
+  headerLogo: {
+    color: tizaiaColors.ink,
+    fontSize: dp(38),
+    fontWeight: '700',
+  },
   menuIcon: {
-    fontSize: 24,
+    gap: dp(8),
+    height: dp(44),
+    justifyContent: 'center',
+    width: dp(52),
+  },
+  menuLine: {
+    backgroundColor: tizaiaColors.ink,
+    borderRadius: dp(3),
+    height: dp(5),
+    width: dp(48),
   },
 });
