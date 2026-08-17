@@ -5,9 +5,13 @@ import {
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AnnotationsScreen } from '../features/annotations/presentation/AnnotationsScreen';
+import { NewAnnotationScreen } from '../features/annotations/presentation/NewAnnotationScreen';
 import { HomeScreen } from '../features/assistant/presentation/HomeScreen';
 import { AttendanceScreen } from '../features/attendance/presentation/AttendanceScreen';
+import { ClassesScreen } from '../features/classes/presentation/ClassesScreen';
 import { MailScreen } from '../features/mail/presentation/MailScreen';
+import { NewMailScreen } from '../features/mail/presentation/NewMailScreen';
+import { StudentProfileScreen } from '../features/students/presentation/StudentProfileScreen';
 import { StudentsScreen } from '../features/students/presentation/StudentsScreen';
 import { TasksScreen } from '../features/tasks/presentation/TasksScreen';
 import { dp, tizaiaColors } from '../shared/theme/tizaiaTheme';
@@ -73,6 +77,10 @@ export function AppDrawerNavigator(): React.JSX.Element {
       <Drawer.Screen name="Tasks" component={TasksScreen} />
       <Drawer.Screen name="Mail" component={MailScreen} />
       <Drawer.Screen name="Annotations" component={AnnotationsScreen} />
+      <Drawer.Screen name="Classes" component={ClassesScreen} />
+      <Drawer.Screen name="NewAnnotation" component={NewAnnotationScreen} />
+      <Drawer.Screen name="NewMail" component={NewMailScreen} />
+      <Drawer.Screen name="StudentProfile" component={StudentProfileScreen} />
     </Drawer.Navigator>
   );
 }

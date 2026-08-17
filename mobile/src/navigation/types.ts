@@ -5,4 +5,8 @@ export type RootDrawerParamList = {
   Tasks: undefined;
   Mail: undefined;
   Annotations: undefined;
+  Classes: undefined;
+  NewAnnotation: undefined;
+  NewMail: undefined;
+  StudentProfile: undefined;
 };

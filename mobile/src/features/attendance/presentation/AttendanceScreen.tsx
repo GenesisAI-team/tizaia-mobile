@@ -10,6 +10,7 @@ import {
   type StatusCellState,
 } from '../../../shared/components';
 import { dp } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
 
 const ATTENDANCE_DATES: MatrixBoardColumn[] = [
   { id: 'day-1', label: 'Día 1' },
@@ -54,6 +55,8 @@ const MOCK_CELL_STATES: Record<string, StatusCellState> = {
  * El ciclo y persistencia de asistencia quedan para la fase funcional.
  */
 export function AttendanceScreen(): React.JSX.Element {
+  const onPressTab = useTabBarPress();
+
   return (
     <ScreenBackground>
       <View style={styles.titleBlock}>
@@ -69,7 +72,7 @@ export function AttendanceScreen(): React.JSX.Element {
           rows={MOCK_STUDENTS}
         />
       </View>
-      <TabBar style={styles.tabBar} />
+      <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
 }

@@ -10,6 +10,7 @@ import {
 } from '../../../shared/components';
 import { MOCK_TEACHER_PROFILE } from '../../../shared/mock/teacher';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
 
 type ClassListItem = {
   id: string;
@@ -34,6 +35,8 @@ const MOCK_CLASSES: ClassListItem[] = [
  * funcional.
  */
 export function ClassesScreen(): React.JSX.Element {
+  const onPressTab = useTabBarPress();
+
   return (
     <ScreenBackground>
       <View style={styles.titleBlock}>
@@ -65,7 +68,7 @@ export function ClassesScreen(): React.JSX.Element {
         style={styles.list}
       />
       <Fab accessibilityLabel="Añadir clase" style={styles.fab} />
-      <TabBar style={styles.tabBar} />
+      <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
 }

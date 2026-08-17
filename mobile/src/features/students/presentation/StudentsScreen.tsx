@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
   Fab,
@@ -15,6 +17,8 @@ import {
   WarningIcon,
 } from '../../../shared/components/icons';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import type { RootDrawerParamList } from '../../../navigation/types';
 
 type StudentListItem = {
   id: string;
@@ -37,6 +41,8 @@ const INITIAL_STUDENTS: StudentListItem[] = [
  * fase funcional (UI-023 cablea las rutas).
  */
 export function StudentsScreen(): React.JSX.Element {
+  const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
+  const onPressTab = useTabBarPress();
   const [students, setStudents] = useState(INITIAL_STUDENTS);
 
   const removeStudent = (studentId: string): void => {
@@ -71,9 +77,7 @@ export function StudentsScreen(): React.JSX.Element {
                 accessibilityLabel={`Ver detalle de ${item.name}`}
                 accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => {
-                  // Ruta futura StudentDetail: se cablea en UI-023.
-                }}
+                onPress={() => navigation.navigate('StudentProfile')}
                 style={({ pressed }) => [
                   styles.viewButton,
                   pressed && styles.pressed,
@@ -86,9 +90,7 @@ export function StudentsScreen(): React.JSX.Element {
                 accessibilityLabel={`Crear anotación para ${item.name}`}
                 accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => {
-                  // Ruta futura NewAnnotation: se cablea en UI-023.
-                }}
+                onPress={() => navigation.navigate('NewAnnotation')}
                 style={({ pressed }) => [
                   styles.warnButton,
                   pressed && styles.pressed,
@@ -116,7 +118,7 @@ export function StudentsScreen(): React.JSX.Element {
         style={styles.list}
       />
       <Fab accessibilityLabel="Añadir alumno" style={styles.fab} />
-      <TabBar style={styles.tabBar} />
+      <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
 }

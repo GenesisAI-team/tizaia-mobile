@@ -18,6 +18,7 @@ import {
   TabBar,
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
 
 type Recipient = {
   id: string;
@@ -41,6 +42,7 @@ const INITIAL_RECIPIENTS: Recipient[] = [
  */
 export function NewMailScreen(): React.JSX.Element {
   const headerHeight = useHeaderHeight();
+  const onPressTab = useTabBarPress();
   const [recipients, setRecipients] = useState(INITIAL_RECIPIENTS);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -185,7 +187,7 @@ export function NewMailScreen(): React.JSX.Element {
             </View>
           </GlassCard>
         </ScrollView>
-        <TabBar style={styles.tabBar} />
+        <TabBar onPressTab={onPressTab} style={styles.tabBar} />
       </KeyboardAvoidingView>
     </ScreenBackground>
   );

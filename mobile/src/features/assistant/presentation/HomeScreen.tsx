@@ -15,6 +15,7 @@ import { ScreenBackground } from '../../../shared/components/ScreenBackground';
 import { ScreenTitle } from '../../../shared/components/ScreenTitle';
 import { TabBar } from '../../../shared/components/TabBar';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { AssistantGateway } from '../domain/assistantGateway';
 import { FakeAssistantGateway } from '../infrastructure/fakeAssistantGateway';
 
@@ -35,6 +36,7 @@ const ASSISTANT_ERROR_MESSAGE =
  */
 export function HomeScreen(): React.JSX.Element {
   const headerHeight = useHeaderHeight();
+  const onPressTab = useTabBarPress();
   const gatewayRef = useRef<AssistantGateway | null>(null);
   if (gatewayRef.current === null) {
     gatewayRef.current = new FakeAssistantGateway();
@@ -143,7 +145,11 @@ export function HomeScreen(): React.JSX.Element {
             <Text style={styles.sendButtonLabel}>➤</Text>
           </Pressable>
         </View>
-        <TabBar activeTab="home" style={styles.tabBar} />
+        <TabBar
+          activeTab="home"
+          onPressTab={onPressTab}
+          style={styles.tabBar}
+        />
       </KeyboardAvoidingView>
     </ScreenBackground>
   );

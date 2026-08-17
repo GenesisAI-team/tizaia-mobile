@@ -1,6 +1,6 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { colors } from '../../theme/designTokens';
+import { tizaiaColors } from '../../theme/tizaiaTheme';
 
 type EyeIconProps = {
   color?: string;
@@ -8,7 +8,7 @@ type EyeIconProps = {
 };
 
 export function EyeIcon({
-  color = colors.info,
+  color = tizaiaColors.inkButton,
   size = 24,
 }: EyeIconProps): React.JSX.Element {
   return (

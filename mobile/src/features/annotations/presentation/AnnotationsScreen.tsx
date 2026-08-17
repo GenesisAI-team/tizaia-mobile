@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
   Fab,
@@ -11,6 +13,8 @@ import {
 } from '../../../shared/components';
 import { EyeIcon, MailPlusIcon } from '../../../shared/components/icons';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import type { RootDrawerParamList } from '../../../navigation/types';
 
 type AnnotationListItem = {
   id: string;
@@ -33,6 +37,8 @@ const INITIAL_ANNOTATIONS: AnnotationListItem[] = [
  * Detalle, nuevo mail y persistencia quedan para la fase funcional.
  */
 export function AnnotationsScreen(): React.JSX.Element {
+  const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
+  const onPressTab = useTabBarPress();
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
   const toggleChecked = (annotationId: string): void => {
@@ -69,9 +75,7 @@ export function AnnotationsScreen(): React.JSX.Element {
                   accessibilityLabel={`Ver alumno ${item.studentName}`}
                   accessibilityRole="button"
                   hitSlop={8}
-                  onPress={() => {
-                    // La navegación a Perfil Alumno se cablea en UI-023.
-                  }}
+                  onPress={() => navigation.navigate('StudentProfile')}
                   style={({ pressed }) => [
                     styles.viewButton,
                     pressed && styles.pressed,
@@ -84,9 +88,7 @@ export function AnnotationsScreen(): React.JSX.Element {
                   accessibilityLabel={`Crear mail para ${item.studentName}`}
                   accessibilityRole="button"
                   hitSlop={8}
-                  onPress={() => {
-                    // Ruta futura NewMail: se cablea en UI-023.
-                  }}
+                  onPress={() => navigation.navigate('NewMail')}
                   style={({ pressed }) => [
                     styles.sendButton,
                     pressed && styles.pressed,
@@ -115,8 +117,12 @@ export function AnnotationsScreen(): React.JSX.Element {
         }}
         style={styles.list}
       />
-      <Fab accessibilityLabel="Añadir anotación" style={styles.fab} />
-      <TabBar style={styles.tabBar} />
+      <Fab
+        accessibilityLabel="Añadir anotación"
+        onPress={() => navigation.navigate('NewAnnotation')}
+        style={styles.fab}
+      />
+      <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
 }
