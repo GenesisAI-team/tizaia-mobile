@@ -1,8 +1,10 @@
 export { ActionIconButton } from './ActionIconButton';
+export { ActiveClassCard } from './ActiveClassCard';
 export { Fab } from './Fab';
 export { GlassCard } from './GlassCard';
 export { MatrixBoard } from './MatrixBoard';
 export type { MatrixBoardColumn, MatrixBoardRow } from './MatrixBoard';
+export { ProfileCard } from './ProfileCard';
 export { ScreenBackground } from './ScreenBackground';
 export { ScreenTitle } from './ScreenTitle';
 export { StatusCell } from './StatusCell';
