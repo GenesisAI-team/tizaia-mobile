@@ -1,3 +1,8 @@
+/**
+ * @deprecated Paleta del prototipo estructural inicial. El tema definitivo es
+ * `tizaiaTheme.ts` (contrato: DESIGN.md §3). Este archivo se eliminará en la
+ * integración final (UI-023) cuando todas las pantallas hayan migrado.
+ */
 export const colors = {
   background: '#ffffff',
   surface: '#f8fafc',

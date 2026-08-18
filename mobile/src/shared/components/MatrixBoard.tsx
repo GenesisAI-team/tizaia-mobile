@@ -4,13 +4,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
 
-import { colors, radius, spacing } from '../theme/designTokens';
-import { StatusCircleButton } from './StatusCircleButton';
+import { dp, tizaiaColors } from '../theme/tizaiaTheme';
+import { StatusCell, type StatusCellState } from './StatusCell';
 import { StudentAvatar } from './StudentAvatar';
 
 export type MatrixBoardColumn = {
@@ -28,27 +29,54 @@ type MatrixBoardProps = {
     row: MatrixBoardRow,
     column: MatrixBoardColumn,
   ) => string;
+  /** Estados mock por celda (`${row.id}:${column.id}`); por defecto pending. */
+  cellStates?: Record<string, StatusCellState>;
   columns: MatrixBoardColumn[];
+  /** En Tareas el pendiente no tiene fondo (DESIGN.md §4.8). */
+  pendingTransparent?: boolean;
   rows: MatrixBoardRow[];
+  /** Tareas muestra el nombre bajo el avatar (DESIGN.md §5.4). */
+  showRowNames?: boolean;
 };
 
-const COLUMN_WIDTH = 88;
-const AVATAR_COLUMN_WIDTH = 72;
-const VISIBLE_COLUMNS = 3;
+const AVATAR_COLUMN_WIDTH = dp(115);
+const COLUMN_WIDTH = dp(121);
+const MAX_VISIBLE_COLUMNS = 5;
+
+/** Ciclo visual local de estado al pulsar una celda (sin lógica de negocio). */
+export const getNextStatusCellState = (
+  state: StatusCellState,
+): StatusCellState => {
+  if (state === 'pending') return 'done';
+  if (state === 'done') return 'undone';
+  return 'pending';
+};
 
 /**
- * Matriz visual reutilizable para Asistencia/Tareas: avatar fijo, cabecera y
- * filas con scroll horizontal sincronizado. Solo presentación y datos mock.
+ * Matriz visual de Asistencia/Tareas (DESIGN.md §4.8, §5.2, §5.4): columna de
+ * avatar fija, cabeceras melocotón y celdas de estado; scroll horizontal
+ * sincronizado cabecera/filas y scroll vertical de alumnos.
  */
 export function MatrixBoard({
   actionAccessibilityLabel,
+  cellStates,
   columns,
+  pendingTransparent = false,
   rows,
+  showRowNames = false,
 }: MatrixBoardProps): React.JSX.Element {
   const headerScrollRef = useRef<ScrollView | null>(null);
   const rowScrollRefs = useRef(new Map<string, ScrollView>());
   const syncingRef = useRef(false);
-  const [pressedCells, setPressedCells] = useState<Record<string, boolean>>({});
+  const [toggledStates, setToggledStates] = useState<
+    Record<string, StatusCellState>
+  >({});
+  const { width: windowWidth } = useWindowDimensions();
+
+  const visibleColumnsWidth = Math.min(
+    COLUMN_WIDTH * MAX_VISIBLE_COLUMNS,
+    windowWidth - AVATAR_COLUMN_WIDTH - dp(36),
+  );
 
   const syncHorizontalScroll = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -65,10 +93,13 @@ export function MatrixBoard({
     });
   };
 
-  const toggleCell = (cellId: string): void => {
-    setPressedCells((current) => ({
+  const getCellState = (cellId: string): StatusCellState =>
+    toggledStates[cellId] ?? cellStates?.[cellId] ?? 'pending';
+
+  const cycleCell = (cellId: string): void => {
+    setToggledStates((current) => ({
       ...current,
-      [cellId]: !current[cellId],
+      [cellId]: getNextStatusCellState(getCellState(cellId)),
     }));
   };
 
@@ -81,21 +112,22 @@ export function MatrixBoard({
           onScroll={syncHorizontalScroll}
           ref={headerScrollRef}
           scrollEventThrottle={16}
-          showsHorizontalScrollIndicator
-          style={styles.horizontalScroll}
+          showsHorizontalScrollIndicator={false}
+          style={[styles.horizontalScroll, { maxWidth: visibleColumnsWidth }]}
         >
           {columns.map((column) => (
             <View key={column.id} style={styles.columnCell}>
-              <Text numberOfLines={1} style={styles.columnLabel}>
-                {column.label}
-              </Text>
+              <View style={styles.headerChip}>
+                <Text numberOfLines={1} style={styles.headerLabel}>
+                  {column.label}
+                </Text>
+              </View>
             </View>
           ))}
         </ScrollView>
       </View>
       <FlatList
         data={rows}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
         keyExtractor={(row) => row.id}
         renderItem={({ item: row }) => (
           <View style={styles.row}>
@@ -103,7 +135,13 @@ export function MatrixBoard({
               <StudentAvatar
                 accessibilityLabel={`Foto de ${row.studentName}`}
                 initials={row.studentName.slice(0, 2).toUpperCase()}
+                size={showRowNames ? dp(66) : dp(92)}
               />
+              {showRowNames && (
+                <Text numberOfLines={1} style={styles.rowName}>
+                  {row.studentName}
+                </Text>
+              )}
             </View>
             <ScrollView
               horizontal
@@ -114,19 +152,20 @@ export function MatrixBoard({
               }}
               scrollEventThrottle={16}
               showsHorizontalScrollIndicator={false}
-              style={styles.horizontalScroll}
+              style={[
+                styles.horizontalScroll,
+                { maxWidth: visibleColumnsWidth },
+              ]}
             >
               {columns.map((column) => {
                 const cellId = `${row.id}:${column.id}`;
-                const isPressed = pressedCells[cellId] ?? false;
                 return (
                   <View key={column.id} style={styles.columnCell}>
-                    <StatusCircleButton
+                    <StatusCell
                       accessibilityLabel={actionAccessibilityLabel(row, column)}
-                      color={
-                        isPressed ? colors.surfaceMuted : colors.background
-                      }
-                      onPress={() => toggleCell(cellId)}
+                      onPress={() => cycleCell(cellId)}
+                      pendingTransparent={pendingTransparent}
+                      state={getCellState(cellId)}
                       testID={`matrix-cell-${cellId}`}
                     />
                   </View>
@@ -135,7 +174,7 @@ export function MatrixBoard({
             </ScrollView>
           </View>
         )}
-        showsVerticalScrollIndicator
+        showsVerticalScrollIndicator={false}
         style={styles.rows}
       />
     </View>
@@ -155,47 +194,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: COLUMN_WIDTH,
   },
-  columnLabel: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-    maxWidth: COLUMN_WIDTH - spacing.sm,
-    textAlign: 'center',
-  },
   container: {
     alignSelf: 'center',
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
+    backgroundColor: tizaiaColors.cardGlass,
+    borderColor: tizaiaColors.white,
+    borderRadius: dp(22),
     borderWidth: 1,
     flex: 1,
-    maxWidth: 520,
     overflow: 'hidden',
     width: '100%',
   },
+  headerChip: {
+    alignItems: 'center',
+    backgroundColor: tizaiaColors.peach,
+    borderRadius: dp(12),
+    height: dp(103),
+    justifyContent: 'center',
+    width: dp(111),
+  },
+  headerLabel: {
+    color: tizaiaColors.ink,
+    fontSize: dp(25),
+    textAlign: 'center',
+  },
   headerRow: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
     flexDirection: 'row',
-    minHeight: 64,
+    minHeight: dp(127),
   },
   horizontalScroll: {
-    maxWidth: COLUMN_WIDTH * VISIBLE_COLUMNS,
+    flexGrow: 0,
   },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
-    minHeight: 72,
-    paddingVertical: spacing.sm,
+    minHeight: dp(127),
+  },
+  rowName: {
+    color: tizaiaColors.ink,
+    fontSize: dp(22),
+    marginTop: dp(4),
+    textAlign: 'center',
   },
   rows: {
     flex: 1,
-  },
-  separator: {
-    backgroundColor: colors.border,
-    height: 1,
-    marginLeft: AVATAR_COLUMN_WIDTH,
   },
 });
