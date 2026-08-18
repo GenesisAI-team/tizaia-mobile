@@ -7,7 +7,6 @@ import {
   type ReactTestRenderer,
 } from 'react-test-renderer';
 
-import { AppLogo } from '../../../shared/components/AppLogo';
 import { GoogleGIcon } from '../../../shared/components/GoogleGIcon';
 import { AuthProvider } from '../application/AuthProvider';
 import type {
@@ -16,6 +15,7 @@ import type {
   AuthResult,
 } from '../domain/authGateway';
 import { LoginScreen } from './LoginScreen';
+import { BrandMark } from './BrandMark';
 
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -82,9 +82,9 @@ function findButtonByText(
 }
 
 describe('LoginScreen', () => {
-  it('muestra el logotipo de la aplicación al cargar (RF-AUTH-005)', async () => {
+  it('muestra la marca de la aplicación al cargar (RF-AUTH-005)', async () => {
     const renderer = await renderLogin(createGatewayStub());
-    expect(renderer.root.findAllByType(AppLogo)).toHaveLength(1);
+    expect(renderer.root.findAllByType(BrandMark)).toHaveLength(1);
   });
 
   it('muestra el título y ambos botones con los textos exactos', async () => {
@@ -92,9 +92,9 @@ describe('LoginScreen', () => {
     const texts = renderer.root
       .findAllByType(Text)
       .map((t) => t.props.children);
-    expect(texts).toContain('Iniciar Sesión');
+    expect(texts).toContain('Iniciar sesión');
     expect(texts).toContain('Continuar con Google');
-    expect(findButtonByText(renderer, 'Iniciar Sesión')).toBeTruthy();
+    expect(findButtonByText(renderer, 'Iniciar sesión')).toBeTruthy();
     expect(findButtonByText(renderer, 'Continuar con Google')).toBeTruthy();
   });
 
@@ -121,7 +121,7 @@ describe('LoginScreen', () => {
       passwordInput.props.onChangeText('secreto');
     });
     await act(async () => {
-      findButtonByText(renderer, 'Iniciar Sesión').props.onPress();
+      findButtonByText(renderer, 'Iniciar sesión').props.onPress();
     });
     expect(gateway.signInWithPassword).toHaveBeenCalledWith({
       email: 'profesor@tizaia.es',
@@ -145,12 +145,12 @@ describe('LoginScreen', () => {
     );
     const renderer = await renderLogin(gateway);
     await act(async () => {
-      findButtonByText(renderer, 'Iniciar Sesión').props.onPress();
+      findButtonByText(renderer, 'Iniciar sesión').props.onPress();
     });
     expect(
       renderer.root.findByProps({ accessibilityLabel: 'Cargando' }),
     ).toBeTruthy();
-    expect(findButtonByText(renderer, 'Iniciar Sesión').props.disabled).toBe(
+    expect(findButtonByText(renderer, 'Iniciar sesión').props.disabled).toBe(
       true,
     );
     expect(
@@ -165,7 +165,7 @@ describe('LoginScreen', () => {
     });
     const renderer = await renderLogin(gateway);
     await act(async () => {
-      findButtonByText(renderer, 'Iniciar Sesión').props.onPress();
+      findButtonByText(renderer, 'Iniciar sesión').props.onPress();
     });
     const alert = renderer.root.findByProps({ accessibilityRole: 'alert' });
     expect(alert.props.children).toBe('Correo o contraseña incorrectos.');
