@@ -1,12 +1,14 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import {
-  ActionIconButton,
+  Fab,
+  GlassCard,
+  ScreenBackground,
   ScreenTitle,
   StudentAvatar,
+  TabBar,
 } from '../../../shared/components';
-import { MailPlusIcon } from '../../../shared/components/icons';
-import { colors, radius, spacing } from '../../../shared/theme/designTokens';
+import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 
 type MailListItem = {
   id: string;
@@ -18,9 +20,9 @@ type MailListItem = {
 const MOCK_MAILS: MailListItem[] = [
   {
     id: 'mail-1',
-    preview: 'Lorem ipsum dolor sit amet elit.',
-    receivedAt: '16:00',
-    senderName: 'Clara',
+    preview: 'Re: Parent Teacher Conference',
+    receivedAt: '11:45 AM',
+    senderName: 'Clara Lopez',
   },
   {
     id: 'mail-2',
@@ -78,22 +80,28 @@ const MOCK_MAILS: MailListItem[] = [
   },
 ];
 
-/** Diseño visual HU-010..HU-012. Bandeja real, detalle y composición quedan pendientes. */
+/**
+ * Mails definitiva (DESIGN.md §5.5, frame n950 de Tizaia.op): tarjetas de
+ * correo (avatar, remitente, fecha, asunto), FAB de composición y TabBar.
+ * Bandeja real, detalle y composición quedan para la fase funcional.
+ */
 export function MailScreen(): React.JSX.Element {
   return (
-    <View style={styles.screen}>
-      <ScreenTitle>MAILS</ScreenTitle>
+    <ScreenBackground>
+      <View style={styles.titleBlock}>
+        <ScreenTitle>MAILS</ScreenTitle>
+      </View>
       <FlatList
         contentContainerStyle={styles.listContent}
         data={MOCK_MAILS}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.mailCard}>
+          <GlassCard cornerRadius={22} style={styles.mailCard}>
             <StudentAvatar
               accessibilityLabel={`Foto de ${item.senderName}`}
               initials={item.senderName.slice(0, 2).toUpperCase()}
-              size={48}
+              size={dp(98)}
             />
             <View style={styles.mailContent}>
               <View style={styles.mailHeader}>
@@ -106,75 +114,75 @@ export function MailScreen(): React.JSX.Element {
                 {item.preview}
               </Text>
             </View>
-          </View>
+          </GlassCard>
         )}
+        style={styles.list}
       />
-      <View style={styles.footerAction}>
-        <ActionIconButton
-          accessibilityLabel="Crear nuevo mail"
-          onPress={() => {
-            // La ruta de composición se añadirá en la iteración funcional.
-          }}
-          size={56}
-          testID="new-mail-button"
-        >
-          <MailPlusIcon size={32} />
-        </ActionIconButton>
-      </View>
-    </View>
+      <Fab
+        accessibilityLabel="Crear nuevo mail"
+        icon="compose"
+        style={styles.fab}
+        testID="new-mail-button"
+      />
+      <TabBar style={styles.tabBar} />
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  footerAction: {
-    alignItems: 'center',
-    paddingTop: spacing.sm,
+  fab: {
+    bottom: dp(141),
+    position: 'absolute',
+    right: dp(35),
+  },
+  list: {
+    flex: 1,
   },
   listContent: {
-    flexGrow: 1,
-    paddingBottom: spacing.sm,
+    paddingBottom: dp(280),
+    paddingHorizontal: dp(35),
   },
   mailCard: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 1,
     flexDirection: 'row',
-    gap: spacing.sm,
-    minHeight: 72,
-    padding: spacing.sm,
+    height: dp(160),
+    paddingHorizontal: dp(29),
   },
   mailContent: {
     flex: 1,
-    gap: spacing.xs,
+    gap: dp(10),
+    marginLeft: dp(22),
   },
   mailHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: dp(16),
     justifyContent: 'space-between',
-    gap: spacing.sm,
   },
   preview: {
-    color: colors.textMuted,
-    fontSize: 14,
+    color: tizaiaColors.ink,
+    fontSize: dp(25),
   },
   receivedAt: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  screen: {
-    backgroundColor: colors.background,
-    flex: 1,
-    padding: spacing.md,
+    color: tizaiaColors.ink,
+    fontSize: dp(26),
   },
   senderName: {
-    color: colors.text,
+    color: tizaiaColors.ink,
     flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: dp(30),
+    fontWeight: '500',
   },
   separator: {
-    height: spacing.sm,
+    height: dp(28),
+  },
+  tabBar: {
+    alignSelf: 'center',
+    marginBottom: dp(24),
+    marginTop: dp(16),
+  },
+  titleBlock: {
+    marginBottom: dp(24),
+    marginTop: dp(24),
   },
 });
