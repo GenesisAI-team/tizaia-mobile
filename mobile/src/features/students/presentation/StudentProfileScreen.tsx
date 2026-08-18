@@ -8,6 +8,7 @@ import {
   TabBar,
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import { MetricRing } from './MetricRing';
 
 /** Datos mock del perfil (DESIGN.md §5.12); se sustituirán por datos reales. */
@@ -26,6 +27,8 @@ const MOCK_STUDENT = {
  * Los datos reales y la edición quedan para la fase funcional.
  */
 export function StudentProfileScreen(): React.JSX.Element {
+  const onPressTab = useTabBarPress();
+
   return (
     <ScreenBackground>
       <ScrollView contentContainerStyle={styles.content}>
@@ -131,7 +134,7 @@ export function StudentProfileScreen(): React.JSX.Element {
           </View>
         </GlassCard>
       </ScrollView>
-      <TabBar style={styles.tabBar} />
+      <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
 }

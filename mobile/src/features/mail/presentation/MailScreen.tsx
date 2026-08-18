@@ -1,4 +1,6 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
   Fab,
@@ -9,6 +11,8 @@ import {
   TabBar,
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import type { RootDrawerParamList } from '../../../navigation/types';
 
 type MailListItem = {
   id: string;
@@ -86,6 +90,9 @@ const MOCK_MAILS: MailListItem[] = [
  * Bandeja real, detalle y composición quedan para la fase funcional.
  */
 export function MailScreen(): React.JSX.Element {
+  const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
+  const onPressTab = useTabBarPress();
+
   return (
     <ScreenBackground>
       <View style={styles.titleBlock}>
@@ -121,10 +128,11 @@ export function MailScreen(): React.JSX.Element {
       <Fab
         accessibilityLabel="Crear nuevo mail"
         icon="compose"
+        onPress={() => navigation.navigate('NewMail')}
         style={styles.fab}
         testID="new-mail-button"
       />
-      <TabBar style={styles.tabBar} />
+      <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
 }

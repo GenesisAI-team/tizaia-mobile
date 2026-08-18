@@ -1,4 +1,3 @@
-export { ActionIconButton } from './ActionIconButton';
 export { ActiveClassCard } from './ActiveClassCard';
 export { Fab } from './Fab';
 export { GlassCard } from './GlassCard';
@@ -9,7 +8,6 @@ export { ScreenBackground } from './ScreenBackground';
 export { ScreenTitle } from './ScreenTitle';
 export { StatusCell } from './StatusCell';
 export type { StatusCellState } from './StatusCell';
-export { StatusCircleButton } from './StatusCircleButton';
 export { StudentAvatar } from './StudentAvatar';
 export { TabBar } from './TabBar';
 export type { TabBarTab } from './TabBar';

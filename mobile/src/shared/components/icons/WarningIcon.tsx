@@ -1,6 +1,6 @@
 import Svg, { Path, Rect } from 'react-native-svg';
 
-import { colors } from '../../theme/designTokens';
+import { tizaiaColors } from '../../theme/tizaiaTheme';
 
 type WarningIconProps = {
   color?: string;
@@ -8,7 +8,7 @@ type WarningIconProps = {
 };
 
 export function WarningIcon({
-  color = colors.warning,
+  color = tizaiaColors.warnTriangle,
   size = 24,
 }: WarningIconProps): React.JSX.Element {
   return (

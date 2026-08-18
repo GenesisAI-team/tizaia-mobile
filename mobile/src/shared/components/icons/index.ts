@@ -1,4 +1,3 @@
-export { CheckCircleIcon } from './CheckCircleIcon';
 export { EyeIcon } from './EyeIcon';
 export { GlobeIcon } from './GlobeIcon';
 export { HomeIcon } from './HomeIcon';

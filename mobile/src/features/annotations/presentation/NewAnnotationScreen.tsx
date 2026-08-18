@@ -18,6 +18,7 @@ import {
   TabBar,
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
 
 type AnnotationType = 'contrary' | 'aggravating' | 'positive';
 
@@ -58,6 +59,7 @@ const ANNOTATION_TYPES: {
  */
 export function NewAnnotationScreen(): React.JSX.Element {
   const headerHeight = useHeaderHeight();
+  const onPressTab = useTabBarPress();
   const [selectedType, setSelectedType] = useState<AnnotationType>('positive');
   const [notes, setNotes] = useState('');
 
@@ -168,7 +170,7 @@ export function NewAnnotationScreen(): React.JSX.Element {
             </View>
           </GlassCard>
         </ScrollView>
-        <TabBar style={styles.tabBar} />
+        <TabBar onPressTab={onPressTab} style={styles.tabBar} />
       </KeyboardAvoidingView>
     </ScreenBackground>
   );

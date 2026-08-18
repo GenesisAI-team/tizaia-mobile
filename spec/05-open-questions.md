@@ -18,3 +18,5 @@ Ningún requisito dependiente se considera validado mientras no exista decisión
 | Q-012 | Autorización, cifrado, auditoría, retención y privacidad de menores.                                                                                                |
 | Q-013 | Objetivos medibles de rendimiento, disponibilidad y accesibilidad.                                                                                                  |
 | Q-014 | Si la edición del alumno queda limitada permanentemente al nombre.                                                                                                  |
+| Q-015 | Destino de la pestaña Overview (globo) de la TabBar: `Tizaia.op` no lo define; UI-023 lo cablea provisionalmente a Clases.                                          |
+| Q-016 | Los FAB "Añadir alumno/tarea/clase" del `.op` no tienen pantalla destino definida; quedan sin acción hasta decisión del equipo de diseño.                           |

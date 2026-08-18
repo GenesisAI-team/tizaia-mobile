@@ -1,6 +1,6 @@
 import Svg, { Path } from 'react-native-svg';
 
-import { colors } from '../../theme/designTokens';
+import { tizaiaColors } from '../../theme/tizaiaTheme';
 
 type TrashIconProps = {
   color?: string;
@@ -8,7 +8,7 @@ type TrashIconProps = {
 };
 
 export function TrashIcon({
-  color = colors.danger,
+  color = tizaiaColors.deleteIcon,
   size = 24,
 }: TrashIconProps): React.JSX.Element {
   return (

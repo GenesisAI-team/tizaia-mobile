@@ -114,6 +114,7 @@ export function AppDrawerContent(
             badgeText={MOCK_ACTIVE_CLASS.badgeText}
             label={MOCK_ACTIVE_CLASS.label}
             name={MOCK_ACTIVE_CLASS.name}
+            onPress={() => props.navigation.navigate('Classes')}
             subject={MOCK_ACTIVE_CLASS.subject}
           />
         </View>

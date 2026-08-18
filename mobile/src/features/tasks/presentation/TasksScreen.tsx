@@ -11,6 +11,7 @@ import {
   type StatusCellState,
 } from '../../../shared/components';
 import { dp } from '../../../shared/theme/tizaiaTheme';
+import { useTabBarPress } from '../../../navigation/useTabBarPress';
 
 const RECENT_TASKS: MatrixBoardColumn[] = [
   { id: 'task-1', label: 'Task 1' },
@@ -53,6 +54,8 @@ const MOCK_CELL_STATES: Record<string, StatusCellState> = {
  * fase funcional.
  */
 export function TasksScreen(): React.JSX.Element {
+  const onPressTab = useTabBarPress();
+
   return (
     <ScreenBackground>
       <View style={styles.titleBlock}>
@@ -71,7 +74,7 @@ export function TasksScreen(): React.JSX.Element {
         />
       </View>
       <Fab accessibilityLabel="Añadir tarea" style={styles.fab} />
-      <TabBar style={styles.tabBar} />
+      <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
 }

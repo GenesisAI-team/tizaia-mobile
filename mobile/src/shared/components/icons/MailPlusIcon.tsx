@@ -1,6 +1,6 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { colors } from '../../theme/designTokens';
+import { tizaiaColors } from '../../theme/tizaiaTheme';
 
 type MailPlusIconProps = {
   color?: string;
@@ -8,7 +8,7 @@ type MailPlusIconProps = {
 };
 
 export function MailPlusIcon({
-  color = colors.primary,
+  color = tizaiaColors.inkButton,
   size = 24,
 }: MailPlusIconProps): React.JSX.Element {
   return (
@@ -28,7 +28,7 @@ export function MailPlusIcon({
         strokeLinejoin="round"
         strokeWidth={2}
       />
-      <Circle cx={19} cy={19} fill={colors.background} r={4.5} />
+      <Circle cx={19} cy={19} fill={tizaiaColors.white} r={4.5} />
       <Path
         d="M19 16.5v5M16.5 19h5"
         stroke={color}
