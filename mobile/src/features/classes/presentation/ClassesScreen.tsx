@@ -19,12 +19,12 @@ type ClassListItem = {
 
 /** 6 clases de ejemplo como en el diseño definitivo (DESIGN.md §5.7). */
 const MOCK_CLASSES: ClassListItem[] = [
-  { id: 'class-1', groupName: '1.º BACHILLER D', subject: 'Tecnología' },
-  { id: 'class-2', groupName: '2 ESO G', subject: 'Tecnología' },
+  { id: 'class-1', groupName: '1º BACHILLER D', subject: 'Tecnología' },
+  { id: 'class-2', groupName: '2º ESO G', subject: 'Tecnología' },
   { id: 'class-3', groupName: '2º ESO C/D', subject: 'Tecnología' },
-  { id: 'class-4', groupName: '3 ESO A', subject: 'Matemáticas' },
-  { id: 'class-5', groupName: '1 ESO B', subject: 'Tecnología' },
-  { id: 'class-6', groupName: '4 ESO C', subject: 'Física' },
+  { id: 'class-4', groupName: '3º ESO A', subject: 'Matemáticas' },
+  { id: 'class-5', groupName: '1º ESO B', subject: 'Tecnología' },
+  { id: 'class-6', groupName: '4º ESO C', subject: 'Física' },
 ];
 
 /**
