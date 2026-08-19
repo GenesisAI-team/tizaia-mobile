@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 
 import {
   GlassCard,
@@ -19,6 +21,8 @@ import {
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import type { RootDrawerParamList } from '../../../navigation/types';
+import { schoolRepository } from '../../../infrastructure/in-memory';
 
 type Recipient = {
   id: string;
@@ -28,22 +32,44 @@ type Recipient = {
 
 const MAX_MESSAGE_LENGTH = 1000;
 
-/** Destinatarios seleccionados de ejemplo (mock, DESIGN.md §5.11). */
-const INITIAL_RECIPIENTS: Recipient[] = [
-  { id: 'family-eva', kind: 'family', label: 'Familia de Eva' },
-  { id: 'group-2eso', kind: 'group', label: '2º ESO C/D' },
-];
-
 /**
  * Nuevo Mail definitivo (DESIGN.md §5.11, frame n1825 de Tizaia.op): chips de
  * destinatarios (añadir/quitar), asunto, editor con contador y composer con
- * adjuntar y enviar. El envío y la resolución real de destinatarios quedan
- * para la fase funcional.
+ * adjuntar y enviar. Si llega un alumno (p. ej. desde Anotaciones) se
+ * precargan su familia y su grupo; si llega desde Mails el destinatario queda
+ * vacío. El envío y la resolución real de destinatarios quedan para la fase
+ * funcional.
  */
 export function NewMailScreen(): React.JSX.Element {
+  const route = useRoute<RouteProp<RootDrawerParamList, 'NewMail'>>();
   const headerHeight = useHeaderHeight();
   const onPressTab = useTabBarPress();
-  const [recipients, setRecipients] = useState(INITIAL_RECIPIENTS);
+
+  const initialRecipients: Recipient[] = (() => {
+    const studentId = route.params?.studentId;
+    const student = studentId
+      ? schoolRepository.getStudent(studentId)
+      : undefined;
+    if (student === undefined) return [];
+    const familyLabel = schoolRepository.getStudentFamilyLabel(student.id);
+    const group = schoolRepository
+      .getClasses()
+      .find((schoolClass) => schoolClass.id === student.classId);
+    return [
+      { id: `family-${student.id}`, kind: 'family', label: familyLabel },
+      ...(group !== undefined
+        ? [
+            {
+              id: `group-${group.id}`,
+              kind: 'group' as const,
+              label: group.groupName,
+            },
+          ]
+        : []),
+    ];
+  })();
+
+  const [recipients, setRecipients] = useState(initialRecipients);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
 

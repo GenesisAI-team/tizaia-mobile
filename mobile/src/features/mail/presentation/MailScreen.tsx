@@ -13,85 +13,43 @@ import {
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
+import { schoolRepository } from '../../../infrastructure/in-memory';
+import {
+  getStudentFullName,
+  getStudentInitials,
+} from '../../../domain/school/models';
+import { formatDayMonth } from '../../../domain/school/schoolDates';
 
 type MailListItem = {
   id: string;
+  subject: string;
   preview: string;
   receivedAt: string;
   senderName: string;
+  initials: string;
 };
-
-const MOCK_MAILS: MailListItem[] = [
-  {
-    id: 'mail-1',
-    preview: 'Re: Parent Teacher Conference',
-    receivedAt: '11:45 AM',
-    senderName: 'Clara Lopez',
-  },
-  {
-    id: 'mail-2',
-    preview: 'Nunc maximus, nulla ut commodo',
-    receivedAt: '14:00',
-    senderName: 'Mike',
-  },
-  {
-    id: 'mail-3',
-    preview: 'Vivamus feugiat elit porttitor',
-    receivedAt: '10:00',
-    senderName: 'Eva',
-  },
-  {
-    id: 'mail-4',
-    preview: 'Nullam fringilla feugiat nisl',
-    receivedAt: '09:00',
-    senderName: 'Jessica',
-  },
-  {
-    id: 'mail-5',
-    preview: 'Suspendisse ut venenatis libero',
-    receivedAt: 'Yesterday',
-    senderName: 'Pedro',
-  },
-  {
-    id: 'mail-6',
-    preview: 'Seguimiento semanal disponible',
-    receivedAt: 'Monday',
-    senderName: 'Lucía',
-  },
-  {
-    id: 'mail-7',
-    preview: 'Confirmación de tutoría',
-    receivedAt: 'Monday',
-    senderName: 'Marta',
-  },
-  {
-    id: 'mail-8',
-    preview: 'Material para la próxima clase',
-    receivedAt: 'Friday',
-    senderName: 'Hugo',
-  },
-  {
-    id: 'mail-9',
-    preview: 'Recordatorio de reunión',
-    receivedAt: 'Friday',
-    senderName: 'Sara',
-  },
-  {
-    id: 'mail-10',
-    preview: 'Actualización de calendario',
-    receivedAt: 'Thursday',
-    senderName: 'Daniel',
-  },
-];
 
 /**
  * Mails definitiva (DESIGN.md §5.5, frame n950 de Tizaia.op): tarjetas de
  * correo (avatar, remitente, fecha, asunto), FAB de composición y TabBar.
- * Bandeja real, detalle y composición quedan para la fase funcional.
+ * La bandeja procede del repositorio en memoria; el detalle y el envío
+ * quedan para la fase funcional.
  */
 export function MailScreen(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const onPressTab = useTabBarPress();
+
+  const mails: MailListItem[] = schoolRepository.getMails().map((mail) => {
+    const sender = schoolRepository.getStudent(mail.senderStudentId);
+    return {
+      id: mail.id,
+      subject: mail.subject,
+      preview: mail.preview,
+      receivedAt: formatDayMonth(mail.receivedAt),
+      senderName: sender ? getStudentFullName(sender) : 'Familias',
+      initials: sender ? getStudentInitials(sender) : 'FA',
+    };
+  });
 
   return (
     <ScreenBackground>
@@ -100,14 +58,14 @@ export function MailScreen(): React.JSX.Element {
       </View>
       <FlatList
         contentContainerStyle={styles.listContent}
-        data={MOCK_MAILS}
+        data={mails}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <GlassCard cornerRadius={22} style={styles.mailCard}>
             <StudentAvatar
               accessibilityLabel={`Foto de ${item.senderName}`}
-              initials={item.senderName.slice(0, 2).toUpperCase()}
+              initials={item.initials}
               size={dp(98)}
             />
             <View style={styles.mailContent}>
@@ -117,7 +75,10 @@ export function MailScreen(): React.JSX.Element {
                 </Text>
                 <Text style={styles.receivedAt}>{item.receivedAt}</Text>
               </View>
-              <Text numberOfLines={2} style={styles.preview}>
+              <Text numberOfLines={1} style={styles.subject}>
+                {item.subject}
+              </Text>
+              <Text numberOfLines={1} style={styles.preview}>
                 {item.preview}
               </Text>
             </View>
@@ -153,12 +114,12 @@ const styles = StyleSheet.create({
   mailCard: {
     alignItems: 'center',
     flexDirection: 'row',
-    height: dp(160),
+    height: dp(170),
     paddingHorizontal: dp(29),
   },
   mailContent: {
     flex: 1,
-    gap: dp(10),
+    gap: dp(8),
     marginLeft: dp(22),
   },
   mailHeader: {
@@ -168,8 +129,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   preview: {
-    color: tizaiaColors.ink,
-    fontSize: dp(25),
+    color: tizaiaColors.textMenuSecondary,
+    fontSize: dp(20),
   },
   receivedAt: {
     color: tizaiaColors.ink,
@@ -183,6 +144,11 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: dp(28),
+  },
+  subject: {
+    color: tizaiaColors.ink,
+    fontSize: dp(24),
+    fontWeight: '600',
   },
   tabBar: {
     alignSelf: 'center',

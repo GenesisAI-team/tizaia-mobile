@@ -11,22 +11,7 @@ import {
 import { MOCK_TEACHER_PROFILE } from '../../../shared/mock/teacher';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
-
-type ClassListItem = {
-  id: string;
-  groupName: string;
-  subject: string;
-};
-
-/** 6 clases de ejemplo como en el diseño definitivo (DESIGN.md §5.7). */
-const MOCK_CLASSES: ClassListItem[] = [
-  { id: 'class-1', groupName: '1.º BACHILLER D', subject: 'Tecnología' },
-  { id: 'class-2', groupName: '2 ESO G', subject: 'Tecnología' },
-  { id: 'class-3', groupName: '2º ESO C/D', subject: 'Tecnología' },
-  { id: 'class-4', groupName: '3 ESO A', subject: 'Matemáticas' },
-  { id: 'class-5', groupName: '1 ESO B', subject: 'Tecnología' },
-  { id: 'class-6', groupName: '4 ESO C', subject: 'Física' },
-];
+import { schoolRepository } from '../../../infrastructure/in-memory';
 
 /**
  * Clases definitiva (DESIGN.md §5.7, frame n1931 de Tizaia.op): ProfileCard
@@ -36,6 +21,7 @@ const MOCK_CLASSES: ClassListItem[] = [
  */
 export function ClassesScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
+  const classes = schoolRepository.getClasses();
 
   return (
     <ScreenBackground>
@@ -52,7 +38,7 @@ export function ClassesScreen(): React.JSX.Element {
       </View>
       <FlatList
         contentContainerStyle={styles.listContent}
-        data={MOCK_CLASSES}
+        data={classes}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (

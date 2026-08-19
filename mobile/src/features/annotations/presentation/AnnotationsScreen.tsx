@@ -15,31 +15,55 @@ import { EyeIcon, MailPlusIcon } from '../../../shared/components/icons';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
+import { schoolRepository } from '../../../infrastructure/in-memory';
+import {
+  getStudentFullName,
+  getStudentInitials,
+  type AnnotationType,
+} from '../../../domain/school/models';
+import { formatDayMonth } from '../../../domain/school/schoolDates';
 
 type AnnotationListItem = {
   id: string;
+  studentId: string;
   studentName: string;
+  initials: string;
+  type: AnnotationType;
+  description: string;
+  dateLabel: string;
 };
 
-const INITIAL_ANNOTATIONS: AnnotationListItem[] = [
-  { id: 'annotation-1', studentName: 'Clara' },
-  { id: 'annotation-2', studentName: 'Mike' },
-  { id: 'annotation-3', studentName: 'Eva' },
-  { id: 'annotation-4', studentName: 'Jessica' },
-  { id: 'annotation-5', studentName: 'Pedro' },
-  { id: 'annotation-6', studentName: 'Lucía' },
-];
+const ANNOTATION_TYPE_LABELS: Record<AnnotationType, string> = {
+  positive: 'Positiva',
+  contrary: 'Contraria',
+  aggravating: 'Grave',
+};
 
 /**
- * Anotaciones definitiva (DESIGN.md §5.6, frame n991 de Tizaia.op): 6
- * tarjetas con avatar, nombre y acciones (ver / enviar mail / confirmar),
- * FAB de nueva anotación y TabBar.
- * Detalle, nuevo mail y persistencia quedan para la fase funcional.
+ * Anotaciones definitiva (DESIGN.md §5.6, frame n991 de Tizaia.op): tarjetas
+ * con avatar, nombre, descripción, tipo y acciones (ver / enviar mail /
+ * confirmar), FAB de nueva anotación y TabBar. Las anotaciones proceden del
+ * repositorio en memoria; guardar y enviar quedan para la fase funcional.
  */
 export function AnnotationsScreen(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const onPressTab = useTabBarPress();
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+
+  const annotations: AnnotationListItem[] = schoolRepository
+    .getAnnotations()
+    .map((annotation) => {
+      const student = schoolRepository.getStudent(annotation.studentId);
+      return {
+        id: annotation.id,
+        studentId: annotation.studentId,
+        studentName: student ? getStudentFullName(student) : 'Alumno',
+        initials: student ? getStudentInitials(student) : 'AL',
+        type: annotation.type,
+        description: annotation.description,
+        dateLabel: formatDayMonth(annotation.createdAt),
+      };
+    });
 
   const toggleChecked = (annotationId: string): void => {
     setCheckedItems((current) => ({
@@ -55,7 +79,7 @@ export function AnnotationsScreen(): React.JSX.Element {
       </View>
       <FlatList
         contentContainerStyle={styles.listContent}
-        data={INITIAL_ANNOTATIONS}
+        data={annotations}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
@@ -64,18 +88,33 @@ export function AnnotationsScreen(): React.JSX.Element {
             <GlassCard cornerRadius={22} style={styles.card}>
               <StudentAvatar
                 accessibilityLabel={`Foto de ${item.studentName}`}
-                initials={item.studentName.slice(0, 2).toUpperCase()}
+                initials={item.initials}
                 size={dp(90)}
               />
-              <Text numberOfLines={1} style={styles.name}>
-                {item.studentName}
-              </Text>
+              <View style={styles.info}>
+                <Text numberOfLines={1} style={styles.name}>
+                  {item.studentName}
+                </Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.typeLabel}>
+                    {ANNOTATION_TYPE_LABELS[item.type]}
+                  </Text>
+                  <Text style={styles.dateLabel}>{item.dateLabel}</Text>
+                </View>
+                <Text numberOfLines={2} style={styles.description}>
+                  {item.description}
+                </Text>
+              </View>
               <View style={styles.actions}>
                 <Pressable
                   accessibilityLabel={`Ver alumno ${item.studentName}`}
                   accessibilityRole="button"
                   hitSlop={8}
-                  onPress={() => navigation.navigate('StudentProfile')}
+                  onPress={() =>
+                    navigation.navigate('StudentProfile', {
+                      studentId: item.studentId,
+                    })
+                  }
                   style={({ pressed }) => [
                     styles.viewButton,
                     pressed && styles.pressed,
@@ -88,7 +127,12 @@ export function AnnotationsScreen(): React.JSX.Element {
                   accessibilityLabel={`Crear mail para ${item.studentName}`}
                   accessibilityRole="button"
                   hitSlop={8}
-                  onPress={() => navigation.navigate('NewMail')}
+                  onPress={() =>
+                    navigation.navigate('NewMail', {
+                      studentId: item.studentId,
+                      source: 'annotation',
+                    })
+                  }
                   style={({ pressed }) => [
                     styles.sendButton,
                     pressed && styles.pressed,
@@ -131,13 +175,14 @@ const styles = StyleSheet.create({
   actions: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: dp(38),
+    gap: dp(28),
   },
   card: {
     alignItems: 'center',
     flexDirection: 'row',
-    height: dp(140),
-    paddingHorizontal: dp(29),
+    minHeight: dp(150),
+    paddingHorizontal: dp(24),
+    paddingVertical: dp(16),
   },
   confirmButton: {
     alignItems: 'center',
@@ -155,10 +200,24 @@ const styles = StyleSheet.create({
     fontSize: dp(24),
     fontWeight: '700',
   },
+  dateLabel: {
+    color: tizaiaColors.textMenuSecondary,
+    fontSize: dp(17),
+  },
+  description: {
+    color: tizaiaColors.ink,
+    fontSize: dp(20),
+    marginTop: dp(6),
+  },
   fab: {
     bottom: dp(141),
     position: 'absolute',
     right: dp(35),
+  },
+  info: {
+    flex: 1,
+    marginLeft: dp(26),
+    marginRight: dp(12),
   },
   list: {
     flex: 1,
@@ -167,11 +226,15 @@ const styles = StyleSheet.create({
     paddingBottom: dp(280),
     paddingHorizontal: dp(40),
   },
+  metaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: dp(12),
+    marginTop: dp(4),
+  },
   name: {
     color: tizaiaColors.ink,
-    flex: 1,
-    fontSize: dp(34),
-    marginLeft: dp(29),
+    fontSize: dp(30),
   },
   pressed: {
     opacity: 0.7,
@@ -193,6 +256,11 @@ const styles = StyleSheet.create({
   titleBlock: {
     marginBottom: dp(24),
     marginTop: dp(24),
+  },
+  typeLabel: {
+    color: tizaiaColors.textMenuSecondary,
+    fontSize: dp(17),
+    fontWeight: '600',
   },
   viewButton: {
     alignItems: 'center',

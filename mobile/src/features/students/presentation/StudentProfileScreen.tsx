@@ -1,5 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 
 import {
   GlassCard,
@@ -9,25 +11,102 @@ import {
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import type { RootDrawerParamList } from '../../../navigation/types';
+import { schoolRepository } from '../../../infrastructure/in-memory';
+import {
+  getStudentFullName,
+  getStudentInitials,
+} from '../../../domain/school/models';
+import type { AnnotationType } from '../../../domain/school/models';
 import { MetricRing } from './MetricRing';
 
-/** Datos mock del perfil (DESIGN.md §5.12); se sustituirán por datos reales. */
-const MOCK_STUDENT = {
-  description:
-    'Alumno participativo y creativo. Mantiene una evolución positiva y destaca especialmente en los trabajos de grupo.',
-  group: '2º ESO C/D',
-  initials: 'ED',
-  name: 'Esteban Domínguez',
-} as const;
+const ANNOTATION_TYPE_LABELS: Record<AnnotationType, string> = {
+  positive: 'Positivas',
+  contrary: 'Contrarias',
+  aggravating: 'Graves',
+};
+
+const ANNOTATION_TYPE_COLORS: Record<AnnotationType, string> = {
+  positive: tizaiaColors.success,
+  contrary: tizaiaColors.warning,
+  aggravating: tizaiaColors.danger,
+};
 
 /**
  * Perfil Alumno definitivo (DESIGN.md §5.12, frame n1867 de Tizaia.op):
  * resumen del alumno con badge ACTIVO, botón de edición, métricas de
  * asistencia/comportamiento/tareas con anillos y descripción.
- * Los datos reales y la edición quedan para la fase funcional.
+ * Las métricas se derivan de los datos en memoria del alumno recibido por
+ * navegación; sin alumno se muestra un estado vacío. La edición y la
+ * persistencia quedan para la fase funcional.
  */
 export function StudentProfileScreen(): React.JSX.Element {
+  const route = useRoute<RouteProp<RootDrawerParamList, 'StudentProfile'>>();
   const onPressTab = useTabBarPress();
+
+  const studentId = route.params?.studentId;
+  const student = studentId
+    ? schoolRepository.getStudent(studentId)
+    : undefined;
+
+  if (student === undefined) {
+    return (
+      <ScreenBackground>
+        <View style={styles.titleBlock}>
+          <ScreenTitle variant="form">ALUMNO</ScreenTitle>
+        </View>
+        <GlassCard cornerRadius={28} style={styles.card}>
+          <Text style={styles.emptyText}>
+            Selecciona un alumno desde la lista para ver su perfil.
+          </Text>
+        </GlassCard>
+        <TabBar onPressTab={onPressTab} style={styles.tabBar} />
+      </ScreenBackground>
+    );
+  }
+
+  const activeClass = schoolRepository.getActiveClass();
+  const attendanceRecords = schoolRepository.getAttendance(student.id);
+  const totalDays = attendanceRecords.length;
+  const absences = attendanceRecords.filter(
+    (record) => record.status === 'absent',
+  ).length;
+  const lates = attendanceRecords.filter(
+    (record) => record.status === 'late',
+  ).length;
+  const attendancePercentage =
+    totalDays === 0
+      ? '0%'
+      : `${Math.round(((totalDays - absences) / totalDays) * 100)}%`;
+
+  const annotations = schoolRepository
+    .getAnnotations()
+    .filter((annotation) => annotation.studentId === student.id);
+  const annotationCounts: Record<AnnotationType, number> = {
+    positive: 0,
+    contrary: 0,
+    aggravating: 0,
+  };
+  for (const annotation of annotations) {
+    annotationCounts[annotation.type] += 1;
+  }
+
+  const submissions = schoolRepository
+    .getAssignments(student.classId)
+    .flatMap((assignment) =>
+      schoolRepository
+        .getSubmissions(assignment.id)
+        .filter((submission) => submission.studentId === student.id),
+    );
+  const submitted = submissions.filter(
+    (submission) => submission.status === 'submitted',
+  ).length;
+  const notSubmitted = submissions.filter(
+    (submission) => submission.status === 'notSubmitted',
+  ).length;
+  const pending = submissions.filter(
+    (submission) => submission.status === 'pending',
+  ).length;
 
   return (
     <ScreenBackground>
@@ -60,11 +139,15 @@ export function StudentProfileScreen(): React.JSX.Element {
         <GlassCard cornerRadius={28} style={styles.card}>
           <View style={styles.summaryRow}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarInitials}>{MOCK_STUDENT.initials}</Text>
+              <Text style={styles.avatarInitials}>
+                {getStudentInitials(student)}
+              </Text>
             </View>
             <View style={styles.summaryInfo}>
-              <Text style={styles.studentName}>{MOCK_STUDENT.name}</Text>
-              <Text style={styles.studentGroup}>{MOCK_STUDENT.group}</Text>
+              <Text style={styles.studentName}>
+                {getStudentFullName(student)}
+              </Text>
+              <Text style={styles.studentGroup}>{activeClass.groupName}</Text>
               <View style={styles.activeBadge}>
                 <Text style={styles.activeBadgeText}>ACTIVO</Text>
               </View>
@@ -78,21 +161,27 @@ export function StudentProfileScreen(): React.JSX.Element {
             <MetricRing
               color={tizaiaColors.success}
               label="Asistencia"
-              value="92%"
+              value={attendancePercentage}
             />
-            <MetricRing color={tizaiaColors.danger} label="Faltas" value="5" />
+            <MetricRing
+              color={tizaiaColors.danger}
+              label="Faltas"
+              value={String(absences)}
+            />
             <MetricRing
               color={tizaiaColors.warning}
               label="Retrasos"
-              value="3"
+              value={String(lates)}
             />
           </View>
         </GlassCard>
 
-        <GlassCard cornerRadius={28} style={styles.card}>
-          <Text style={styles.sectionTitle}>DESCRIPCIÓN</Text>
-          <Text style={styles.description}>{MOCK_STUDENT.description}</Text>
-        </GlassCard>
+        {student.description != null && (
+          <GlassCard cornerRadius={28} style={styles.card}>
+            <Text style={styles.sectionTitle}>DESCRIPCIÓN</Text>
+            <Text style={styles.description}>{student.description}</Text>
+          </GlassCard>
+        )}
 
         <GlassCard cornerRadius={28} style={styles.card}>
           <Text style={styles.sectionTitleSmall}>
@@ -100,16 +189,20 @@ export function StudentProfileScreen(): React.JSX.Element {
           </Text>
           <View style={styles.metricsRow}>
             <MetricRing
-              color={tizaiaColors.success}
-              label="Positivas"
-              value="8"
+              color={ANNOTATION_TYPE_COLORS.positive}
+              label={ANNOTATION_TYPE_LABELS.positive}
+              value={String(annotationCounts.positive)}
             />
             <MetricRing
-              color={tizaiaColors.warning}
-              label="Contrarias"
-              value="2"
+              color={ANNOTATION_TYPE_COLORS.contrary}
+              label={ANNOTATION_TYPE_LABELS.contrary}
+              value={String(annotationCounts.contrary)}
             />
-            <MetricRing color={tizaiaColors.danger} label="Graves" value="0" />
+            <MetricRing
+              color={ANNOTATION_TYPE_COLORS.aggravating}
+              label={ANNOTATION_TYPE_LABELS.aggravating}
+              value={String(annotationCounts.aggravating)}
+            />
           </View>
         </GlassCard>
 
@@ -119,17 +212,17 @@ export function StudentProfileScreen(): React.JSX.Element {
             <MetricRing
               color={tizaiaColors.success}
               label="Completadas"
-              value="18"
+              value={String(submitted)}
             />
             <MetricRing
               color={tizaiaColors.warning}
               label="Pendientes"
-              value="3"
+              value={String(pending)}
             />
             <MetricRing
               color={tizaiaColors.danger}
               label="Sin entregar"
-              value="1"
+              value={String(notSubmitted)}
             />
           </View>
         </GlassCard>
@@ -198,6 +291,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     width: dp(72),
+  },
+  emptyText: {
+    color: tizaiaColors.textMenuSecondary,
+    fontSize: dp(20),
+    textAlign: 'center',
   },
   metricsRow: {
     flexDirection: 'row',

@@ -12,49 +12,52 @@ import {
 } from '../../../shared/components';
 import { dp } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import { schoolRepository } from '../../../infrastructure/in-memory';
+import { getDayMonthLabel } from '../../../domain/school/schoolDates';
+import {
+  getStudentFullName,
+  getStudentInitials,
+} from '../../../domain/school/models';
+import type { SubmissionStatus } from '../../../domain/school/models';
 
-const RECENT_TASKS: MatrixBoardColumn[] = [
-  { id: 'task-1', label: 'Task 1' },
-  { id: 'task-2', label: 'Task 2' },
-  { id: 'task-3', label: 'Task 3' },
-  { id: 'task-4', label: 'Task 4' },
-  { id: 'task-5', label: 'Task 5' },
-];
-
-/** 6 filas como en el diseño definitivo (DESIGN.md §5.4). */
-const MOCK_STUDENTS: MatrixBoardRow[] = [
-  { id: 'student-1', studentName: 'Clara' },
-  { id: 'student-2', studentName: 'Mike' },
-  { id: 'student-3', studentName: 'Eva' },
-  { id: 'student-4', studentName: 'Jessica' },
-  { id: 'student-5', studentName: 'Pedro' },
-  { id: 'student-6', studentName: 'Lucía' },
-];
-
-/** Estados de ejemplo (mock); en Tareas el pendiente no tiene fondo. */
-const MOCK_CELL_STATES: Record<string, StatusCellState> = {
-  'student-1:task-1': 'done',
-  'student-1:task-3': 'undone',
-  'student-1:task-4': 'done',
-  'student-1:task-5': 'undone',
-  'student-2:task-1': 'done',
-  'student-2:task-2': 'done',
-  'student-3:task-4': 'done',
-  'student-4:task-1': 'undone',
-  'student-4:task-2': 'done',
-  'student-5:task-3': 'done',
-  'student-6:task-1': 'done',
-  'student-6:task-5': 'undone',
+/** Mapeo de estado de entrega a celda visual existente (sin cambios de icono). */
+const CELL_STATE_BY_SUBMISSION: Record<SubmissionStatus, StatusCellState> = {
+  submitted: 'done',
+  notSubmitted: 'undone',
+  pending: 'pending',
 };
 
 /**
  * Tareas definitiva (DESIGN.md §5.4, frame n1149 de Tizaia.op): matriz de
- * 5 tareas × 6 alumnos (avatar + nombre), FAB de alta y TabBar.
- * El estado entregada/no entregada real y la persistencia quedan para la
- * fase funcional.
+ * 10 tareas × alumnos de la clase activa (avatar + nombre), FAB de alta y
+ * TabBar. Las 5 tareas más recientes quedan visibles y el resto usa scroll
+ * horizontal. La persistencia queda para la fase funcional.
  */
 export function TasksScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
+
+  const students = schoolRepository.getStudents();
+  const assignments = schoolRepository.getAssignments();
+
+  const columns: MatrixBoardColumn[] = assignments.map((assignment) => ({
+    id: assignment.id,
+    label: assignment.title,
+    secondaryLabel: getDayMonthLabel(assignment.dueDate),
+  }));
+
+  const rows: MatrixBoardRow[] = students.map((student) => ({
+    id: student.id,
+    studentName: getStudentFullName(student),
+    initials: getStudentInitials(student),
+  }));
+
+  const cellStates: Record<string, StatusCellState> = {};
+  for (const assignment of assignments) {
+    for (const submission of schoolRepository.getSubmissions(assignment.id)) {
+      cellStates[`${submission.studentId}:${assignment.id}`] =
+        CELL_STATE_BY_SUBMISSION[submission.status];
+    }
+  }
 
   return (
     <ScreenBackground>
@@ -66,10 +69,10 @@ export function TasksScreen(): React.JSX.Element {
           actionAccessibilityLabel={(row, column) =>
             `Entrega de ${column.label} para ${row.studentName}`
           }
-          cellStates={MOCK_CELL_STATES}
-          columns={RECENT_TASKS}
+          cellStates={cellStates}
+          columns={columns}
           pendingTransparent
-          rows={MOCK_STUDENTS}
+          rows={rows}
           showRowNames
         />
       </View>

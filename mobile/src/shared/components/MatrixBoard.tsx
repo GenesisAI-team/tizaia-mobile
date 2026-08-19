@@ -17,11 +17,15 @@ import { StudentAvatar } from './StudentAvatar';
 export type MatrixBoardColumn = {
   id: string;
   label: string;
+  /** Segunda línea de la cabecera (p. ej. la fecha `19/08`). */
+  secondaryLabel?: string;
 };
 
 export type MatrixBoardRow = {
   id: string;
   studentName: string;
+  /** Iniciales explícitas; por defecto se derivan de `studentName`. */
+  initials?: string;
 };
 
 type MatrixBoardProps = {
@@ -121,6 +125,11 @@ export function MatrixBoard({
                 <Text numberOfLines={1} style={styles.headerLabel}>
                   {column.label}
                 </Text>
+                {column.secondaryLabel != null && (
+                  <Text numberOfLines={1} style={styles.headerSecondaryLabel}>
+                    {column.secondaryLabel}
+                  </Text>
+                )}
               </View>
             </View>
           ))}
@@ -134,7 +143,9 @@ export function MatrixBoard({
             <View style={styles.avatarCell}>
               <StudentAvatar
                 accessibilityLabel={`Foto de ${row.studentName}`}
-                initials={row.studentName.slice(0, 2).toUpperCase()}
+                initials={
+                  row.initials ?? row.studentName.slice(0, 2).toUpperCase()
+                }
                 size={showRowNames ? dp(66) : dp(92)}
               />
               {showRowNames && (
@@ -215,6 +226,13 @@ const styles = StyleSheet.create({
   headerLabel: {
     color: tizaiaColors.ink,
     fontSize: dp(25),
+    textAlign: 'center',
+  },
+  headerSecondaryLabel: {
+    color: tizaiaColors.ink,
+    fontSize: dp(19),
+    fontWeight: '600',
+    marginTop: dp(2),
     textAlign: 'center',
   },
   headerRow: {

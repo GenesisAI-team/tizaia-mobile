@@ -19,31 +19,34 @@ import {
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
+import { schoolRepository } from '../../../infrastructure/in-memory';
+import {
+  getStudentFullName,
+  getStudentInitials,
+} from '../../../domain/school/models';
 
 type StudentListItem = {
   id: string;
   name: string;
+  initials: string;
 };
 
-const INITIAL_STUDENTS: StudentListItem[] = [
-  { id: 'student-1', name: 'Clara' },
-  { id: 'student-2', name: 'Mike' },
-  { id: 'student-3', name: 'Eva' },
-  { id: 'student-4', name: 'Jessica' },
-  { id: 'student-5', name: 'Pedro' },
-  { id: 'student-6', name: 'Lucía' },
-];
-
 /**
- * Alumnos definitiva (DESIGN.md §5.3, frame n883 de Tizaia.op): 6 tarjetas
- * con avatar, nombre y acciones (ver / aviso / borrar), FAB de alta y TabBar.
- * Las rutas StudentDetail/NewAnnotation y el borrado real quedan para la
- * fase funcional (UI-023 cablea las rutas).
+ * Alumnos definitiva (DESIGN.md §5.3, frame n883 de Tizaia.op): tarjetas con
+ * avatar, nombre y acciones (ver / aviso / borrar), FAB de alta y TabBar.
+ * Muestra los alumnos de la clase activa; el ojo abre el perfil del alumno y
+ * el aviso abre una nueva anotación precargada. El borrado sigue siendo local.
  */
 export function StudentsScreen(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const onPressTab = useTabBarPress();
-  const [students, setStudents] = useState(INITIAL_STUDENTS);
+  const [students, setStudents] = useState<StudentListItem[]>(() =>
+    schoolRepository.getStudents().map((student) => ({
+      id: student.id,
+      name: getStudentFullName(student),
+      initials: getStudentInitials(student),
+    })),
+  );
 
   const removeStudent = (studentId: string): void => {
     setStudents((current) => current.filter((item) => item.id !== studentId));
@@ -66,7 +69,7 @@ export function StudentsScreen(): React.JSX.Element {
           <GlassCard cornerRadius={22} style={styles.card}>
             <StudentAvatar
               accessibilityLabel={`Foto de ${item.name}`}
-              initials={item.name.slice(0, 2).toUpperCase()}
+              initials={item.initials}
               size={dp(95)}
             />
             <Text numberOfLines={1} style={styles.name}>
@@ -77,7 +80,9 @@ export function StudentsScreen(): React.JSX.Element {
                 accessibilityLabel={`Ver detalle de ${item.name}`}
                 accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => navigation.navigate('StudentProfile')}
+                onPress={() =>
+                  navigation.navigate('StudentProfile', { studentId: item.id })
+                }
                 style={({ pressed }) => [
                   styles.viewButton,
                   pressed && styles.pressed,
@@ -90,7 +95,9 @@ export function StudentsScreen(): React.JSX.Element {
                 accessibilityLabel={`Crear anotación para ${item.name}`}
                 accessibilityRole="button"
                 hitSlop={8}
-                onPress={() => navigation.navigate('NewAnnotation')}
+                onPress={() =>
+                  navigation.navigate('NewAnnotation', { studentId: item.id })
+                }
                 style={({ pressed }) => [
                   styles.warnButton,
                   pressed && styles.pressed,
