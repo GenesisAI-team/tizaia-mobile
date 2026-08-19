@@ -11,7 +11,7 @@ import {
 } from '../../../shared/components';
 import { dp } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -33,6 +33,7 @@ const CELL_STATE_BY_ATTENDANCE: Record<AttendanceStatus, StatusCellState> = {
  */
 export function AttendanceScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
 
   const students = schoolRepository.getStudents();
   const attendance = schoolRepository.getAttendanceForClass();

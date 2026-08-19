@@ -12,7 +12,7 @@ import {
 } from '../../../shared/components';
 import { dp } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import { getDayMonthLabel } from '../../../domain/school/schoolDates';
 import {
   getStudentFullName,
@@ -35,6 +35,7 @@ const CELL_STATE_BY_SUBMISSION: Record<SubmissionStatus, StatusCellState> = {
  */
 export function TasksScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
 
   const students = schoolRepository.getStudents();
   const assignments = schoolRepository.getAssignments();

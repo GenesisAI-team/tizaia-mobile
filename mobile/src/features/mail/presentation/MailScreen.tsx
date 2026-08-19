@@ -13,7 +13,7 @@ import {
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -38,6 +38,7 @@ type MailListItem = {
 export function MailScreen(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
 
   const mails: MailListItem[] = schoolRepository.getMails().map((mail) => {
     const sender = schoolRepository.getStudent(mail.senderStudentId);

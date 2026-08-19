@@ -11,13 +11,12 @@ import {
 } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
 
+import { useAssistantGateway } from '../../../app/AppDependenciesProvider';
 import { ScreenBackground } from '../../../shared/components/ScreenBackground';
 import { ScreenTitle } from '../../../shared/components/ScreenTitle';
 import { TabBar } from '../../../shared/components/TabBar';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
-import type { AssistantGateway } from '../domain/assistantGateway';
-import { FakeAssistantGateway } from '../infrastructure/fakeAssistantGateway';
 
 type ChatMessage = {
   id: string;
@@ -32,15 +31,13 @@ const ASSISTANT_ERROR_MESSAGE =
 /**
  * Home definitivo (DESIGN.md §5.1, frame n865 de Tizaia.op): título HOME,
  * chat con burbuja de saludo, campo de mensaje y TabBar con Home activo.
- * La lógica real del asistente es HU-002; se mantiene el FakeAssistantGateway.
+ * La lógica real del asistente es HU-002; el gateway llega desde la raíz
+ * de la aplicación.
  */
 export function HomeScreen(): React.JSX.Element {
   const headerHeight = useHeaderHeight();
   const onPressTab = useTabBarPress();
-  const gatewayRef = useRef<AssistantGateway | null>(null);
-  if (gatewayRef.current === null) {
-    gatewayRef.current = new FakeAssistantGateway();
-  }
+  const assistantGateway = useAssistantGateway();
   const conversationIdRef = useRef<string | undefined>(undefined);
   const nextIdRef = useRef(0);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -64,7 +61,7 @@ export function HomeScreen(): React.JSX.Element {
     setDraft('');
     setIsSending(true);
     try {
-      const response = await gatewayRef.current!.sendMessage({
+      const response = await assistantGateway.sendMessage({
         message: text,
         conversationId: conversationIdRef.current,
       });

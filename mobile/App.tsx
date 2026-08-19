@@ -1,17 +1,16 @@
+import { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 
+import { AppDependenciesProvider } from './src/app/AppDependenciesProvider';
+import { createAppDependencies } from './src/app/createAppDependencies';
 import {
   AuthProvider,
   useAuth,
 } from './src/features/auth/application/AuthProvider';
 import { LoginScreen } from './src/features/auth/presentation/LoginScreen';
-import { createSupabaseAuthGateway } from './src/features/auth/infrastructure/supabaseAuthGateway';
-import { createSupabaseClient } from './src/infrastructure/supabase/client';
 import { AppDrawerNavigator } from './src/navigation/AppDrawerNavigator';
-
-const authGateway = createSupabaseAuthGateway(createSupabaseClient());
 
 function LoadingScreen(): React.JSX.Element {
   return (
@@ -29,12 +28,16 @@ function RootNavigator(): React.JSX.Element {
 }
 
 export default function App(): React.JSX.Element {
+  const [dependencies] = useState(createAppDependencies);
+
   return (
-    <AuthProvider gateway={authGateway}>
-      <NavigationContainer>
-        <StatusBar style="auto" />
-        <RootNavigator />
-      </NavigationContainer>
-    </AuthProvider>
+    <AppDependenciesProvider dependencies={dependencies}>
+      <AuthProvider gateway={dependencies.authGateway}>
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          <RootNavigator />
+        </NavigationContainer>
+      </AuthProvider>
+    </AppDependenciesProvider>
   );
 }
