@@ -22,7 +22,7 @@ import {
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -63,6 +63,7 @@ export function NewAnnotationScreen(): React.JSX.Element {
   const route = useRoute<RouteProp<RootDrawerParamList, 'NewAnnotation'>>();
   const headerHeight = useHeaderHeight();
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
   const [selectedType, setSelectedType] = useState<AnnotationType>('positive');
   const [notes, setNotes] = useState('');
 

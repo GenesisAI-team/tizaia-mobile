@@ -22,7 +22,7 @@ import {
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 
 type Recipient = {
   id: string;
@@ -44,6 +44,7 @@ export function NewMailScreen(): React.JSX.Element {
   const route = useRoute<RouteProp<RootDrawerParamList, 'NewMail'>>();
   const headerHeight = useHeaderHeight();
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
 
   const initialRecipients: Recipient[] = (() => {
     const studentId = route.params?.studentId;

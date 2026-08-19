@@ -12,7 +12,7 @@ import {
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -43,6 +43,7 @@ const ANNOTATION_TYPE_COLORS: Record<AnnotationType, string> = {
 export function StudentProfileScreen(): React.JSX.Element {
   const route = useRoute<RouteProp<RootDrawerParamList, 'StudentProfile'>>();
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
 
   const studentId = route.params?.studentId;
   const student = studentId

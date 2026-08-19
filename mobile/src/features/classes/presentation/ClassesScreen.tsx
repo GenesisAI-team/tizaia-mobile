@@ -11,7 +11,7 @@ import {
 import { MOCK_TEACHER_PROFILE } from '../../../shared/mock/teacher';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 
 /**
  * Clases definitiva (DESIGN.md §5.7, frame n1931 de Tizaia.op): ProfileCard
@@ -21,6 +21,7 @@ import { schoolRepository } from '../../../infrastructure/in-memory';
  */
 export function ClassesScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
   const classes = schoolRepository.getClasses();
 
   return (

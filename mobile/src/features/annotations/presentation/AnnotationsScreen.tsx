@@ -15,7 +15,7 @@ import { EyeIcon, MailPlusIcon } from '../../../shared/components/icons';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
-import { schoolRepository } from '../../../infrastructure/in-memory';
+import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -48,6 +48,7 @@ const ANNOTATION_TYPE_LABELS: Record<AnnotationType, string> = {
 export function AnnotationsScreen(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const onPressTab = useTabBarPress();
+  const schoolRepository = useSchoolRepository();
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
   const annotations: AnnotationListItem[] = schoolRepository

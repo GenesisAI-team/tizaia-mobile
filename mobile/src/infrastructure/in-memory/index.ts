@@ -1,8 +1,13 @@
 import { InMemorySchoolRepository } from './inMemorySchoolRepository';
 
 /**
- * Instancia única del repositorio demo. Se crea al arrancar la app tomando
- * la fecha local del dispositivo; en el hito de integración se sustituirá la
- * implementación sin tocar las pantallas.
+ * Crea un repositorio demo en memoria. El ensamblado se decide en la raíz de
+ * la aplicación (composition root en App.tsx); en el hito de integración se
+ * sustituirá esta fábrica por una implementación sobre Supabase sin tocar las
+ * pantallas.
  */
-export const schoolRepository = new InMemorySchoolRepository(new Date());
+export function createInMemorySchoolRepository(
+  referenceDate?: Date,
+): InMemorySchoolRepository {
+  return new InMemorySchoolRepository(referenceDate ?? new Date());
+}
