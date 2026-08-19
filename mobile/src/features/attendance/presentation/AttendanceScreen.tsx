@@ -11,51 +11,50 @@ import {
 } from '../../../shared/components';
 import { dp } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import { schoolRepository } from '../../../infrastructure/in-memory';
+import {
+  getStudentFullName,
+  getStudentInitials,
+} from '../../../domain/school/models';
+import type { AttendanceStatus } from '../../../domain/school/models';
 
-const ATTENDANCE_DATES: MatrixBoardColumn[] = [
-  { id: 'day-1', label: 'Día 1' },
-  { id: 'day-2', label: 'Día 2' },
-  { id: 'day-3', label: 'Día 3' },
-  { id: 'day-4', label: 'Día 4' },
-  { id: 'day-5', label: 'Día 5' },
-];
-
-/** 7 filas como en el diseño definitivo (DESIGN.md §5.2). */
-const MOCK_STUDENTS: MatrixBoardRow[] = [
-  { id: 'student-1', studentName: 'Clara' },
-  { id: 'student-2', studentName: 'Mike' },
-  { id: 'student-3', studentName: 'Eva' },
-  { id: 'student-4', studentName: 'Jessica' },
-  { id: 'student-5', studentName: 'Pedro' },
-  { id: 'student-6', studentName: 'Lucía' },
-  { id: 'student-7', studentName: 'Sofía' },
-];
-
-/** Estados de ejemplo (mock) para pintar los tres estados de celda. */
-const MOCK_CELL_STATES: Record<string, StatusCellState> = {
-  'student-1:day-1': 'done',
-  'student-1:day-2': 'undone',
-  'student-1:day-3': 'undone',
-  'student-1:day-4': 'undone',
-  'student-2:day-1': 'done',
-  'student-2:day-2': 'undone',
-  'student-3:day-1': 'done',
-  'student-3:day-3': 'done',
-  'student-4:day-2': 'done',
-  'student-5:day-1': 'undone',
-  'student-5:day-4': 'done',
-  'student-6:day-2': 'done',
-  'student-6:day-5': 'done',
-  'student-7:day-1': 'done',
+/** Mapeo de estado de asistencia a celda visual existente (sin cambios de icono). */
+const CELL_STATE_BY_ATTENDANCE: Record<AttendanceStatus, StatusCellState> = {
+  present: 'done',
+  absent: 'undone',
+  late: 'pending',
 };
 
 /**
  * Asistencia definitiva (DESIGN.md §5.2, frame n1053 de Tizaia.op): título,
- * matriz de 5 días × 7 alumnos con celdas de estado y TabBar.
- * El ciclo y persistencia de asistencia quedan para la fase funcional.
+ * matriz de 10 días lectivos × alumnos de la clase activa con celdas de estado
+ * y TabBar. Los 5 días más recientes quedan visibles y el resto usa scroll
+ * horizontal. La persistencia queda para la fase funcional.
  */
 export function AttendanceScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
+
+  const students = schoolRepository.getStudents();
+  const attendance = schoolRepository.getAttendanceForClass();
+  const schoolDays = schoolRepository.getSchoolDays();
+
+  const columns: MatrixBoardColumn[] = schoolDays.map((day) => ({
+    id: day.date,
+    label: day.label,
+    secondaryLabel: day.secondaryLabel,
+  }));
+
+  const rows: MatrixBoardRow[] = students.map((student) => ({
+    id: student.id,
+    studentName: getStudentFullName(student),
+    initials: getStudentInitials(student),
+  }));
+
+  const cellStates: Record<string, StatusCellState> = {};
+  for (const record of attendance) {
+    cellStates[`${record.studentId}:${record.date}`] =
+      CELL_STATE_BY_ATTENDANCE[record.status];
+  }
 
   return (
     <ScreenBackground>
@@ -67,9 +66,9 @@ export function AttendanceScreen(): React.JSX.Element {
           actionAccessibilityLabel={(row, column) =>
             `Asistencia de ${row.studentName} en ${column.label}`
           }
-          cellStates={MOCK_CELL_STATES}
-          columns={ATTENDANCE_DATES}
-          rows={MOCK_STUDENTS}
+          cellStates={cellStates}
+          columns={columns}
+          rows={rows}
         />
       </View>
       <TabBar onPressTab={onPressTab} style={styles.tabBar} />

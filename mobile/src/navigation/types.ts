@@ -6,7 +6,7 @@ export type RootDrawerParamList = {
   Mail: undefined;
   Annotations: undefined;
   Classes: undefined;
-  NewAnnotation: undefined;
-  NewMail: undefined;
-  StudentProfile: undefined;
+  NewAnnotation: { studentId?: string } | undefined;
+  NewMail: { studentId?: string; source?: 'mail' | 'annotation' } | undefined;
+  StudentProfile: { studentId?: string } | undefined;
 };

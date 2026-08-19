@@ -18,3 +18,15 @@
 
 Foundation acceptance: `mobile/` buildable and checks reproducible. Feature acceptance remains pending per roadmap.
 
+## Hito datos demo en memoria (MVP)
+
+| Artefacto                                   | HU/RF cubiertos                       | Validación |
+| ------------------------------------------- | ------------------------------------- | ---------- |
+| `src/domain/school/` (modelos y fechas)     | HU-004, HU-007; DAT-ASIS-001/DAT-TASK-001 | `pnpm test` |
+| `src/infrastructure/in-memory/` (repositorio) | HU-004..HU-011                      | `pnpm test` |
+| Pantallas conectadas al repositorio         | HU-004, HU-005, HU-006, HU-007, HU-008, HU-009, HU-010, HU-011 | `pnpm typecheck`, `pnpm lint` |
+
+El contrato `SchoolRepository` permite sustituir la implementación en memoria
+por Supabase sin cambios en la UI; la persistencia (guardar anotaciones, enviar
+mails, guardar cambios de celda) queda fuera del alcance de este hito.
+

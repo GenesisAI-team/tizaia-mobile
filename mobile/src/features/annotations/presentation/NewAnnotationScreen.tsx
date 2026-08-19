@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 
 import {
   GlassCard,
@@ -19,16 +21,15 @@ import {
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
-
-type AnnotationType = 'contrary' | 'aggravating' | 'positive';
+import type { RootDrawerParamList } from '../../../navigation/types';
+import { schoolRepository } from '../../../infrastructure/in-memory';
+import {
+  getStudentFullName,
+  getStudentInitials,
+} from '../../../domain/school/models';
+import type { AnnotationType } from '../../../domain/school/models';
 
 const MAX_NOTES_LENGTH = 500;
-
-const MOCK_STUDENT = {
-  group: '2º ESO C/D',
-  initials: 'ED',
-  name: 'Esteban Domínguez',
-} as const;
 
 const ANNOTATION_TYPES: {
   color: string;
@@ -55,13 +56,25 @@ const ANNOTATION_TYPES: {
 /**
  * Nueva Anotación definitiva (DESIGN.md §5.10, frame n1779 de Tizaia.op):
  * selector de alumno, tipo de anotación (3 opciones), editor con contador
- * y composer de envío. La persistencia queda para la fase funcional.
+ * y composer de envío. Si llega un alumno (p. ej. desde la lista de alumnos)
+ * se precarga en el selector. La persistencia queda para la fase funcional.
  */
 export function NewAnnotationScreen(): React.JSX.Element {
+  const route = useRoute<RouteProp<RootDrawerParamList, 'NewAnnotation'>>();
   const headerHeight = useHeaderHeight();
   const onPressTab = useTabBarPress();
   const [selectedType, setSelectedType] = useState<AnnotationType>('positive');
   const [notes, setNotes] = useState('');
+
+  const studentId = route.params?.studentId;
+  const student = studentId
+    ? schoolRepository.getStudent(studentId)
+    : undefined;
+  const group = student
+    ? schoolRepository
+        .getClasses()
+        .find((schoolClass) => schoolClass.id === student.classId)
+    : undefined;
 
   return (
     <ScreenBackground>
@@ -80,12 +93,16 @@ export function NewAnnotationScreen(): React.JSX.Element {
             <View style={styles.studentSelector}>
               <View style={styles.studentAvatar}>
                 <Text style={styles.studentInitials}>
-                  {MOCK_STUDENT.initials}
+                  {student ? getStudentInitials(student) : 'AL'}
                 </Text>
               </View>
               <View style={styles.studentInfo}>
-                <Text style={styles.studentName}>{MOCK_STUDENT.name}</Text>
-                <Text style={styles.studentGroup}>{MOCK_STUDENT.group}</Text>
+                <Text style={styles.studentName}>
+                  {student ? getStudentFullName(student) : 'Sin alumno'}
+                </Text>
+                <Text style={styles.studentGroup}>
+                  {student && group ? group.groupName : 'Selecciona un alumno'}
+                </Text>
               </View>
               <Text style={styles.chevron}>›</Text>
             </View>

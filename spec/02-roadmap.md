@@ -10,6 +10,13 @@
 | 6     | Anotaciones                           | HU-008/HU-009; RF-NOTE                      | review (diseño visual)  |
 | 7     | Correo y comunicaciones               | HU-010..HU-012; RF-MAIL/RF-COMM             | review (diseño visual)  |
 | 8     | Alertas                               | HU-013; RF-FOLLOW                           | blocked by Q-001..Q-003 |
+| 9     | Datos demo en memoria (MVP)           | HU-004..HU-011                              | done                    |
+
+El hito 9 implementa una capa de datos mock en memoria (`SchoolRepository` +
+generador determinista en `mobile/src/infrastructure/in-memory/`) que alimenta
+asistencia, tareas, alumnos, perfil, anotaciones y correo con fechas lectivas
+dinámicas (lun-vie, ancladas a la fecha local de inicio de la app). Sustituirá
+a Supabase en el hito de integración sin tocar las pantallas.
 
 ## Descomposición preliminar por HU
 
