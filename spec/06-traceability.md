@@ -3,7 +3,7 @@
 | Historia | Origen | Requisitos |
 |---|---|---|
 | HU-001 | CU-01 | RF-AUTH-001..006; INT-GOOGLE-001 |
-| HU-002 | CU-02 | RF-CHAT-001..006; INT-N8N-001; INT-RAG-001 |
+| HU-002 | CU-02 | RF-CHAT-001..006; INT-BACKEND-001; INT-ASSISTANT-001; INT-RAG-001 (aplazado, RFC-001) |
 | HU-003 | Navegación transversal | RF-NAV-001..008 |
 | HU-004 | CU-03 | RF-ASIS-001..006; BR-ASIS-001; DAT-ASIS-001 |
 | HU-005 | CU-04 | RF-ALUM-001..007; BR-DELETE-001 |
@@ -29,4 +29,17 @@ Foundation acceptance: `mobile/` buildable and checks reproducible. Feature acce
 El contrato `SchoolRepository` permite sustituir la implementación en memoria
 por Supabase sin cambios en la UI; la persistencia (guardar anotaciones, enviar
 mails, guardar cambios de celda) queda fuera del alcance de este hito.
+
+## RFC-001 — Backend en memoria y AI SDK
+
+| Artefacto                                  | HU/RF cubiertos                         | Validación |
+| ------------------------------------------ | --------------------------------------- | ---------- |
+| `spec/07-assistant-backend-rfc.md`         | HU-002; RF-CHAT-001..006; Q-009         | Revisión de PR; enlaces y referencias cruzadas de `spec/` |
+| Actualización stack e integraciones        | INT-BACKEND-001/INT-ASSISTANT-001       | Coherencia con RFC-001 (n8n, RAG, Supabase, Q-009) |
+| Roadmap, open questions y HU-002           | Q-009 resuelta; trazabilidad            | Sin contradicciones residuales |
+
+RFC-001 define la arquitectura del backend del MVP ampliado (Node 22 + TS +
+Express + Zod + AI SDK 7, almacén en memoria con seeds deterministas, REST bajo
+`/v1`, RAG fuera de alcance) y resuelve Q-009 descartando n8n como integración
+del asistente. No introduce código de runtime ni dependencias.
 

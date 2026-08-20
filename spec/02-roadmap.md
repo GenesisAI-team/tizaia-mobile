@@ -4,13 +4,15 @@
 | ----- | ------------------------------------- | ------------------------------------------- | ----------------------- |
 | 1     | BOOTSTRAP-001 foundation, SDD y arnés | HU-001..HU-013; RNF-UX-001                  | done                    |
 | 2     | Auth y sesión                         | HU-001; RF-AUTH; INT-GOOGLE-001             | done                    |
-| 3     | Home, asistente y navegación          | HU-002..HU-003; RF-CHAT/RF-NAV; INT-N8N/RAG | review (HU-003)         |
+| 3     | Home, asistente y navegación          | HU-002..HU-003; RF-CHAT/RF-NAV; INT-BACKEND/INT-ASSISTANT | review (HU-003)         |
 | 4     | Asistencia y tareas                   | HU-004/HU-007; RF-ASIS/RF-TASK              | review (diseño visual)  |
 | 5     | Alumnos y seguimiento                 | HU-005/HU-006; RF-ALUM                      | review (diseño visual)  |
 | 6     | Anotaciones                           | HU-008/HU-009; RF-NOTE                      | review (diseño visual)  |
 | 7     | Correo y comunicaciones               | HU-010..HU-012; RF-MAIL/RF-COMM             | review (diseño visual)  |
 | 8     | Alertas                               | HU-013; RF-FOLLOW                           | blocked by Q-001..Q-003 |
 | 9     | Datos demo en memoria (MVP)           | HU-004..HU-011                              | done                    |
+| 10    | RFC-001 backend en memoria + AI SDK   | HU-002; Q-009; RF-CHAT                      | review (RFC pendiente)  |
+| 11    | Backend propio `/v1` (implementación) | HU-002..HU-011; INT-BACKEND/INT-ASSISTANT   | backlog                 |
 
 El hito 9 implementa una capa de datos mock en memoria (`SchoolRepository` +
 generador determinista en `mobile/src/infrastructure/in-memory/`) que alimenta
@@ -18,12 +20,17 @@ asistencia, tareas, alumnos, perfil, anotaciones y correo con fechas lectivas
 dinámicas (lun-vie, ancladas a la fecha local de inicio de la app). Sustituirá
 a Supabase en el hito de integración sin tocar las pantallas.
 
+El hito 10 es el [RFC-001](07-assistant-backend-rfc.md): decide el backend
+propio (Node 22 + TypeScript + Express + Zod + AI SDK 7), el almacén en memoria
+con seeds deterministas, la API REST bajo `/v1`, el descarte de n8n (Q-009) y el
+aplazamiento del RAG. El hito 11 lo implementa sin cambiar la UI ni las tools.
+
 ## Descomposición preliminar por HU
 
 | HU     | Tareas futuras (sin implementación en bootstrap)               |
 | ------ | -------------------------------------------------------------- |
 | HU-001 | Contrato de sesión; Google; credenciales; errores y expiración |
-| HU-002 | Modelo de conversación; gateway n8n; RAG; estados de chat      |
+| HU-002 | Modelo de conversación; gateway backend REST; AI SDK; estados de chat |
 | HU-003 | Navegación autenticada; menú; cierre de sesión                 |
 | HU-004 | Consulta de clase; matriz; ciclo y persistencia                |
 | HU-005 | Listado; acciones de fila; confirmación y borrado              |
