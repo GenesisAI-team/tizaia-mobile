@@ -294,9 +294,9 @@ describe('API REST (integración)', () => {
     assert.equal(inbox.status, 200);
     // El seed trae 30 correos; el test de cascada puede haber eliminado el
     // correo de algún alumno borrado. La API debe coincidir con el almacén.
-    const expectedInbox = server.repository
-      .getMails()
-      .filter((mail) => mail.folder === 'inbox').length;
+    const expectedInbox = (await server.repository.getMails()).filter(
+      (mail) => mail.folder === 'inbox',
+    ).length;
     assert.equal(inbox.body.length, expectedInbox);
 
     const unread = await server.requestJson<AnyRecord[]>(
@@ -393,12 +393,12 @@ describe('API REST (integración)', () => {
 
     const resetServer = await startTestServer({ devResetEnabled: true });
     try {
-      const studentsBefore = resetServer.repository
-        .getStudents('class-1')
-        .map((student) => student.id);
-      resetServer.repository.deleteStudentCascade(studentsBefore[0]!);
+      const studentsBefore = (
+        await resetServer.repository.getStudents('class-1')
+      ).map((student) => student.id);
+      await resetServer.repository.deleteStudentCascade(studentsBefore[0]!);
       assert.notEqual(
-        resetServer.repository.getStudents('class-1').length,
+        (await resetServer.repository.getStudents('class-1')).length,
         studentsBefore.length,
       );
 
@@ -410,7 +410,7 @@ describe('API REST (integración)', () => {
       );
       assert.equal(enabled.status, 200);
       assert.deepEqual(
-        resetServer.repository.getStudents('class-1').map((s) => s.id),
+        (await resetServer.repository.getStudents('class-1')).map((s) => s.id),
         studentsBefore,
       );
     } finally {

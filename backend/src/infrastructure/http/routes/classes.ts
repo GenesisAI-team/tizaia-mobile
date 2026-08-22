@@ -9,37 +9,37 @@ import { classIdParamSchema, dateRangeQuerySchema } from '../schemas.js';
 export function createClassesRouter(service: SchoolService): Router {
   const router = Router();
 
-  router.get('/v1/classes', (_req, res) => {
-    res.json(service.listClasses());
+  router.get('/v1/classes', async (_req, res) => {
+    res.json(await service.listClasses());
   });
 
-  router.get('/v1/classes/:classId', (req, res) => {
+  router.get('/v1/classes/:classId', async (req, res) => {
     const { classId } = parseWith(classIdParamSchema, req.params);
-    res.json(service.getClass(classId));
+    res.json(await service.getClass(classId));
   });
 
-  router.get('/v1/classes/:classId/summary', (req, res) => {
+  router.get('/v1/classes/:classId/summary', async (req, res) => {
     const { classId } = parseWith(classIdParamSchema, req.params);
-    res.json(service.getClassSummary(classId));
+    res.json(await service.getClassSummary(classId));
   });
 
-  router.get('/v1/classes/:classId/students', (req, res) => {
+  router.get('/v1/classes/:classId/students', async (req, res) => {
     const { classId } = parseWith(classIdParamSchema, req.params);
-    res.json(service.listStudents(classId));
+    res.json(await service.listStudents(classId));
   });
 
-  router.get('/v1/classes/:classId/attendance', (req, res) => {
+  router.get('/v1/classes/:classId/attendance', async (req, res) => {
     const { classId } = parseWith(classIdParamSchema, req.params);
     const { from, to } = parseWith(dateRangeQuerySchema, {
       from: singleQuery(req.query.from),
       to: singleQuery(req.query.to),
     });
-    res.json(service.listClassAttendance(classId, from, to));
+    res.json(await service.listClassAttendance(classId, from, to));
   });
 
-  router.get('/v1/classes/:classId/assignments', (req, res) => {
+  router.get('/v1/classes/:classId/assignments', async (req, res) => {
     const { classId } = parseWith(classIdParamSchema, req.params);
-    res.json(service.listAssignments(classId));
+    res.json(await service.listAssignments(classId));
   });
 
   return router;

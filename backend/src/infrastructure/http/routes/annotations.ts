@@ -14,15 +14,15 @@ import { singleQuery } from './classes.js';
 export function createAnnotationsRouter(service: SchoolService): Router {
   const router = Router();
 
-  router.get('/v1/annotations', (req, res) => {
+  router.get('/v1/annotations', async (req, res) => {
     const filters = parseWith(listAnnotationsQuerySchema, {
       classId: singleQuery(req.query.classId),
       studentId: singleQuery(req.query.studentId),
       managed: singleQuery(req.query.managed),
     });
     res.json(
-      service
-        .listAnnotations({
+      (
+        await service.listAnnotations({
           classId: filters.classId,
           studentId: filters.studentId,
           managed:
@@ -30,20 +30,23 @@ export function createAnnotationsRouter(service: SchoolService): Router {
               ? undefined
               : filters.managed === 'true',
         })
-        .map(toAnnotationDto),
+      ).map(toAnnotationDto),
     );
   });
 
-  router.post('/v1/annotations', (req, res) => {
+  router.post('/v1/annotations', async (req, res) => {
     const body = parseWith(createAnnotationBodySchema, req.body);
-    const annotation = service.createAnnotation(body);
+    const annotation = await service.createAnnotation(body);
     res.status(201).json(toAnnotationDto(annotation));
   });
 
-  router.patch('/v1/annotations/:annotationId/managed', (req, res) => {
+  router.patch('/v1/annotations/:annotationId/managed', async (req, res) => {
     const { annotationId } = parseWith(annotationIdParamSchema, req.params);
     const body = parseWith(managedBodySchema, req.body);
-    const annotation = service.setAnnotationManaged(annotationId, body.managed);
+    const annotation = await service.setAnnotationManaged(
+      annotationId,
+      body.managed,
+    );
     res.json(toAnnotationDto(annotation));
   });
 

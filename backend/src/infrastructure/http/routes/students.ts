@@ -13,36 +13,36 @@ import { singleQuery } from './classes.js';
 export function createStudentsRouter(service: SchoolService): Router {
   const router = Router();
 
-  router.get('/v1/students/:studentId', (req, res) => {
+  router.get('/v1/students/:studentId', async (req, res) => {
     const { studentId } = parseWith(studentIdParamSchema, req.params);
-    res.json(service.getStudentDetail(studentId));
+    res.json(await service.getStudentDetail(studentId));
   });
 
-  router.get('/v1/students/:studentId/progress', (req, res) => {
+  router.get('/v1/students/:studentId/progress', async (req, res) => {
     const { studentId } = parseWith(studentIdParamSchema, req.params);
-    res.json(service.getStudentProgress(studentId));
+    res.json(await service.getStudentProgress(studentId));
   });
 
-  router.get('/v1/students/:studentId/attendance', (req, res) => {
+  router.get('/v1/students/:studentId/attendance', async (req, res) => {
     const { studentId } = parseWith(studentIdParamSchema, req.params);
     const { from, to } = parseWith(dateRangeQuerySchema, {
       from: singleQuery(req.query.from),
       to: singleQuery(req.query.to),
     });
-    res.json(service.getStudentAttendance(studentId, from, to));
+    res.json(await service.getStudentAttendance(studentId, from, to));
   });
 
   // Edición limitada del MVP (Q-014 abierta): solo firstName/lastName.
-  router.patch('/v1/students/:studentId', (req, res) => {
+  router.patch('/v1/students/:studentId', async (req, res) => {
     const { studentId } = parseWith(studentIdParamSchema, req.params);
     const patch = parseWith(studentPatchBodySchema, req.body);
-    res.json(toStudentDto(service.updateStudent(studentId, patch)));
+    res.json(toStudentDto(await service.updateStudent(studentId, patch)));
   });
 
   // Borrado coherente de relaciones (cascada completa).
-  router.delete('/v1/students/:studentId', (req, res) => {
+  router.delete('/v1/students/:studentId', async (req, res) => {
     const { studentId } = parseWith(studentIdParamSchema, req.params);
-    service.deleteStudent(studentId);
+    await service.deleteStudent(studentId);
     res.status(204).send();
   });
 

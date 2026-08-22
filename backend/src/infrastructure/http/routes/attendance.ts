@@ -11,10 +11,13 @@ import { toAttendanceDto } from '../dto.js';
 export function createAttendanceRouter(service: SchoolService): Router {
   const router = Router();
 
-  router.put('/v1/attendance/:classId/:studentId/:date', (req, res) => {
+  router.put('/v1/attendance/:classId/:studentId/:date', async (req, res) => {
     const params = parseWith(attendanceParamsSchema, req.params);
     const body = parseWith(attendanceStatusBodySchema, req.body);
-    const record = service.setAttendance({ ...params, status: body.status });
+    const record = await service.setAttendance({
+      ...params,
+      status: body.status,
+    });
     res.json(toAttendanceDto(record));
   });
 

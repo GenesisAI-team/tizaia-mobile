@@ -1,12 +1,13 @@
 import type {
+  Annotation,
   AnnotationType,
-  MailRecipientRef,
-  SubmissionStatus,
-} from '../domain/models.js';
-import type {
+  AssignmentSubmission,
+  AttendanceRecord,
   AttendanceStatus,
+  MailRecipientRef,
   SchoolClass,
   Student,
+  SubmissionStatus,
 } from '../domain/models.js';
 import type { SchoolRepository } from '../domain/schoolRepository.js';
 import { NotFoundError, NonSchoolDayError, ValidationError } from './errors.js';
@@ -23,66 +24,82 @@ export class SchoolService {
 
   // ---------- Sistema y bootstrap ----------
 
-  public getBootstrap(): Record<string, unknown> {
+  public async getBootstrap(): Promise<Record<string, unknown>> {
     const repository = this.repository;
+    const classes = await repository.getClasses();
+    const assignments = await repository.getAssignments();
+    const attendance: AttendanceRecord[] = [];
+    for (const schoolClass of classes) {
+      attendance.push(
+        ...(await repository.getAttendanceForClass(schoolClass.id)),
+      );
+    }
+    const submissions: AssignmentSubmission[] = [];
+    for (const assignment of assignments) {
+      submissions.push(...(await repository.getSubmissions(assignment.id)));
+    }
     return {
-      teacher: repository.getTeacher(),
-      activeClassId: repository.getActiveClassId(),
-      classes: repository.getClasses(),
-      schoolDays: repository.getSchoolDays(),
-      students: repository.getStudents(),
-      contacts: repository.getAllContacts(),
-      attendance: repository
-        .getClasses()
-        .flatMap((schoolClass) =>
-          repository.getAttendanceForClass(schoolClass.id),
-        ),
-      assignments: repository.getAssignments(),
-      submissions: repository
-        .getAssignments()
-        .flatMap((assignment) => repository.getSubmissions(assignment.id)),
-      annotations: repository.getAnnotations(),
-      mails: repository.getMails(),
+      teacher: await repository.getTeacher(),
+      activeClassId: await repository.getActiveClassId(),
+      classes,
+      schoolDays: await repository.getSchoolDays(),
+      students: await repository.getStudents(),
+      contacts: await repository.getAllContacts(),
+      attendance,
+      assignments,
+      submissions,
+      annotations: await repository.getAnnotations(),
+      mails: await repository.getMails(),
     };
   }
 
-  public me(): { teacher: unknown; activeClass: SchoolClass | undefined } {
+  public async me(): Promise<{
+    teacher: unknown;
+    activeClass: SchoolClass | undefined;
+  }> {
+    const teacher = await this.repository.getTeacher();
+    const activeClassId = await this.repository.getActiveClassId();
     return {
-      teacher: this.repository.getTeacher(),
-      activeClass: this.repository.getClass(this.repository.getActiveClassId()),
+      teacher,
+      activeClass: await this.repository.getClass(activeClassId),
     };
   }
 
   /** Reinicia el almacén al seed determinista (solo con ENABLE_DEV_RESET). */
-  public resetStore(): void {
-    this.repository.resetToSeed(new Date());
+  public async resetStore(): Promise<void> {
+    await this.repository.resetToSeed(new Date());
   }
 
   // ---------- Clases ----------
 
-  public listClasses(): SchoolClass[] {
+  public async listClasses(): Promise<SchoolClass[]> {
     return this.repository.getClasses();
   }
 
-  public getClass(classId: string): SchoolClass {
+  public async getClass(classId: string): Promise<SchoolClass> {
     return this.requireClass(classId);
   }
 
-  public getClassSummary(classId: string): Record<string, unknown> {
-    const schoolClass = this.requireClass(classId);
-    const students = this.repository.getStudents(classId);
-    const referenceDay = this.referenceSchoolDay();
-    const recordsToday = this.repository
-      .getAttendanceForClass(classId)
-      .filter((record) => record.date === referenceDay.date);
+  public async getClassSummary(
+    classId: string,
+  ): Promise<Record<string, unknown>> {
+    const schoolClass = await this.requireClass(classId);
+    const students = await this.repository.getStudents(classId);
+    const referenceDay = await this.referenceSchoolDay();
+    const classAttendance =
+      await this.repository.getAttendanceForClass(classId);
+    const recordsToday = classAttendance.filter(
+      (record) => record.date === referenceDay.date,
+    );
     const countByStatus = (status: AttendanceStatus): number =>
       recordsToday.filter((record) => record.status === status).length;
-    const unmanagedAnnotations = this.repository
-      .getAnnotations()
-      .filter((annotation) => {
-        const student = this.repository.getStudent(annotation.studentId);
-        return student?.classId === classId && annotation.managed === false;
-      });
+    const unmanagedAnnotations: Annotation[] = [];
+    for (const annotation of await this.repository.getAnnotations()) {
+      const student = await this.repository.getStudent(annotation.studentId);
+      if (student?.classId === classId && annotation.managed === false) {
+        unmanagedAnnotations.push(annotation);
+      }
+    }
 
     return {
       class: schoolClass,
@@ -94,32 +111,36 @@ export class SchoolService {
         late: countByStatus('late'),
         unrecorded: students.length - recordsToday.length,
       },
-      assignmentsTotal: this.repository.getAssignments(classId).length,
+      assignmentsTotal: (await this.repository.getAssignments(classId)).length,
       annotationsUnmanaged: unmanagedAnnotations.length,
     };
   }
 
   // ---------- Alumnado ----------
 
-  public listStudents(classId?: string): Student[] {
+  public async listStudents(classId?: string): Promise<Student[]> {
     if (classId !== undefined) {
-      this.requireClass(classId);
+      await this.requireClass(classId);
       return this.repository.getStudents(classId);
     }
     return this.repository.getStudents();
   }
 
-  public getStudentDetail(studentId: string): Record<string, unknown> {
-    const student = this.requireStudent(studentId);
+  public async getStudentDetail(
+    studentId: string,
+  ): Promise<Record<string, unknown>> {
+    const student = await this.requireStudent(studentId);
     return {
       student,
-      contacts: this.repository.getContacts(student.id),
+      contacts: await this.repository.getContacts(student.id),
     };
   }
 
-  public getStudentProgress(studentId: string): Record<string, unknown> {
-    const student = this.requireStudent(studentId);
-    const attendanceRecords = this.repository.getAttendanceByStudent(
+  public async getStudentProgress(
+    studentId: string,
+  ): Promise<Record<string, unknown>> {
+    const student = await this.requireStudent(studentId);
+    const attendanceRecords = await this.repository.getAttendanceByStudent(
       student.id,
     );
     const present = attendanceRecords.filter(
@@ -133,23 +154,29 @@ export class SchoolService {
     ).length;
     const totalDays = attendanceRecords.length;
 
-    const annotations = this.repository
-      .getAnnotations()
-      .filter((annotation) => annotation.studentId === student.id);
+    const annotations = (await this.repository.getAnnotations()).filter(
+      (annotation) => annotation.studentId === student.id,
+    );
     const countAnnotations = (type: AnnotationType): number =>
       annotations.filter((annotation) => annotation.type === type).length;
 
-    const submissions = this.repository
-      .getAssignments(student.classId)
-      .flatMap((assignment) =>
-        this.repository
-          .getSubmissions(assignment.id)
-          .filter((submission) => submission.studentId === student.id),
+    const submissions: AssignmentSubmission[] = [];
+    for (const assignment of await this.repository.getAssignments(
+      student.classId,
+    )) {
+      const assignmentSubmissions = await this.repository.getSubmissions(
+        assignment.id,
       );
+      submissions.push(
+        ...assignmentSubmissions.filter(
+          (submission) => submission.studentId === student.id,
+        ),
+      );
+    }
 
     return {
       student,
-      class: this.requireClass(student.classId),
+      class: await this.requireClass(student.classId),
       attendance: {
         totalDays,
         present,
@@ -180,61 +207,61 @@ export class SchoolService {
   /**
    * Edición limitada del MVP (Q-014 abierta): solo firstName/lastName.
    */
-  public updateStudent(
+  public async updateStudent(
     studentId: string,
     patch: { firstName?: string; lastName?: string },
-  ): Student {
-    this.requireStudent(studentId);
+  ): Promise<Student> {
+    await this.requireStudent(studentId);
     return this.repository.updateStudent(studentId, patch);
   }
 
   /** Borrado coherente: el repositorio aplica la cascada completa. */
-  public deleteStudent(studentId: string): void {
-    this.requireStudent(studentId);
-    this.repository.deleteStudentCascade(studentId);
+  public async deleteStudent(studentId: string): Promise<void> {
+    await this.requireStudent(studentId);
+    await this.repository.deleteStudentCascade(studentId);
   }
 
   // ---------- Asistencia ----------
 
-  public listClassAttendance(
+  public async listClassAttendance(
     classId: string,
     from?: string,
     to?: string,
   ): ReturnType<SchoolRepository['getAttendanceForClass']> {
-    this.requireClass(classId);
+    await this.requireClass(classId);
     return this.filterByDateRange(
-      this.repository.getAttendanceForClass(classId),
+      await this.repository.getAttendanceForClass(classId),
       from,
       to,
     );
   }
 
-  public getStudentAttendance(
+  public async getStudentAttendance(
     studentId: string,
     from?: string,
     to?: string,
   ): ReturnType<SchoolRepository['getAttendanceByStudent']> {
-    this.requireStudent(studentId);
+    await this.requireStudent(studentId);
     return this.filterByDateRange(
-      this.repository.getAttendanceByStudent(studentId),
+      await this.repository.getAttendanceByStudent(studentId),
       from,
       to,
     );
   }
 
-  public setAttendance(input: {
+  public async setAttendance(input: {
     classId: string;
     studentId: string;
     date: string;
     status: AttendanceStatus;
   }): ReturnType<SchoolRepository['upsertAttendanceStatus']> {
-    const student = this.requireStudent(input.studentId);
+    const student = await this.requireStudent(input.studentId);
     if (student.classId !== input.classId) {
       throw new NotFoundError(
         `El alumno ${input.studentId} no pertenece a la clase ${input.classId}`,
       );
     }
-    if (!this.repository.isSchoolDay(input.date)) {
+    if (!(await this.repository.isSchoolDay(input.date))) {
       throw new NonSchoolDayError(input.date);
     }
     return this.repository.upsertAttendanceStatus({
@@ -246,25 +273,25 @@ export class SchoolService {
 
   // ---------- Tareas y entregas ----------
 
-  public listAssignments(classId?: string) {
+  public async listAssignments(classId?: string) {
     if (classId !== undefined) {
-      this.requireClass(classId);
+      await this.requireClass(classId);
     }
     return this.repository.getAssignments(classId);
   }
 
-  public getAssignmentSubmissions(assignmentId: string) {
-    this.requireAssignment(assignmentId);
+  public async getAssignmentSubmissions(assignmentId: string) {
+    await this.requireAssignment(assignmentId);
     return this.repository.getSubmissions(assignmentId);
   }
 
-  public setSubmissionStatus(input: {
+  public async setSubmissionStatus(input: {
     assignmentId: string;
     studentId: string;
     status: SubmissionStatus;
   }): ReturnType<SchoolRepository['setSubmissionStatus']> {
-    const assignment = this.requireAssignment(input.assignmentId);
-    const student = this.requireStudent(input.studentId);
+    const assignment = await this.requireAssignment(input.assignmentId);
+    const student = await this.requireStudent(input.studentId);
     if (student.classId !== assignment.classId) {
       throw new NotFoundError(
         `El alumno ${input.studentId} no pertenece a la clase de la tarea ${input.assignmentId}`,
@@ -279,72 +306,72 @@ export class SchoolService {
 
   // ---------- Anotaciones ----------
 
-  public listAnnotations(filters: {
+  public async listAnnotations(filters: {
     classId?: string;
     studentId?: string;
     managed?: boolean;
   }) {
     if (filters.classId !== undefined) {
-      this.requireClass(filters.classId);
+      await this.requireClass(filters.classId);
     }
     if (filters.studentId !== undefined) {
-      this.requireStudent(filters.studentId);
+      await this.requireStudent(filters.studentId);
     }
-    return this.repository
-      .getAnnotations()
-      .filter((annotation) => {
-        if (
-          filters.classId !== undefined &&
-          this.repository.getStudent(annotation.studentId)?.classId !==
-            filters.classId
-        ) {
-          return false;
+    const matching: Annotation[] = [];
+    for (const annotation of await this.repository.getAnnotations()) {
+      if (filters.classId !== undefined) {
+        const owner = await this.repository.getStudent(annotation.studentId);
+        if (owner?.classId !== filters.classId) {
+          continue;
         }
-        if (
-          filters.studentId !== undefined &&
-          annotation.studentId !== filters.studentId
-        ) {
-          return false;
-        }
-        if (
-          filters.managed !== undefined &&
-          annotation.managed !== filters.managed
-        ) {
-          return false;
-        }
-        return true;
-      })
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      }
+      if (
+        filters.studentId !== undefined &&
+        annotation.studentId !== filters.studentId
+      ) {
+        continue;
+      }
+      if (
+        filters.managed !== undefined &&
+        annotation.managed !== filters.managed
+      ) {
+        continue;
+      }
+      matching.push(annotation);
+    }
+    return matching.sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
   }
 
-  public createAnnotation(input: {
+  public async createAnnotation(input: {
     studentId: string;
     type: AnnotationType;
     description: string;
   }): ReturnType<SchoolRepository['createAnnotation']> {
-    this.requireStudent(input.studentId);
+    await this.requireStudent(input.studentId);
     return this.repository.createAnnotation(input);
   }
 
-  public setAnnotationManaged(
+  public async setAnnotationManaged(
     annotationId: string,
     managed: boolean,
   ): ReturnType<SchoolRepository['setAnnotationManaged']> {
-    this.requireAnnotation(annotationId);
+    await this.requireAnnotation(annotationId);
     return this.repository.setAnnotationManaged(annotationId, managed);
   }
 
   // ---------- Correo ----------
 
-  public listMails(filters: {
+  public async listMails(filters: {
     folder?: string;
     unread?: boolean;
     query?: string;
   }) {
     const folder = filters.folder ?? 'inbox';
     const normalizedQuery = filters.query?.trim().toLowerCase();
-    return this.repository
-      .getMails()
+    const mails = await this.repository.getMails();
+    return mails
       .filter((mail) => mail.folder === folder)
       .filter((mail) =>
         filters.unread === undefined ? true : mail.isRead === !filters.unread,
@@ -362,43 +389,41 @@ export class SchoolService {
       .sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
   }
 
-  public getMailDetail(mailId: string) {
+  public async getMailDetail(mailId: string) {
     return this.requireMail(mailId);
   }
 
-  public setMailRead(mailId: string, isRead: boolean) {
-    this.requireMail(mailId);
+  public async setMailRead(mailId: string, isRead: boolean) {
+    await this.requireMail(mailId);
     return this.repository.setMailRead(mailId, isRead);
   }
 
   /** Destinatarios disponibles: familias (contactos) y grupos (clases). */
-  public searchRecipients(query?: string): MailRecipientRef[] {
+  public async searchRecipients(query?: string): Promise<MailRecipientRef[]> {
     const normalizedQuery = query?.trim().toLowerCase();
     const matches = (label: string): boolean =>
       normalizedQuery === undefined ||
       normalizedQuery.length === 0 ||
       label.toLowerCase().includes(normalizedQuery);
 
-    const families = this.repository
-      .getAllContacts()
-      .map<MailRecipientRef>((contact) => {
-        const student = this.repository.getStudent(contact.studentId);
-        return {
-          kind: 'family' as const,
-          id: `family-${contact.studentId}`,
-          label: `Familia de ${student?.firstName ?? 'alumno'}`,
-        };
-      })
-      .filter((recipient) => matches(recipient.label));
-
+    const families: MailRecipientRef[] = [];
+    for (const contact of await this.repository.getAllContacts()) {
+      const student = await this.repository.getStudent(contact.studentId);
+      families.push({
+        kind: 'family' as const,
+        id: `family-${contact.studentId}`,
+        label: `Familia de ${student?.firstName ?? 'alumno'}`,
+      });
+    }
     const uniqueFamilies = [
       ...new Map(
-        families.map((recipient) => [recipient.id, recipient]),
+        families
+          .filter((recipient) => matches(recipient.label))
+          .map((recipient) => [recipient.id, recipient]),
       ).values(),
     ];
 
-    const groups = this.repository
-      .getClasses()
+    const groups = (await this.repository.getClasses())
       .map<MailRecipientRef>((schoolClass) => ({
         kind: 'group' as const,
         id: `group-${schoolClass.id}`,
@@ -410,14 +435,15 @@ export class SchoolService {
   }
 
   /** Envío mock persistido en memoria (carpeta `sent`, HU-011 demo). */
-  public sendMail(input: {
+  public async sendMail(input: {
     subject: string;
     body: string;
     recipientIds: string[];
   }) {
-    const recipients = input.recipientIds.map((recipientId) => {
+    const recipients: MailRecipientRef[] = [];
+    for (const recipientId of input.recipientIds) {
       if (recipientId.startsWith('family-')) {
-        const student = this.repository.getStudent(
+        const student = await this.repository.getStudent(
           recipientId.replace('family-', ''),
         );
         if (student === undefined) {
@@ -425,14 +451,13 @@ export class SchoolService {
             `Destinatario inexistente: ${recipientId}`,
           ]);
         }
-        return {
+        recipients.push({
           kind: 'family' as const,
           id: recipientId,
           label: `Familia de ${student.firstName}`,
-        };
-      }
-      if (recipientId.startsWith('group-')) {
-        const schoolClass = this.repository.getClass(
+        });
+      } else if (recipientId.startsWith('group-')) {
+        const schoolClass = await this.repository.getClass(
           recipientId.replace('group-', ''),
         );
         if (schoolClass === undefined) {
@@ -440,16 +465,17 @@ export class SchoolService {
             `Destinatario inexistente: ${recipientId}`,
           ]);
         }
-        return {
+        recipients.push({
           kind: 'group' as const,
           id: recipientId,
           label: schoolClass.groupName,
-        };
+        });
+      } else {
+        throw new ValidationError('Destinatario no válido', [
+          `Formato no válido: ${recipientId}`,
+        ]);
       }
-      throw new ValidationError('Destinatario no válido', [
-        `Formato no válido: ${recipientId}`,
-      ]);
-    });
+    }
 
     if (recipients.length === 0) {
       throw new ValidationError('Indica al menos un destinatario');
@@ -464,40 +490,40 @@ export class SchoolService {
 
   // ---------- Ayudas privadas ----------
 
-  private requireClass(classId: string): SchoolClass {
-    const schoolClass = this.repository.getClass(classId);
+  private async requireClass(classId: string): Promise<SchoolClass> {
+    const schoolClass = await this.repository.getClass(classId);
     if (schoolClass === undefined) {
       throw new NotFoundError(`Clase no encontrada: ${classId}`);
     }
     return schoolClass;
   }
 
-  private requireStudent(studentId: string): Student {
-    const student = this.repository.getStudent(studentId);
+  private async requireStudent(studentId: string): Promise<Student> {
+    const student = await this.repository.getStudent(studentId);
     if (student === undefined) {
       throw new NotFoundError(`Alumno no encontrado: ${studentId}`);
     }
     return student;
   }
 
-  private requireAssignment(assignmentId: string) {
-    const assignment = this.repository.getAssignment(assignmentId);
+  private async requireAssignment(assignmentId: string) {
+    const assignment = await this.repository.getAssignment(assignmentId);
     if (assignment === undefined) {
       throw new NotFoundError(`Tarea no encontrada: ${assignmentId}`);
     }
     return assignment;
   }
 
-  private requireAnnotation(annotationId: string) {
-    const annotation = this.repository.getAnnotation(annotationId);
+  private async requireAnnotation(annotationId: string) {
+    const annotation = await this.repository.getAnnotation(annotationId);
     if (annotation === undefined) {
       throw new NotFoundError(`Anotación no encontrada: ${annotationId}`);
     }
     return annotation;
   }
 
-  private requireMail(mailId: string) {
-    const mail = this.repository.getMail(mailId);
+  private async requireMail(mailId: string) {
+    const mail = await this.repository.getMail(mailId);
     if (mail === undefined) {
       throw new NotFoundError(`Correo no encontrado: ${mailId}`);
     }
@@ -517,8 +543,8 @@ export class SchoolService {
   }
 
   /** Último día lectivo no futuro entre los seeds; base para resúmenes. */
-  private referenceSchoolDay() {
-    const schoolDays = this.repository.getSchoolDays();
+  private async referenceSchoolDay() {
+    const schoolDays = await this.repository.getSchoolDays();
     const todayIso = toIsoDate(new Date());
     const reference =
       schoolDays.find((day) => day.date <= todayIso) ??

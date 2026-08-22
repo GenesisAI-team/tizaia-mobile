@@ -12,20 +12,22 @@ import { toSubmissionDto } from '../dto.js';
 export function createAssignmentsRouter(service: SchoolService): Router {
   const router = Router();
 
-  router.get('/v1/assignments/:assignmentId/submissions', (req, res) => {
+  router.get('/v1/assignments/:assignmentId/submissions', async (req, res) => {
     const { assignmentId } = parseWith(assignmentIdParamSchema, req.params);
     res.json(
-      service.getAssignmentSubmissions(assignmentId).map(toSubmissionDto),
+      (await service.getAssignmentSubmissions(assignmentId)).map(
+        toSubmissionDto,
+      ),
     );
   });
 
   // Ciclo BR-TASK-001: no entregada ↔ entregada (y pendiente).
   router.put(
     '/v1/assignments/:assignmentId/submissions/:studentId',
-    (req, res) => {
+    async (req, res) => {
       const params = parseWith(submissionParamsSchema, req.params);
       const body = parseWith(submissionStatusBodySchema, req.body);
-      const submission = service.setSubmissionStatus({
+      const submission = await service.setSubmissionStatus({
         ...params,
         status: body.status,
       });

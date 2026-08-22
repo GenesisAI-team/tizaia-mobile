@@ -15,7 +15,7 @@ import { singleQuery } from './classes.js';
 export function createMailsRouter(service: SchoolService): Router {
   const router = Router();
 
-  router.get('/v1/mails', (req, res) => {
+  router.get('/v1/mails', async (req, res) => {
     const filters = parseWith(listMailsQuerySchema, {
       folder: singleQuery(req.query.folder),
       unread: singleQuery(req.query.unread),
@@ -23,7 +23,7 @@ export function createMailsRouter(service: SchoolService): Router {
     });
     res.json(
       toMailDto(
-        service.listMails({
+        await service.listMails({
           folder: filters.folder,
           unread:
             filters.unread === undefined
@@ -35,28 +35,28 @@ export function createMailsRouter(service: SchoolService): Router {
     );
   });
 
-  router.get('/v1/mails/:mailId', (req, res) => {
+  router.get('/v1/mails/:mailId', async (req, res) => {
     const { mailId } = parseWith(mailIdParamSchema, req.params);
-    res.json(toMailDto(service.getMailDetail(mailId)));
+    res.json(toMailDto(await service.getMailDetail(mailId)));
   });
 
-  router.patch('/v1/mails/:mailId/read', (req, res) => {
+  router.patch('/v1/mails/:mailId/read', async (req, res) => {
     const { mailId } = parseWith(mailIdParamSchema, req.params);
     const body = parseWith(mailReadBodySchema, req.body);
-    res.json(toMailDto(service.setMailRead(mailId, body.isRead)));
+    res.json(toMailDto(await service.setMailRead(mailId, body.isRead)));
   });
 
-  router.get('/v1/mail-recipients', (req, res) => {
+  router.get('/v1/mail-recipients', async (req, res) => {
     const { query } = parseWith(recipientsQuerySchema, {
       query: singleQuery(req.query.query),
     });
-    res.json(service.searchRecipients(query));
+    res.json(await service.searchRecipients(query));
   });
 
   // Envío mock persistido en memoria: aparece en la carpeta `sent`.
-  router.post('/v1/mails', (req, res) => {
+  router.post('/v1/mails', async (req, res) => {
     const body = parseWith(sendMailBodySchema, req.body);
-    const mail = service.sendMail(body);
+    const mail = await service.sendMail(body);
     res.status(201).json(toMailDto(mail));
   });
 

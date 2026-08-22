@@ -6,11 +6,11 @@ export function createHealthRouter(service: SchoolService): Router {
   const router = Router();
   const startedAt = Date.now();
 
-  router.get('/health', (_req, res) => {
+  router.get('/health', async (_req, res) => {
     res.json({
       status: 'ok',
       uptimeSeconds: Math.round((Date.now() - startedAt) / 1000),
-      teacher: service.me().teacher,
+      teacher: (await service.me()).teacher,
       demo: true,
     });
   });

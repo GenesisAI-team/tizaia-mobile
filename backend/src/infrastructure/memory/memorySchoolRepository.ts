@@ -41,108 +41,118 @@ export class MemorySchoolRepository implements SchoolRepository {
 
   // ---------- Consultas ----------
 
-  public getTeacher(): Teacher {
+  public async getTeacher(): Promise<Teacher> {
     return this.seed.teacher;
   }
 
-  public getActiveClassId(): string {
+  public async getActiveClassId(): Promise<string> {
     return this.seed.activeClassId;
   }
 
-  public getClasses(): SchoolClass[] {
+  public async getClasses(): Promise<SchoolClass[]> {
     return [...this.seed.classes];
   }
 
-  public getClass(classId: string): SchoolClass | undefined {
+  public async getClass(classId: string): Promise<SchoolClass | undefined> {
     return this.seed.classes.find((schoolClass) => schoolClass.id === classId);
   }
 
-  public getStudents(classId?: string): Student[] {
+  public async getStudents(classId?: string): Promise<Student[]> {
     return this.seed.students.filter(
       (student) => classId === undefined || student.classId === classId,
     );
   }
 
-  public getStudent(studentId: string): Student | undefined {
+  public async getStudent(studentId: string): Promise<Student | undefined> {
     return this.seed.students.find((student) => student.id === studentId);
   }
 
-  public getContacts(studentId: string): StudentContact[] {
+  public async getContacts(studentId: string): Promise<StudentContact[]> {
     return this.seed.contacts.filter(
       (contact) => contact.studentId === studentId,
     );
   }
 
-  public getAllContacts(): StudentContact[] {
+  public async getAllContacts(): Promise<StudentContact[]> {
     return [...this.seed.contacts];
   }
 
-  public getSchoolDays(): SchoolDay[] {
+  public async getSchoolDays(): Promise<SchoolDay[]> {
     return [...this.seed.schoolDays];
   }
 
-  public isSchoolDay(date: string): boolean {
+  public async isSchoolDay(date: string): Promise<boolean> {
     return this.seed.schoolDays.some((day) => day.date === date);
   }
 
-  public getAttendanceForClass(classId: string): AttendanceRecord[] {
+  public async getAttendanceForClass(
+    classId: string,
+  ): Promise<AttendanceRecord[]> {
     const classStudentIds = new Set(
-      this.getStudents(classId).map((student) => student.id),
+      (await this.getStudents(classId)).map((student) => student.id),
     );
     return this.seed.attendance.filter((record) =>
       classStudentIds.has(record.studentId),
     );
   }
 
-  public getAttendanceByStudent(studentId: string): AttendanceRecord[] {
+  public async getAttendanceByStudent(
+    studentId: string,
+  ): Promise<AttendanceRecord[]> {
     return this.seed.attendance.filter(
       (record) => record.studentId === studentId,
     );
   }
 
-  public getAssignments(classId?: string): Assignment[] {
+  public async getAssignments(classId?: string): Promise<Assignment[]> {
     return this.seed.assignments.filter(
       (assignment) => classId === undefined || assignment.classId === classId,
     );
   }
 
-  public getAssignment(assignmentId: string): Assignment | undefined {
+  public async getAssignment(
+    assignmentId: string,
+  ): Promise<Assignment | undefined> {
     return this.seed.assignments.find(
       (assignment) => assignment.id === assignmentId,
     );
   }
 
-  public getSubmissions(assignmentId: string): AssignmentSubmission[] {
+  public async getSubmissions(
+    assignmentId: string,
+  ): Promise<AssignmentSubmission[]> {
     return this.seed.submissions.filter(
       (submission) => submission.assignmentId === assignmentId,
     );
   }
 
-  public getAnnotations(): Annotation[] {
+  public async getAnnotations(): Promise<Annotation[]> {
     return [...this.seed.annotations];
   }
 
-  public getAnnotation(annotationId: string): Annotation | undefined {
+  public async getAnnotation(
+    annotationId: string,
+  ): Promise<Annotation | undefined> {
     return this.seed.annotations.find(
       (annotation) => annotation.id === annotationId,
     );
   }
 
-  public getMails(): Mail[] {
+  public async getMails(): Promise<Mail[]> {
     return [...this.seed.mails];
   }
 
-  public getMail(mailId: string): Mail | undefined {
+  public async getMail(mailId: string): Promise<Mail | undefined> {
     return this.seed.mails.find((mail) => mail.id === mailId);
   }
 
   // ---------- Escrituras ----------
 
-  public upsertAttendanceStatus(input: {
+  public async upsertAttendanceStatus(input: {
     studentId: string;
     date: string;
     status: AttendanceStatus;
-  }): AttendanceRecord {
+  }): Promise<AttendanceRecord> {
     const existing = this.seed.attendance.find(
       (record) =>
         record.studentId === input.studentId && record.date === input.date,
@@ -162,11 +172,11 @@ export class MemorySchoolRepository implements SchoolRepository {
     return record;
   }
 
-  public setSubmissionStatus(input: {
+  public async setSubmissionStatus(input: {
     assignmentId: string;
     studentId: string;
     status: SubmissionStatus;
-  }): AssignmentSubmission {
+  }): Promise<AssignmentSubmission> {
     const existing = this.seed.submissions.find(
       (submission) =>
         submission.assignmentId === input.assignmentId &&
@@ -187,12 +197,12 @@ export class MemorySchoolRepository implements SchoolRepository {
     return submission;
   }
 
-  public createAnnotation(input: {
+  public async createAnnotation(input: {
     studentId: string;
     type: AnnotationType;
     description: string;
     createdAt?: Date;
-  }): Annotation {
+  }): Promise<Annotation> {
     const annotation: Annotation = {
       id: `annotation-${this.annotationSeq}`,
       studentId: input.studentId,
@@ -206,10 +216,10 @@ export class MemorySchoolRepository implements SchoolRepository {
     return annotation;
   }
 
-  public setAnnotationManaged(
+  public async setAnnotationManaged(
     annotationId: string,
     managed: boolean,
-  ): Annotation {
+  ): Promise<Annotation> {
     const annotation = this.seed.annotations.find(
       (item) => item.id === annotationId,
     );
@@ -224,10 +234,10 @@ export class MemorySchoolRepository implements SchoolRepository {
    * Edición limitada del MVP: solo nombre y apellidos. El resto de campos
    * permanece de lectura hasta resolver Q-014.
    */
-  public updateStudent(
+  public async updateStudent(
     studentId: string,
     patch: { firstName?: string; lastName?: string },
-  ): Student {
+  ): Promise<Student> {
     const student = this.seed.students.find((item) => item.id === studentId);
     if (student === undefined) {
       throw new Error(`Alumno inexistente: ${studentId}`);
@@ -238,7 +248,7 @@ export class MemorySchoolRepository implements SchoolRepository {
   }
 
   /** Borrado en cascada: sin relaciones huérfanas. */
-  public deleteStudentCascade(studentId: string): void {
+  public async deleteStudentCascade(studentId: string): Promise<void> {
     this.seed.students = this.seed.students.filter(
       (student) => student.id !== studentId,
     );
@@ -267,12 +277,12 @@ export class MemorySchoolRepository implements SchoolRepository {
   }
 
   /** Envío mock del docente, persistido en la carpeta `sent` (HU-011). */
-  public createMail(input: {
+  public async createMail(input: {
     subject: string;
     body: string;
     recipients: MailRecipientRef[];
     createdAt?: Date;
-  }): Mail {
+  }): Promise<Mail> {
     const body = input.body;
     const mail: Mail = {
       id: `mail-${this.mailSeq}`,
@@ -291,7 +301,7 @@ export class MemorySchoolRepository implements SchoolRepository {
     return mail;
   }
 
-  public setMailRead(mailId: string, isRead: boolean): Mail {
+  public async setMailRead(mailId: string, isRead: boolean): Promise<Mail> {
     const mail = this.seed.mails.find((item) => item.id === mailId);
     if (mail === undefined) {
       throw new Error(`Mail inexistente: ${mailId}`);
@@ -303,7 +313,7 @@ export class MemorySchoolRepository implements SchoolRepository {
   // ---------- Ciclo de vida ----------
 
   /** Restaura el seed determinista (POST /v1/dev/reset). */
-  public resetToSeed(referenceDate?: Date): void {
+  public async resetToSeed(referenceDate?: Date): Promise<void> {
     this.seed = createSeedData(referenceDate ?? new Date());
     this.attendanceSeq = this.seed.attendance.length;
     this.submissionSeq = this.seed.submissions.length;
