@@ -100,11 +100,9 @@ describe('createMockSchoolData', () => {
     expect(data.mails.length).toBeLessThanOrEqual(30);
 
     const studentIds = new Set(data.students.map((student) => student.id));
-    const mailSenderIds = new Set(
-      data.mails.map((mail) => mail.senderStudentId),
-    );
-    for (const senderId of mailSenderIds) {
-      expect(studentIds.has(senderId)).toBe(true);
+    for (const mail of data.mails) {
+      if (mail.senderStudentId === null) continue;
+      expect(studentIds.has(mail.senderStudentId)).toBe(true);
     }
 
     const annotationStudentIds = new Set(

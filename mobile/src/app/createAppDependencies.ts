@@ -2,7 +2,9 @@ import type { AssistantGateway } from '../features/assistant/domain/assistantGat
 import { FakeAssistantGateway } from '../features/assistant/infrastructure/fakeAssistantGateway';
 import type { AuthGateway } from '../features/auth/domain/authGateway';
 import { createSupabaseAuthGateway } from '../features/auth/infrastructure/supabaseAuthGateway';
-import { createInMemorySchoolRepository } from '../infrastructure/in-memory';
+import { ApiSchoolRepository } from '../infrastructure/api/apiSchoolRepository';
+import { createApiClient } from '../infrastructure/api/apiClient';
+import { getAppConfig } from '../infrastructure/config/env';
 import { createSupabaseClient } from '../infrastructure/supabase/client';
 import type { SchoolRepository } from '../domain/school/schoolRepository';
 
@@ -18,9 +20,13 @@ export type AppDependencies = {
 };
 
 export function createAppDependencies(): AppDependencies {
+  const config = getAppConfig();
   return {
     authGateway: createSupabaseAuthGateway(createSupabaseClient()),
+    // El asistente sigue con su fake hasta AI-001 (#69); sin claves en bundle.
     assistantGateway: new FakeAssistantGateway(),
-    schoolRepository: createInMemorySchoolRepository(),
+    schoolRepository: new ApiSchoolRepository(
+      createApiClient({ baseUrl: config.apiBaseUrl }),
+    ),
   };
 }
