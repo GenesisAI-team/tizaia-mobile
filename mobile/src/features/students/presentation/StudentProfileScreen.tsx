@@ -1,9 +1,19 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 
 import {
+  DataStateView,
   GlassCard,
   ScreenBackground,
   ScreenTitle,
@@ -14,10 +24,15 @@ import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
 import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
-  getStudentFullName,
+  toUserMessage,
+  useSchoolInvalidation,
+  useSchoolResource,
+} from '../../../shared/state/schoolDataProvider';
+import {
   getStudentInitials,
+  type AnnotationType,
+  type StudentProgress,
 } from '../../../domain/school/models';
-import type { AnnotationType } from '../../../domain/school/models';
 import { MetricRing } from './MetricRing';
 
 const ANNOTATION_TYPE_LABELS: Record<AnnotationType, string> = {
@@ -36,21 +51,29 @@ const ANNOTATION_TYPE_COLORS: Record<AnnotationType, string> = {
  * Perfil Alumno definitivo (DESIGN.md §5.12, frame n1867 de Tizaia.op):
  * resumen del alumno con badge ACTIVO, botón de edición, métricas de
  * asistencia/comportamiento/tareas con anillos y descripción.
- * Las métricas se derivan de los datos en memoria del alumno recibido por
- * navegación; sin alumno se muestra un estado vacío. La edición y la
- * persistencia quedan para la fase funcional.
+ * El seguimiento llega del endpoint agregado `/v1/students/:id/progress`
+ * (#67); la edición limitada aplica el PATCH y solo se refleja si el
+ * backend lo confirma (Q-014).
  */
 export function StudentProfileScreen(): React.JSX.Element {
   const route = useRoute<RouteProp<RootDrawerParamList, 'StudentProfile'>>();
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
+  const invalidate = useSchoolInvalidation();
 
   const studentId = route.params?.studentId;
-  const student = studentId
-    ? schoolRepository.getStudent(studentId)
-    : undefined;
 
-  if (student === undefined) {
+  const resource = useSchoolResource<StudentProgress | undefined>(async () => {
+    if (studentId === undefined) return undefined;
+    return schoolRepository.getStudentProgress(studentId);
+  }, [studentId]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  if (studentId === undefined) {
     return (
       <ScreenBackground>
         <View style={styles.titleBlock}>
@@ -66,48 +89,67 @@ export function StudentProfileScreen(): React.JSX.Element {
     );
   }
 
-  const activeClass = schoolRepository.getActiveClass();
-  const attendanceRecords = schoolRepository.getAttendance(student.id);
-  const totalDays = attendanceRecords.length;
-  const absences = attendanceRecords.filter(
-    (record) => record.status === 'absent',
-  ).length;
-  const lates = attendanceRecords.filter(
-    (record) => record.status === 'late',
-  ).length;
-  const attendancePercentage =
-    totalDays === 0
-      ? '0%'
-      : `${Math.round(((totalDays - absences) / totalDays) * 100)}%`;
-
-  const annotations = schoolRepository
-    .getAnnotations()
-    .filter((annotation) => annotation.studentId === student.id);
-  const annotationCounts: Record<AnnotationType, number> = {
-    positive: 0,
-    contrary: 0,
-    aggravating: 0,
-  };
-  for (const annotation of annotations) {
-    annotationCounts[annotation.type] += 1;
+  if (resource.state.status === 'error' || resource.state.status === 'empty') {
+    return (
+      <ScreenBackground>
+        <View style={styles.titleBlock}>
+          <ScreenTitle variant="form">ALUMNO</ScreenTitle>
+        </View>
+        <DataStateView
+          emptyMessage="Este alumno ya no existe."
+          onRetry={resource.reload}
+          state={resource.state}
+        />
+        <TabBar onPressTab={onPressTab} style={styles.tabBar} />
+      </ScreenBackground>
+    );
   }
 
-  const submissions = schoolRepository
-    .getAssignments(student.classId)
-    .flatMap((assignment) =>
-      schoolRepository
-        .getSubmissions(assignment.id)
-        .filter((submission) => submission.studentId === student.id),
+  if (
+    resource.state.status !== 'success' ||
+    resource.state.data === undefined
+  ) {
+    return (
+      <ScreenBackground>
+        <View style={styles.titleBlock}>
+          <ScreenTitle variant="form">ALUMNO</ScreenTitle>
+        </View>
+        <DataStateView state={{ status: 'loading' }} />
+        <TabBar onPressTab={onPressTab} style={styles.tabBar} />
+      </ScreenBackground>
     );
-  const submitted = submissions.filter(
-    (submission) => submission.status === 'submitted',
-  ).length;
-  const notSubmitted = submissions.filter(
-    (submission) => submission.status === 'notSubmitted',
-  ).length;
-  const pending = submissions.filter(
-    (submission) => submission.status === 'pending',
-  ).length;
+  }
+
+  const progress: StudentProgress = resource.state.data;
+  const { student } = progress;
+
+  const startEditing = (): void => {
+    setFirstName(student.firstName);
+    setLastName(student.lastName);
+    setIsEditing(true);
+  };
+
+  const saveEdits = (): void => {
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    if (trimmedFirst.length === 0 && trimmedLast.length === 0) return;
+    void (async () => {
+      setSaving(true);
+      try {
+        await schoolRepository.updateStudentName(student.id, {
+          ...(trimmedFirst.length > 0 ? { firstName: trimmedFirst } : {}),
+          ...(trimmedLast.length > 0 ? { lastName: trimmedLast } : {}),
+        });
+        setIsEditing(false);
+        // Recarga del perfil con los datos confirmados por el backend.
+        invalidate();
+      } catch (error) {
+        Alert.alert('No se pudo guardar', toUserMessage(error));
+      } finally {
+        setSaving(false);
+      }
+    })();
+  };
 
   return (
     <ScreenBackground>
@@ -119,9 +161,7 @@ export function StudentProfileScreen(): React.JSX.Element {
           <Pressable
             accessibilityLabel="Editar alumno"
             accessibilityRole="button"
-            onPress={() => {
-              // Edición limitada: fase funcional.
-            }}
+            onPress={startEditing}
             style={({ pressed }) => [
               styles.editButton,
               pressed && styles.pressed,
@@ -137,24 +177,84 @@ export function StudentProfileScreen(): React.JSX.Element {
           </Pressable>
         </View>
 
-        <GlassCard cornerRadius={28} style={styles.card}>
-          <View style={styles.summaryRow}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarInitials}>
-                {getStudentInitials(student)}
-              </Text>
+        {isEditing ? (
+          <GlassCard cornerRadius={28} style={styles.card}>
+            <Text style={styles.sectionTitleSmall}>EDITAR ALUMNO</Text>
+            <Text style={styles.formLabel}>Nombre</Text>
+            <TextInput
+              accessibilityLabel="Nombre del alumno"
+              autoCapitalize="words"
+              onChangeText={setFirstName}
+              style={styles.formInput}
+              testID="student-first-name-input"
+              value={firstName}
+            />
+            <Text style={styles.formLabel}>Apellidos</Text>
+            <TextInput
+              accessibilityLabel="Apellidos del alumno"
+              autoCapitalize="words"
+              onChangeText={setLastName}
+              style={styles.formInput}
+              testID="student-last-name-input"
+              value={lastName}
+            />
+            <View style={styles.formActions}>
+              <Pressable
+                accessibilityLabel="Cancelar edición"
+                accessibilityRole="button"
+                disabled={saving}
+                onPress={() => setIsEditing(false)}
+                style={({ pressed }) => [
+                  styles.cancelButton,
+                  pressed && styles.pressed,
+                ]}
+                testID="student-edit-cancel"
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Guardar cambios del alumno"
+                accessibilityRole="button"
+                disabled={
+                  saving ||
+                  (firstName.trim().length === 0 &&
+                    lastName.trim().length === 0)
+                }
+                onPress={saveEdits}
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  (pressed || saving) && styles.pressed,
+                ]}
+                testID="student-edit-save"
+              >
+                <Text style={styles.saveButtonText}>
+                  {saving ? 'Guardando…' : 'Guardar'}
+                </Text>
+              </Pressable>
             </View>
-            <View style={styles.summaryInfo}>
-              <Text style={styles.studentName}>
-                {getStudentFullName(student)}
-              </Text>
-              <Text style={styles.studentGroup}>{activeClass.groupName}</Text>
-              <View style={styles.activeBadge}>
-                <Text style={styles.activeBadgeText}>ACTIVO</Text>
+          </GlassCard>
+        ) : (
+          <GlassCard cornerRadius={28} style={styles.card}>
+            <View style={styles.summaryRow}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarInitials}>
+                  {getStudentInitials(student)}
+                </Text>
+              </View>
+              <View style={styles.summaryInfo}>
+                <Text style={styles.studentName}>
+                  {[student.firstName, student.lastName].join(' ')}
+                </Text>
+                <Text style={styles.studentGroup}>
+                  {progress.class.groupName}
+                </Text>
+                <View style={styles.activeBadge}>
+                  <Text style={styles.activeBadgeText}>ACTIVO</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </GlassCard>
+          </GlassCard>
+        )}
 
         <GlassCard cornerRadius={28} style={styles.card}>
           <Text style={styles.sectionTitle}>ASISTENCIA</Text>
@@ -162,17 +262,17 @@ export function StudentProfileScreen(): React.JSX.Element {
             <MetricRing
               color={tizaiaColors.success}
               label="Asistencia"
-              value={attendancePercentage}
+              value={`${progress.attendance.attendanceRate}%`}
             />
             <MetricRing
               color={tizaiaColors.danger}
               label="Faltas"
-              value={String(absences)}
+              value={String(progress.attendance.absent)}
             />
             <MetricRing
               color={tizaiaColors.warning}
               label="Retrasos"
-              value={String(lates)}
+              value={String(progress.attendance.late)}
             />
           </View>
         </GlassCard>
@@ -192,17 +292,17 @@ export function StudentProfileScreen(): React.JSX.Element {
             <MetricRing
               color={ANNOTATION_TYPE_COLORS.positive}
               label={ANNOTATION_TYPE_LABELS.positive}
-              value={String(annotationCounts.positive)}
+              value={String(progress.annotations.positive)}
             />
             <MetricRing
               color={ANNOTATION_TYPE_COLORS.contrary}
               label={ANNOTATION_TYPE_LABELS.contrary}
-              value={String(annotationCounts.contrary)}
+              value={String(progress.annotations.contrary)}
             />
             <MetricRing
               color={ANNOTATION_TYPE_COLORS.aggravating}
               label={ANNOTATION_TYPE_LABELS.aggravating}
-              value={String(annotationCounts.aggravating)}
+              value={String(progress.annotations.aggravating)}
             />
           </View>
         </GlassCard>
@@ -213,17 +313,17 @@ export function StudentProfileScreen(): React.JSX.Element {
             <MetricRing
               color={tizaiaColors.success}
               label="Completadas"
-              value={String(submitted)}
+              value={String(progress.tasks.submitted)}
             />
             <MetricRing
               color={tizaiaColors.warning}
               label="Pendientes"
-              value={String(pending)}
+              value={String(progress.tasks.pending)}
             />
             <MetricRing
               color={tizaiaColors.danger}
               label="Sin entregar"
-              value={String(notSubmitted)}
+              value={String(progress.tasks.notSubmitted)}
             />
           </View>
         </GlassCard>
@@ -262,6 +362,20 @@ const styles = StyleSheet.create({
     fontSize: dp(28),
     fontWeight: '700',
   },
+  cancelButton: {
+    alignItems: 'center',
+    borderRadius: dp(18),
+    borderWidth: 1,
+    borderColor: tizaiaColors.fieldBorder,
+    flex: 1,
+    height: dp(64),
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    color: tizaiaColors.ink,
+    fontSize: dp(19),
+    fontWeight: '700',
+  },
   card: {
     elevation: 2,
     marginBottom: dp(20),
@@ -298,6 +412,28 @@ const styles = StyleSheet.create({
     fontSize: dp(20),
     textAlign: 'center',
   },
+  formActions: {
+    flexDirection: 'row',
+    gap: dp(16),
+    marginTop: dp(24),
+  },
+  formInput: {
+    backgroundColor: tizaiaColors.fieldBackground,
+    borderColor: tizaiaColors.fieldBorder,
+    borderRadius: dp(18),
+    borderWidth: 1,
+    color: tizaiaColors.ink,
+    fontSize: dp(19),
+    minHeight: dp(64),
+    paddingHorizontal: dp(20),
+  },
+  formLabel: {
+    color: tizaiaColors.textMenuSecondary,
+    fontSize: dp(17),
+    fontWeight: '600',
+    marginBottom: dp(8),
+    marginTop: dp(16),
+  },
   metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -305,6 +441,19 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.75,
+  },
+  saveButton: {
+    alignItems: 'center',
+    backgroundColor: tizaiaColors.inkButton,
+    borderRadius: dp(18),
+    flex: 1,
+    height: dp(64),
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: tizaiaColors.white,
+    fontSize: dp(19),
+    fontWeight: '700',
   },
   sectionTitle: {
     color: tizaiaColors.ink,

@@ -1,6 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import {
+  DataStateView,
   Fab,
   MatrixBoard,
   ScreenBackground,
@@ -13,6 +15,11 @@ import {
 import { dp } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
+import {
+  toUserMessage,
+  useSchoolInvalidation,
+  useSchoolResource,
+} from '../../../shared/state/schoolDataProvider';
 import { getDayMonthLabel } from '../../../domain/school/schoolDates';
 import {
   getStudentFullName,
@@ -27,36 +34,90 @@ const CELL_STATE_BY_SUBMISSION: Record<SubmissionStatus, StatusCellState> = {
   pending: 'pending',
 };
 
+const SUBMISSION_CYCLE: readonly SubmissionStatus[] = [
+  'submitted',
+  'notSubmitted',
+  'pending',
+];
+
 /**
- * Tareas definitiva (DESIGN.md §5.4, frame n1149 de Tizaia.op): matriz de
- * 10 tareas × alumnos de la clase activa (avatar + nombre), FAB de alta y
- * TabBar. Las 5 tareas más recientes quedan visibles y el resto usa scroll
- * horizontal. La persistencia queda para la fase funcional.
+ * Tareas definitiva (DESIGN.md §5.4, frame n1149 de Tarea.op): matriz de
+ * tareas × alumnos de la clase activa (avatar + nombre), FAB de alta y
+ * TabBar. Persistencia (MOB-API-001): ciclo entregada→no entregada→pendiente
+ * con **actualización optimista y rollback** sobre el `PUT` de entregas.
  */
 export function TasksScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
+  const invalidate = useSchoolInvalidation();
 
-  const students = schoolRepository.getStudents();
-  const assignments = schoolRepository.getAssignments();
+  const resource = useSchoolResource(async () => {
+    // El bootstrap agregado trae tareas y entregas de la clase activa.
+    const bootstrap = await schoolRepository.getBootstrap();
+    return {
+      activeClassId: bootstrap.activeClassId,
+      students: bootstrap.students,
+      assignments: bootstrap.assignments,
+      submissions: bootstrap.submissions,
+    };
+  }, []);
 
-  const columns: MatrixBoardColumn[] = assignments.map((assignment) => ({
-    id: assignment.id,
-    label: assignment.title,
-    secondaryLabel: getDayMonthLabel(assignment.dueDate),
-  }));
+  /** Overrides optimistas por celda (`studentId:assignmentId`). */
+  const [optimistic, setOptimistic] = useState<
+    Record<string, SubmissionStatus>
+  >({});
 
-  const rows: MatrixBoardRow[] = students.map((student) => ({
-    id: student.id,
-    studentName: getStudentFullName(student),
-    initials: getStudentInitials(student),
-  }));
+  const onCellPress = useCallback(
+    (row: MatrixBoardRow, column: MatrixBoardColumn) => {
+      if (resource.state.status !== 'success') return;
+      const { submissions, assignments } = resource.state.data;
+      const assignment = assignments.find((item) => item.id === column.id);
+      if (assignment === undefined) return;
+      const cellId = `${row.id}:${column.id}`;
+
+      const serverRecord = submissions.find(
+        (submission) =>
+          submission.studentId === row.id &&
+          submission.assignmentId === column.id,
+      );
+      const currentStatus =
+        optimistic[cellId] ?? serverRecord?.status ?? 'pending';
+      const currentIndex = SUBMISSION_CYCLE.indexOf(currentStatus);
+      const nextStatus =
+        SUBMISSION_CYCLE[(currentIndex + 1) % SUBMISSION_CYCLE.length]!;
+
+      const previousStatus = optimistic[cellId] ?? serverRecord?.status;
+      setOptimistic((current) => ({ ...current, [cellId]: nextStatus }));
+      void (async () => {
+        try {
+          await schoolRepository.setSubmissionStatus({
+            assignmentId: column.id,
+            studentId: row.id,
+            status: nextStatus,
+          });
+          invalidate();
+        } catch (error) {
+          setOptimistic((current) => {
+            const next = { ...current };
+            if (previousStatus === undefined) delete next[cellId];
+            else next[cellId] = previousStatus;
+            return next;
+          });
+          Alert.alert('No se pudo guardar la entrega', toUserMessage(error));
+        }
+      })();
+    },
+    [invalidate, optimistic, resource.state, schoolRepository],
+  );
 
   const cellStates: Record<string, StatusCellState> = {};
-  for (const assignment of assignments) {
-    for (const submission of schoolRepository.getSubmissions(assignment.id)) {
-      cellStates[`${submission.studentId}:${assignment.id}`] =
+  if (resource.state.status === 'success') {
+    for (const submission of resource.state.data.submissions) {
+      cellStates[`${submission.studentId}:${submission.assignmentId}`] =
         CELL_STATE_BY_SUBMISSION[submission.status];
+    }
+    for (const [cellId, status] of Object.entries(optimistic)) {
+      cellStates[cellId] = CELL_STATE_BY_SUBMISSION[status];
     }
   }
 
@@ -65,18 +126,34 @@ export function TasksScreen(): React.JSX.Element {
       <View style={styles.titleBlock}>
         <ScreenTitle>TAREAS</ScreenTitle>
       </View>
-      <View style={styles.board}>
-        <MatrixBoard
-          actionAccessibilityLabel={(row, column) =>
-            `Entrega de ${column.label} para ${row.studentName}`
-          }
-          cellStates={cellStates}
-          columns={columns}
-          pendingTransparent
-          rows={rows}
-          showRowNames
-        />
-      </View>
+      <DataStateView
+        emptyMessage="No hay tareas para esta clase."
+        onRetry={resource.reload}
+        state={resource.state}
+      />
+      {resource.state.status === 'success' && (
+        <View style={styles.board}>
+          <MatrixBoard
+            actionAccessibilityLabel={(row, column) =>
+              `Entrega de ${column.label} para ${row.studentName}`
+            }
+            cellStates={cellStates}
+            columns={resource.state.data.assignments.map((assignment) => ({
+              id: assignment.id,
+              label: assignment.title,
+              secondaryLabel: getDayMonthLabel(assignment.dueDate),
+            }))}
+            onCellPress={onCellPress}
+            pendingTransparent
+            rows={resource.state.data.students.map((student) => ({
+              id: student.id,
+              studentName: getStudentFullName(student),
+              initials: getStudentInitials(student),
+            }))}
+            showRowNames
+          />
+        </View>
+      )}
       <Fab accessibilityLabel="Añadir tarea" style={styles.fab} />
       <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>

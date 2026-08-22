@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
+  DataStateView,
   Fab,
   GlassCard,
   ScreenBackground,
@@ -17,10 +25,15 @@ import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
 import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
+  toUserMessage,
+  useSchoolInvalidation,
+  useSchoolResource,
+} from '../../../shared/state/schoolDataProvider';
+import {
   getStudentFullName,
   getStudentInitials,
-  type AnnotationType,
 } from '../../../domain/school/models';
+import type { AnnotationType } from '../../../domain/school/models';
 import { formatDayMonth } from '../../../domain/school/schoolDates';
 
 type AnnotationListItem = {
@@ -30,6 +43,7 @@ type AnnotationListItem = {
   initials: string;
   type: AnnotationType;
   description: string;
+  managed: boolean;
   dateLabel: string;
 };
 
@@ -42,35 +56,75 @@ const ANNOTATION_TYPE_LABELS: Record<AnnotationType, string> = {
 /**
  * Anotaciones definitiva (DESIGN.md §5.6, frame n991 de Tizaia.op): tarjetas
  * con avatar, nombre, descripción, tipo y acciones (ver / enviar mail /
- * confirmar), FAB de nueva anotación y TabBar. Las anotaciones proceden del
- * repositorio en memoria; guardar y enviar quedan para la fase funcional.
+ * confirmar), FAB de nueva anotación y TabBar.
+ * Listado servido por la API (#67); el check de gestionada aplica el PATCH
+ * con **actualización optimista y rollback** (BR-ANOT-002).
  */
 export function AnnotationsScreen(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const invalidate = useSchoolInvalidation();
 
-  const annotations: AnnotationListItem[] = schoolRepository
-    .getAnnotations()
-    .map((annotation) => {
-      const student = schoolRepository.getStudent(annotation.studentId);
-      return {
-        id: annotation.id,
-        studentId: annotation.studentId,
-        studentName: student ? getStudentFullName(student) : 'Alumno',
-        initials: student ? getStudentInitials(student) : 'AL',
-        type: annotation.type,
-        description: annotation.description,
-        dateLabel: formatDayMonth(annotation.createdAt),
-      };
-    });
+  const resource = useSchoolResource(async () => {
+    const [annotations, bootstrap] = await Promise.all([
+      schoolRepository.getAnnotations(),
+      schoolRepository.getBootstrap(),
+    ]);
+    return { annotations, studentsById: bootstrap.students };
+  }, []);
 
-  const toggleChecked = (annotationId: string): void => {
-    setCheckedItems((current) => ({
+  /** Overrides optimistas del estado gestionado por id de anotación. */
+  const [managedOverrides, setManagedOverrides] = useState<
+    Record<string, boolean>
+  >({});
+  const [savingId, setSavingId] = useState<string | undefined>(undefined);
+
+  const annotations: AnnotationListItem[] =
+    resource.state.status === 'success'
+      ? (() => {
+          const { annotations, studentsById } = resource.state.data;
+          return annotations.map((annotation) => {
+            const student = studentsById.find(
+              (item) => item.id === annotation.studentId,
+            );
+            return {
+              id: annotation.id,
+              studentId: annotation.studentId,
+              studentName: student ? getStudentFullName(student) : 'Alumno',
+              initials: student ? getStudentInitials(student) : 'AL',
+              type: annotation.type,
+              description: annotation.description,
+              managed: managedOverrides[annotation.id] ?? annotation.managed,
+              dateLabel: formatDayMonth(annotation.createdAt),
+            };
+          });
+        })()
+      : [];
+
+  const toggleChecked = (item: AnnotationListItem): void => {
+    if (savingId !== undefined) return;
+    const nextManaged = !item.managed;
+    setManagedOverrides((current) => ({
       ...current,
-      [annotationId]: !current[annotationId],
+      [item.id]: nextManaged,
     }));
+    setSavingId(item.id);
+    void (async () => {
+      try {
+        await schoolRepository.setAnnotationManaged(item.id, nextManaged);
+        invalidate();
+      } catch (error) {
+        setManagedOverrides((current) => {
+          const next = { ...current };
+          delete next[item.id];
+          return next;
+        });
+        Alert.alert('No se pudo actualizar', toUserMessage(error));
+      } finally {
+        setSavingId(undefined);
+      }
+    })();
   };
 
   return (
@@ -78,14 +132,18 @@ export function AnnotationsScreen(): React.JSX.Element {
       <View style={styles.titleBlock}>
         <ScreenTitle>ANOTACIONES</ScreenTitle>
       </View>
-      <FlatList
-        contentContainerStyle={styles.listContent}
-        data={annotations}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const isChecked = checkedItems[item.id] ?? false;
-          return (
+      <DataStateView
+        emptyMessage="No hay anotaciones registradas."
+        onRetry={resource.reload}
+        state={resource.state}
+      />
+      {resource.state.status === 'success' && (
+        <FlatList
+          contentContainerStyle={styles.listContent}
+          data={annotations}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
             <GlassCard cornerRadius={22} style={styles.card}>
               <StudentAvatar
                 accessibilityLabel={`Foto de ${item.studentName}`}
@@ -143,14 +201,19 @@ export function AnnotationsScreen(): React.JSX.Element {
                   <MailPlusIcon color={tizaiaColors.sendIcon} size={dp(44)} />
                 </Pressable>
                 <Pressable
-                  accessibilityLabel={`Marcar anotación de ${item.studentName}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ checked: isChecked }}
+                  accessibilityLabel={
+                    item.managed
+                      ? `Desmarcar gestión de la anotación de ${item.studentName}`
+                      : `Marcar anotación de ${item.studentName} como gestionada`
+                  }
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: item.managed }}
+                  disabled={savingId === item.id}
                   hitSlop={8}
-                  onPress={() => toggleChecked(item.id)}
+                  onPress={() => toggleChecked(item)}
                   style={({ pressed }) => [
                     styles.confirmButton,
-                    (pressed || !isChecked) && styles.confirmDimmed,
+                    (pressed || !item.managed) && styles.confirmDimmed,
                   ]}
                   testID={`annotation-check-${item.id}`}
                 >
@@ -158,10 +221,10 @@ export function AnnotationsScreen(): React.JSX.Element {
                 </Pressable>
               </View>
             </GlassCard>
-          );
-        }}
-        style={styles.list}
-      />
+          )}
+          style={styles.list}
+        />
+      )}
       <Fab
         accessibilityLabel="Añadir anotación"
         onPress={() => navigation.navigate('NewAnnotation')}

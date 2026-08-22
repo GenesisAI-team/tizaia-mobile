@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,10 +11,12 @@ import {
   View,
 } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
+  DataStateView,
   GlassCard,
   ScreenBackground,
   ScreenTitle,
@@ -23,6 +26,11 @@ import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
 import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
+import {
+  toUserMessage,
+  useSchoolInvalidation,
+  useSchoolResource,
+} from '../../../shared/state/schoolDataProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -56,26 +64,71 @@ const ANNOTATION_TYPES: {
 /**
  * Nueva Anotación definitiva (DESIGN.md §5.10, frame n1779 de Tizaia.op):
  * selector de alumno, tipo de anotación (3 opciones), editor con contador
- * y composer de envío. Si llega un alumno (p. ej. desde la lista de alumnos)
- * se precarga en el selector. La persistencia queda para la fase funcional.
+ * y composer de envío. Si llega un alumno (p. ej. desde la lista) se
+ * precarga; si no, se elige entre los del centro servidos por la API.
+ * Guardar aplica `POST /v1/annotations` y solo cierra si el backend
+ * confirma la creación (MOB-API-001).
  */
 export function NewAnnotationScreen(): React.JSX.Element {
   const route = useRoute<RouteProp<RootDrawerParamList, 'NewAnnotation'>>();
   const headerHeight = useHeaderHeight();
   const onPressTab = useTabBarPress();
+  const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const schoolRepository = useSchoolRepository();
+  const invalidate = useSchoolInvalidation();
+
+  const [selectedStudentId, setSelectedStudentId] = useState<
+    string | undefined
+  >(route.params?.studentId);
   const [selectedType, setSelectedType] = useState<AnnotationType>('positive');
   const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const studentId = route.params?.studentId;
-  const student = studentId
-    ? schoolRepository.getStudent(studentId)
-    : undefined;
-  const group = student
-    ? schoolRepository
-        .getClasses()
-        .find((schoolClass) => schoolClass.id === student.classId)
-    : undefined;
+  const formResource = useSchoolResource(async () => {
+    // El bootstrap agregado trae alumnado y clases para selector y grupo.
+    const bootstrap = await schoolRepository.getBootstrap();
+    return { classes: bootstrap.classes, students: bootstrap.students };
+  }, []);
+
+  const selectedStudent =
+    formResource.state.status === 'success'
+      ? formResource.state.data.students.find(
+          (student) => student.id === selectedStudentId,
+        )
+      : undefined;
+  const selectedGroup =
+    selectedStudent !== undefined
+      ? formResource.state.status === 'success'
+        ? formResource.state.data.classes.find(
+            (schoolClass) => schoolClass.id === selectedStudent.classId,
+          )
+        : undefined
+      : undefined;
+
+  const trimmedNotes = notes.trim();
+  const canSave =
+    !saving && selectedStudent !== undefined && trimmedNotes.length > 0;
+
+  const saveAnnotation = (): void => {
+    if (!canSave || selectedStudent === undefined) return;
+    void (async () => {
+      setSaving(true);
+      try {
+        await schoolRepository.createAnnotation({
+          studentId: selectedStudent.id,
+          type: selectedType,
+          description: trimmedNotes,
+        });
+        invalidate();
+        Alert.alert('Anotación guardada', 'Se ha registrado correctamente.');
+        navigation.goBack();
+      } catch (error) {
+        Alert.alert('No se pudo guardar la anotación', toUserMessage(error));
+      } finally {
+        setSaving(false);
+      }
+    })();
+  };
 
   return (
     <ScreenBackground>
@@ -89,104 +142,145 @@ export function NewAnnotationScreen(): React.JSX.Element {
             <ScreenTitle variant="form">NUEVA ANOTACIÓN</ScreenTitle>
           </View>
 
-          <GlassCard cornerRadius={34} style={styles.formCard}>
-            <Text style={styles.label}>Alumno</Text>
-            <View style={styles.studentSelector}>
-              <View style={styles.studentAvatar}>
-                <Text style={styles.studentInitials}>
-                  {student ? getStudentInitials(student) : 'AL'}
+          <DataStateView state={formResource.state} />
+
+          {formResource.state.status === 'success' && (
+            <GlassCard cornerRadius={34} style={styles.formCard}>
+              <Text style={styles.label}>Alumno</Text>
+              <View style={styles.studentSelector}>
+                <View style={styles.studentAvatar}>
+                  <Text style={styles.studentInitials}>
+                    {selectedStudent
+                      ? getStudentInitials(selectedStudent)
+                      : 'AL'}
+                  </Text>
+                </View>
+                <View style={styles.studentInfo}>
+                  <Text style={styles.studentName}>
+                    {selectedStudent
+                      ? getStudentFullName(selectedStudent)
+                      : 'Sin alumno'}
+                  </Text>
+                  <Text style={styles.studentGroup}>
+                    {selectedStudent && selectedGroup
+                      ? selectedGroup.groupName
+                      : 'Selecciona un alumno'}
+                  </Text>
+                </View>
+              </View>
+
+              {selectedStudent === undefined && (
+                <View style={styles.studentPicker}>
+                  {formResource.state.data.students.map((student) => (
+                    <Pressable
+                      accessibilityLabel={`Seleccionar a ${getStudentFullName(student)}`}
+                      accessibilityRole="button"
+                      key={student.id}
+                      onPress={() => setSelectedStudentId(student.id)}
+                      style={({ pressed }) => [
+                        styles.studentChip,
+                        pressed && styles.pressed,
+                      ]}
+                      testID={`annotation-student-${student.id}`}
+                    >
+                      <Text style={styles.studentChipInitials}>
+                        {getStudentInitials(student)}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.studentChipName}>
+                        {student.firstName}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              <Text style={styles.label}>Tipo de anotación</Text>
+              <View style={styles.typeList}>
+                {ANNOTATION_TYPES.map((option) => {
+                  const isSelected = selectedType === option.id;
+                  return (
+                    <Pressable
+                      accessibilityLabel={option.label}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      key={option.id}
+                      onPress={() => setSelectedType(option.id)}
+                      style={({ pressed }) => [
+                        styles.optionRow,
+                        isSelected && {
+                          backgroundColor: option.color,
+                          borderColor: option.color,
+                        },
+                        pressed && styles.pressed,
+                      ]}
+                      testID={`annotation-type-${option.id}`}
+                    >
+                      <View
+                        style={[
+                          styles.optionIndicator,
+                          { borderColor: option.color },
+                          isSelected && styles.optionIndicatorSelected,
+                        ]}
+                      >
+                        {isSelected && (
+                          <Text style={styles.optionCheck}>✓</Text>
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.optionLabel,
+                          isSelected && styles.optionLabelSelected,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.label}>Descripción</Text>
+              <View style={styles.editor}>
+                <TextInput
+                  accessibilityLabel="Detalles de la anotación"
+                  maxLength={MAX_NOTES_LENGTH}
+                  multiline
+                  onChangeText={setNotes}
+                  placeholder="Escribe aquí los detalles de la anotación…"
+                  placeholderTextColor={tizaiaColors.ink}
+                  style={styles.editorInput}
+                  textAlignVertical="top"
+                  value={notes}
+                />
+                <Text style={styles.counter}>
+                  {notes.length} / {MAX_NOTES_LENGTH}
                 </Text>
               </View>
-              <View style={styles.studentInfo}>
-                <Text style={styles.studentName}>
-                  {student ? getStudentFullName(student) : 'Sin alumno'}
+
+              <View style={styles.composer}>
+                <Text style={styles.composerHint}>
+                  {canSave
+                    ? 'Lista para guardar'
+                    : selectedStudent === undefined
+                      ? 'Selecciona un alumno'
+                      : 'Escribe la descripción'}
                 </Text>
-                <Text style={styles.studentGroup}>
-                  {student && group ? group.groupName : 'Selecciona un alumno'}
-                </Text>
+                <Pressable
+                  accessibilityLabel="Guardar anotación"
+                  accessibilityRole="button"
+                  disabled={!canSave}
+                  onPress={saveAnnotation}
+                  style={({ pressed }) => [
+                    styles.sendButton,
+                    (!canSave || pressed) && styles.sendButtonDisabled,
+                  ]}
+                  testID="annotation-save-button"
+                >
+                  <Text style={styles.sendGlyph}>➤</Text>
+                </Pressable>
               </View>
-              <Text style={styles.chevron}>›</Text>
-            </View>
-
-            <Text style={styles.label}>Tipo de anotación</Text>
-            <View style={styles.typeList}>
-              {ANNOTATION_TYPES.map((option) => {
-                const isSelected = selectedType === option.id;
-                return (
-                  <Pressable
-                    accessibilityLabel={option.label}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    key={option.id}
-                    onPress={() => setSelectedType(option.id)}
-                    style={({ pressed }) => [
-                      styles.optionRow,
-                      isSelected && {
-                        backgroundColor: option.color,
-                        borderColor: option.color,
-                      },
-                      pressed && styles.pressed,
-                    ]}
-                    testID={`annotation-type-${option.id}`}
-                  >
-                    <View
-                      style={[
-                        styles.optionIndicator,
-                        { borderColor: option.color },
-                        isSelected && styles.optionIndicatorSelected,
-                      ]}
-                    >
-                      {isSelected && <Text style={styles.optionCheck}>✓</Text>}
-                    </View>
-                    <Text
-                      style={[
-                        styles.optionLabel,
-                        isSelected && styles.optionLabelSelected,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Text style={styles.label}>Descripción</Text>
-            <View style={styles.editor}>
-              <TextInput
-                accessibilityLabel="Detalles de la anotación"
-                maxLength={MAX_NOTES_LENGTH}
-                multiline
-                onChangeText={setNotes}
-                placeholder="Escribe aquí los detalles de la anotación…"
-                placeholderTextColor={tizaiaColors.ink}
-                style={styles.editorInput}
-                textAlignVertical="top"
-                value={notes}
-              />
-              <Text style={styles.counter}>
-                {notes.length} / {MAX_NOTES_LENGTH}
-              </Text>
-            </View>
-
-            <View style={styles.composer}>
-              <Text style={styles.composerHint}>Lista para guardar</Text>
-              <Pressable
-                accessibilityLabel="Guardar anotación"
-                accessibilityRole="button"
-                onPress={() => {
-                  // Persistencia: fase funcional.
-                }}
-                style={({ pressed }) => [
-                  styles.sendButton,
-                  pressed && styles.pressed,
-                ]}
-                testID="annotation-save-button"
-              >
-                <Text style={styles.sendGlyph}>➤</Text>
-              </Pressable>
-            </View>
-          </GlassCard>
+            </GlassCard>
+          )}
         </ScrollView>
         <TabBar onPressTab={onPressTab} style={styles.tabBar} />
       </KeyboardAvoidingView>
@@ -311,6 +405,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     width: dp(72),
   },
+  sendButtonDisabled: {
+    opacity: 0.4,
+  },
   sendGlyph: {
     color: tizaiaColors.white,
     fontSize: dp(28),
@@ -324,6 +421,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: dp(16),
     width: dp(56),
+  },
+  studentChip: {
+    alignItems: 'center',
+    backgroundColor: tizaiaColors.fieldBackground,
+    borderColor: tizaiaColors.white,
+    borderRadius: dp(18),
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: dp(10),
+    paddingHorizontal: dp(16),
+    paddingVertical: dp(10),
+  },
+  studentChipInitials: {
+    color: tizaiaColors.ink,
+    fontSize: dp(16),
+    fontWeight: '700',
+  },
+  studentChipName: {
+    color: tizaiaColors.ink,
+    fontSize: dp(16),
+    maxWidth: dp(110),
   },
   studentGroup: {
     color: tizaiaColors.ink,
@@ -344,6 +462,12 @@ const styles = StyleSheet.create({
     fontSize: dp(23),
     fontWeight: '700',
   },
+  studentPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: dp(10),
+    marginTop: dp(14),
+  },
   studentSelector: {
     alignItems: 'center',
     backgroundColor: tizaiaColors.fieldBackground,
@@ -351,7 +475,8 @@ const styles = StyleSheet.create({
     borderRadius: dp(22),
     borderWidth: 1,
     flexDirection: 'row',
-    height: dp(82),
+    minHeight: dp(82),
+    paddingVertical: dp(12),
   },
   tabBar: {
     alignSelf: 'center',
