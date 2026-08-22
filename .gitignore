@@ -2,4 +2,9 @@
 .env.local
 .env
 
+# Artefactos del backend (API-001)
+/backend/node_modules/
+/backend/dist/
+/backend/coverage/
+
 /design/

@@ -11,8 +11,8 @@
 | 7     | Correo y comunicaciones               | HU-010..HU-012; RF-MAIL/RF-COMM             | review (diseño visual)  |
 | 8     | Alertas                               | HU-013; RF-FOLLOW                           | blocked by Q-001..Q-003 |
 | 9     | Datos demo en memoria (MVP)           | HU-004..HU-011                              | done                    |
-| 10    | RFC-001 backend en memoria + AI SDK   | HU-002; Q-009; RF-CHAT                      | review (RFC pendiente)  |
-| 11    | Backend propio `/v1` (implementación) | HU-002..HU-011; INT-BACKEND/INT-ASSISTANT   | backlog                 |
+| 10    | RFC-001 backend en memoria + AI SDK   | HU-002; Q-009; RF-CHAT                      | done                    |
+| 11    | Backend propio `/v1` (implementación) | HU-002..HU-011; INT-BACKEND/INT-ASSISTANT   | review (API-001, PR abierta) |
 
 El hito 9 implementa una capa de datos mock en memoria (`SchoolRepository` +
 generador determinista en `mobile/src/infrastructure/in-memory/`) que alimenta
@@ -24,6 +24,12 @@ El hito 10 es el [RFC-001](07-assistant-backend-rfc.md): decide el backend
 propio (Node 22 + TypeScript + Express + Zod + AI SDK 7), el almacén en memoria
 con seeds deterministas, la API REST bajo `/v1`, el descarte de n8n (Q-009) y el
 aplazamiento del RAG. El hito 11 lo implementa sin cambiar la UI ni las tools.
+
+El hito 11 se ejecuta como **API-001** (#67): paquete `backend/` con la API
+escolar completa en memoria (`/health`, `/v1/bootstrap`, clases, alumnado,
+asistencia, tareas/entregas, anotaciones y correo demo), seeds deterministas,
+Docker multi-stage y tests sin red externa. La integración del móvil será
+MOB-API-001 (#68) y el asistente real AI-001 (#69).
 
 ## Descomposición preliminar por HU
 

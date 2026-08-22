@@ -43,3 +43,18 @@ Express + Zod + AI SDK 7, almacén en memoria con seeds deterministas, REST bajo
 `/v1`, RAG fuera de alcance) y resuelve Q-009 descartando n8n como integración
 del asistente. No introduce código de runtime ni dependencias.
 
+## Hito API-001 — Backend propio `/v1` en memoria (#67)
+
+| Artefacto | HU/RF cubiertos | Validación |
+| --------- | --------------- | ---------- |
+| `backend/` (Node 22 + TS estricto + Express 5 + Zod 4) | INT-BACKEND-001; datos de apoyo HU-002..HU-011 | `pnpm --dir backend validate` (typecheck, lint, tests, formato) |
+| Seeds deterministas (`src/seeds`) + `MemorySchoolRepository` con cascada y reset | Volumen del mock: 6 clases, 20–30 alumnos/clase, 10 días lectivos, 10 tareas/clase, entregas, 2–3 anotaciones/clase, 30 mails; docente demo y clase activa | Unit tests de seeds y repositorio (`node:test`), determinismo incluido |
+| REST `/health`, `/v1/bootstrap`, `/v1/me`, `/v1/dev/reset` y dominios completos bajo `/v1` | Lecturas y mutaciones observables entre peticiones; errores estables (`400/404/409/500`) | Integration tests HTTP sin red externa; ejemplos `curl` en la PR |
+| Dockerfile multi-stage no root + healthcheck | Despliegue portable a cualquier VPS Node/Docker (RFC-001) | `docker build` + arranque + `curl /health` desde el contenedor |
+| Documentación (`backend/README.md`, stack, roadmap, integraciones, RFC aprobado) | Trazabilidad consistente | Revisión cruzada de enlaces de `spec/` |
+
+Limitaciones documentadas: memoria de proceso (el reinicio restaura el seed),
+sin réplicas horizontales, edición del alumno limitada a nombre/apellidos
+(Q-014 abierta) y sin reglas normativas de alertas (Q-001 abierta).
+Queda fuera: integración móvil (#68), asistente AI SDK (#69).
+

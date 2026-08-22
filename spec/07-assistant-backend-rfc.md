@@ -1,6 +1,6 @@
 # RFC-001 — Backend en memoria y AI SDK para el MVP ampliado
 
-- **Estado:** propuesto (pendiente de revisión y aprobación de la PR).
+- **Estado:** aprobado (PR [#70](https://github.com/GenesisAI-team/tizaia-mobile/pull/70) mergeada; issue #66 cerrada). Implementación parcial en curso: API-001 (#67) entrega el backend REST en memoria y Docker; AI SDK y tools llegan con AI-001 (#69).
 - **Issue:** [#66](https://github.com/GenesisAI-team/tizaia-mobile/issues/66).
 - **HUs/RF cubiertos:** HU-002 (RF-CHAT-001..006); trazabilidad del resto de módulos (HU-004..HU-011) vía datos de apoyo del asistente.
 - **Decisiones aplazadas que condicionan este RFC:** Q-012 (autorización, cifrado y privacidad de menores) y Q-013 (objetivos de rendimiento/disponibilidad).
