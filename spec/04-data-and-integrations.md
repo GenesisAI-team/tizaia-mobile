@@ -2,17 +2,28 @@
 
 ## Integraciones
 
-| ID | Obligación | HUs/RF |
-|---|---|---|
-| INT-GOOGLE-001 | Registro e inicio de sesión con Google | HU-001/RF-AUTH-001 |
-| INT-BACKEND-001 | El móvil consume el backend propio (Node 22 + Express + Zod + AI SDK 7) vía REST JSON bajo `/v1` | HU-002..HU-011; RFC-001 |
-| INT-ASSISTANT-001 | Cada mensaje del asistente se envía a `POST /v1/assistant/messages` del backend propio (no streaming; conserva `message` y `conversationId`) | HU-002/RF-CHAT-001..006; RFC-001 |
-| INT-RAG-001 | Recuperar contexto desde RAG asociado a Supabase | HU-002/RF-CHAT-004 (aplazado: fuera de alcance del MVP mientras los datos sean estructurados, RFC-001) |
-| INT-MAIL-001 | Recibir, consultar y enviar correos | HU-010..012/RF-MAIL |
+| ID                | Obligación                                                                                                                                   | HUs/RF                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| INT-GOOGLE-001    | Registro e inicio de sesión con Google                                                                                                       | HU-001/RF-AUTH-001                                                                                     |
+| INT-BACKEND-001   | El móvil consume el backend propio (Node 22 + Express + Zod + AI SDK 7) vía REST JSON bajo `/v1`                                             | HU-002..HU-011; RFC-001                                                                                |
+| INT-ASSISTANT-001 | Cada mensaje del asistente se envía a `POST /v1/assistant/messages` del backend propio (no streaming; conserva `message` y `conversationId`) | HU-002/RF-CHAT-001..006; RFC-001                                                                       |
+| INT-RAG-001       | Recuperar contexto desde RAG asociado a Supabase                                                                                             | HU-002/RF-CHAT-004 (aplazado: fuera de alcance del MVP mientras los datos sean estructurados, RFC-001) |
+| INT-MAIL-001      | Recibir, consultar y enviar correos                                                                                                          | HU-010..012/RF-MAIL                                                                                    |
 
 INT-N8N-001 (cada mensaje inicia el flujo n8n) queda **sustituida** por
 INT-ASSISTANT-001: RFC-001 resuelve Q-009 descartando n8n como integración del
 asistente del MVP.
+
+### Implementación MOB-API-001 (#68)
+
+INT-BACKEND-001 queda **activa en el móvil**: el adaptador
+`mobile/src/infrastructure/api/ApiSchoolRepository` consume los contratos REST
+de #67 (bootstrap/me, clases, alumnado, asistencia `PUT`, entregas `PUT`,
+anotaciones con gestión, correo demo con bandejas, lectura, destinatarios y
+envío simulado). Los errores del backend se normalizan a dominio
+(`400/404/409/500` + fallo de red) y las pantallas muestran estados de
+carga/vacío/error con reintento. INT-ASSISTANT-001 sigue pendiente hasta
+AI-001 (#69): el asistente mantiene `FakeAssistantGateway`.
 
 ## Datos normativos (sin tablas en BOOTSTRAP-001)
 
@@ -46,4 +57,3 @@ por Supabase sin cambiar la UI ni las tools del asistente (ver
   30 correos, docente demo Laura Martínez y clase activa `class-1`.
 - Mutaciones persistentes durante la vida del proceso; reinicio restaura el
   seed; sin réplicas. Sin IA, Supabase ni Vercel en esta entrega.
-

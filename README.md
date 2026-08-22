@@ -6,7 +6,7 @@ This bootstrap intentionally does not implement feature HUs, business tables, mi
 
 ## Repository layout
 
-- `mobile/` — Android-only React Native + Expo app (mock in-memory data).
+- `mobile/` — Android-only React Native + Expo app; consume la API del backend mediante un adaptador HTTP (`MOB-API-001`, `EXPO_PUBLIC_API_BASE_URL`).
 - `backend/` — Node 22 + Express + Zod REST API over an in-memory store with deterministic seeds (API-001, [RFC-001](spec/07-assistant-backend-rfc.md)). See [`backend/README.md`](backend/README.md).
 
 ## Backend quickstart
@@ -23,4 +23,3 @@ curl http://localhost:3000/health
 - Expo Continuous Native Generation: https://docs.expo.dev/workflow/continuous-native-generation/
 - Supabase Expo React Native quickstart: https://supabase.com/docs/guides/getting-started/quickstarts/expo-react-native
 - Express 5 and Zod v4 official docs via Context7; pnpm workspace/script docs via Context7 (see `spec/01-tech-stack.md`).
-
