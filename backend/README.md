@@ -38,7 +38,13 @@ pnpm validate      # typecheck + lint + test + format
 Respuestas JSON; fechas ISO-8601. Errores con envolvente estable:
 
 ```json
-{ "error": { "code": "VALIDATION_ERROR", "message": "Solicitud no válida", "details": [] } }
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Solicitud no válida",
+    "details": []
+  }
+}
 ```
 
 Códigos usados: `400 VALIDATION_ERROR`, `404 NOT_FOUND`, `409 NON_SCHOOL_DAY`,
@@ -46,46 +52,46 @@ Códigos usados: `400 VALIDATION_ERROR`, `404 NOT_FOUND`, `409 NON_SCHOOL_DAY`,
 
 ### Sistema
 
-| Método | Ruta | Notas |
-|---|---|---|
-| GET | `/health` | Sonda de vida (healthcheck Docker) |
-| GET | `/v1/bootstrap` | Grafo completo coherente para hidratar el móvil |
-| GET | `/v1/me` | Docente activo y clase activa |
-| POST | `/v1/dev/reset` | Solo con `ENABLE_DEV_RESET=true`; si no responde 404 |
+| Método | Ruta            | Notas                                                |
+| ------ | --------------- | ---------------------------------------------------- |
+| GET    | `/health`       | Sonda de vida (healthcheck Docker)                   |
+| GET    | `/v1/bootstrap` | Grafo completo coherente para hidratar el móvil      |
+| GET    | `/v1/me`        | Docente activo y clase activa                        |
+| POST   | `/v1/dev/reset` | Solo con `ENABLE_DEV_RESET=true`; si no responde 404 |
 
 ### Clases y alumnado
 
-| Método | Ruta |
-|---|---|
-| GET | `/v1/classes` · `/v1/classes/:classId` · `/v1/classes/:classId/summary` |
-| GET | `/v1/classes/:classId/students` · `/v1/classes/:classId/attendance?from=&to=` |
-| GET | `/v1/classes/:classId/assignments` |
-| GET | `/v1/students/:studentId` (incluye contactos) · `/progress` · `/attendance?from=&to=` |
-| PATCH | `/v1/students/:studentId` — solo `firstName`/`lastName` (Q-014 abierta) |
-| DELETE | `/v1/students/:studentId` — borrado en cascada sin huérfanos |
+| Método | Ruta                                                                                  |
+| ------ | ------------------------------------------------------------------------------------- |
+| GET    | `/v1/classes` · `/v1/classes/:classId` · `/v1/classes/:classId/summary`               |
+| GET    | `/v1/classes/:classId/students` · `/v1/classes/:classId/attendance?from=&to=`         |
+| GET    | `/v1/classes/:classId/assignments`                                                    |
+| GET    | `/v1/students/:studentId` (incluye contactos) · `/progress` · `/attendance?from=&to=` |
+| PATCH  | `/v1/students/:studentId` — solo `firstName`/`lastName` (Q-014 abierta)               |
+| DELETE | `/v1/students/:studentId` — borrado en cascada sin huérfanos                          |
 
 ### Asistencia, tareas y anotaciones
 
-| Método | Ruta | Cuerpo |
-|---|---|---|
-| PUT | `/v1/attendance/:classId/:studentId/:date` | `{ "status": "present" \| "absent" \| "late" }` |
-| GET | `/v1/assignments/:assignmentId/submissions` | — |
-| PUT | `/v1/assignments/:assignmentId/submissions/:studentId` | `{ "status": "submitted" \| "notSubmitted" \| "pending" }` |
-| GET | `/v1/annotations?classId=&studentId=&managed=` | — |
-| POST | `/v1/annotations` | `{ studentId, type, description }` → 201 |
-| PATCH | `/v1/annotations/:annotationId/managed` | `{ "managed": true }` |
+| Método | Ruta                                                   | Cuerpo                                                     |
+| ------ | ------------------------------------------------------ | ---------------------------------------------------------- |
+| PUT    | `/v1/attendance/:classId/:studentId/:date`             | `{ "status": "present" \| "absent" \| "late" }`            |
+| GET    | `/v1/assignments/:assignmentId/submissions`            | —                                                          |
+| PUT    | `/v1/assignments/:assignmentId/submissions/:studentId` | `{ "status": "submitted" \| "notSubmitted" \| "pending" }` |
+| GET    | `/v1/annotations?classId=&studentId=&managed=`         | —                                                          |
+| POST   | `/v1/annotations`                                      | `{ studentId, type, description }` → 201                   |
+| PATCH  | `/v1/annotations/:annotationId/managed`                | `{ "managed": true }`                                      |
 
 Fechas en formato `YYYY-MM-DD`; una fecha no lectiva responde `409 NON_SCHOOL_DAY`.
 
 ### Correo demo
 
-| Método | Ruta | Cuerpo / query |
-|---|---|---|
-| GET | `/v1/mails?folder=inbox\|sent&unread=true\|false&query=` | — |
-| GET | `/v1/mails/:mailId` | — |
-| PATCH | `/v1/mails/:mailId/read` | `{ "isRead": true }` |
-| GET | `/v1/mail-recipients?query=` | familias y grupos disponibles |
-| POST | `/v1/mails` | `{ subject, body, recipientIds: ["family-<studentId>" \| "group-<classId>"] }` → 201 |
+| Método | Ruta                                                     | Cuerpo / query                                                                       |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| GET    | `/v1/mails?folder=inbox\|sent&unread=true\|false&query=` | —                                                                                    |
+| GET    | `/v1/mails/:mailId`                                      | —                                                                                    |
+| PATCH  | `/v1/mails/:mailId/read`                                 | `{ "isRead": true }`                                                                 |
+| GET    | `/v1/mail-recipients?query=`                             | familias y grupos disponibles                                                        |
+| POST   | `/v1/mails`                                              | `{ subject, body, recipientIds: ["family-<studentId>" \| "group-<classId>"] }` → 201 |
 
 ## Ejemplos `curl`
 
