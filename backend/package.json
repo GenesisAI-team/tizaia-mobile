@@ -23,6 +23,8 @@
     "validate": "pnpm typecheck && pnpm lint && pnpm test && pnpm format:check"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.46",
+    "ai": "^7.0.78",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "zod": "^4.0.1"

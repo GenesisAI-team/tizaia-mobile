@@ -1,6 +1,7 @@
 import type { AddressInfo } from 'node:net';
 import type { Express } from 'express';
-import { createApp } from '../app.js';
+import type { LanguageModel } from 'ai';
+import { createApp, type CreateAppAssistantOptions } from '../app.js';
 import { createMemorySchoolRepository } from '../infrastructure/memory/index.js';
 import { getRecentSchoolDays } from '../seeds/schoolDates.js';
 
@@ -32,6 +33,8 @@ export type TestServer = {
 
 export function startTestServer(options?: {
   devResetEnabled?: boolean;
+  /** Opciones del asistente (AI-001): modelo mock y configuración. */
+  assistant?: CreateAppAssistantOptions & { model?: LanguageModel };
 }): Promise<TestServer> {
   const repository = createMemorySchoolRepository(REFERENCE_DATE);
   const app: Express = createApp({
@@ -39,6 +42,7 @@ export function startTestServer(options?: {
     corsOrigins: ['*'],
     demoMode: true,
     devResetEnabled: options?.devResetEnabled ?? false,
+    assistant: options?.assistant,
   });
   const server = app.listen(0);
   return new Promise((resolve, reject) => {

@@ -1,7 +1,11 @@
 import cors from 'cors';
 import express, { type Express } from 'express';
+import type { LanguageModel } from 'ai';
 import type { SchoolRepository } from './domain/schoolRepository.js';
 import { SchoolService } from './application/schoolService.js';
+import type { AssistantConfig } from './config/env.js';
+import { ConversationStore } from './infrastructure/ai/conversationStore.js';
+import { createAssistantRouter } from './infrastructure/http/routes/assistant.js';
 import { createHealthRouter } from './infrastructure/http/routes/health.js';
 import { createSystemRouter } from './infrastructure/http/routes/system.js';
 import { createClassesRouter } from './infrastructure/http/routes/classes.js';
@@ -15,17 +19,29 @@ import {
   notFoundHandler,
 } from './infrastructure/http/errorMiddleware.js';
 
+export type CreateAppAssistantOptions = {
+  /** Modelo del asistente; `undefined` ⇒ `POST /v1/assistant/messages` → 503. */
+  model?: LanguageModel;
+  assistantConfig: Pick<
+    AssistantConfig,
+    'maxSteps' | 'timeoutMs' | 'conversationTtlMs' | 'conversationMaxMessages'
+  >;
+};
+
 export type CreateAppOptions = {
   repository: SchoolRepository;
   corsOrigins: string[];
   demoMode: boolean;
   devResetEnabled: boolean;
+  assistant?: CreateAppAssistantOptions;
 };
 
 /**
  * Fábrica de la aplicación Express. Sin efectos secundarios: el store se
  * inyecta desde fuera (server.ts o tests), lo que permite tests de integración
- * sin red externa ni estado global.
+ * sin red externa ni estado global. El asistente comparte el MISMO servicio
+ * escolar que la API REST (AI-001): una mutación REST es visible de inmediato
+ * para las tools.
  */
 export function createApp(options: CreateAppOptions): Express {
   const service = new SchoolService(options.repository);
@@ -58,6 +74,25 @@ export function createApp(options: CreateAppOptions): Express {
   app.use(createAssignmentsRouter(service));
   app.use(createAnnotationsRouter(service));
   app.use(createMailsRouter(service));
+
+  if (options.assistant !== undefined) {
+    const store = new ConversationStore({
+      ttlMs: options.assistant.assistantConfig.conversationTtlMs,
+      maxMessages: options.assistant.assistantConfig.conversationMaxMessages,
+    });
+    app.use(
+      createAssistantRouter({
+        service,
+        store,
+        toolContext: { now: () => new Date() },
+        config: {
+          maxSteps: options.assistant.assistantConfig.maxSteps,
+          timeoutMs: options.assistant.assistantConfig.timeoutMs,
+        },
+        model: options.assistant.model,
+      }),
+    );
+  }
 
   app.use(notFoundHandler);
   app.use(errorMiddleware);
