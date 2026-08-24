@@ -8,10 +8,9 @@ import { useAuth } from '../features/auth/application/AuthProvider';
 import { ActiveClassCard } from '../shared/components/ActiveClassCard';
 import { ProfileCard } from '../shared/components/ProfileCard';
 import { ScreenBackground } from '../shared/components/ScreenBackground';
-import {
-  MOCK_ACTIVE_CLASS,
-  MOCK_TEACHER_PROFILE,
-} from '../shared/mock/teacher';
+import { useSchoolRepository } from '../app/AppDependenciesProvider';
+import { getNameInitials } from '../domain/school/models';
+import { useSchoolResource } from '../shared/state/schoolDataProvider';
 import { dp, tizaiaColors } from '../shared/theme/tizaiaTheme';
 import {
   DRAWER_MENU_ITEMS,
@@ -30,6 +29,10 @@ export function AppDrawerContent(
   props: DrawerContentComponentProps,
 ): React.JSX.Element {
   const { signOut } = useAuth();
+  const schoolRepository = useSchoolRepository();
+  const meResource = useSchoolResource(() => schoolRepository.getMe(), []);
+  const me =
+    meResource.state.status === 'success' ? meResource.state.data : undefined;
   const currentRoute = props.state.routes[props.state.index]?.name;
 
   const onPressItem = (item: DrawerMenuItem): void => {
@@ -102,22 +105,30 @@ export function AppDrawerContent(
           </Pressable>
         </View>
 
-        <ProfileCard
-          email={MOCK_TEACHER_PROFILE.email}
-          initials={MOCK_TEACHER_PROFILE.initials}
-          label={MOCK_TEACHER_PROFILE.label}
-          name={MOCK_TEACHER_PROFILE.name}
-        />
+        {me !== undefined ? (
+          <>
+            <ProfileCard
+              email={me.teacher.email}
+              initials={getNameInitials(me.teacher.name)}
+              label="CUENTA DOCENTE"
+              name={me.teacher.name}
+            />
 
-        <View style={styles.activeClass}>
-          <ActiveClassCard
-            badgeText={MOCK_ACTIVE_CLASS.badgeText}
-            label={MOCK_ACTIVE_CLASS.label}
-            name={MOCK_ACTIVE_CLASS.name}
-            onPress={() => props.navigation.navigate('Classes')}
-            subject={MOCK_ACTIVE_CLASS.subject}
-          />
-        </View>
+            <View style={styles.activeClass}>
+              <ActiveClassCard
+                badgeText={me.activeClass.groupName.split(' ')[0] ?? ''}
+                label="CLASE ACTIVA"
+                name={me.activeClass.groupName}
+                onPress={() => props.navigation.navigate('Classes')}
+                subject={me.activeClass.subject}
+              />
+            </View>
+          </>
+        ) : (
+          <View style={styles.activeClass}>
+            <Text style={styles.menuEyebrow}>Cargando perfil…</Text>
+          </View>
+        )}
 
         <Text style={styles.menuEyebrow}>NAVEGACIÓN</Text>
         <View style={styles.menu}>

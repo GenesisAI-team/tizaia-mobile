@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import {
   FlatList,
   ScrollView,
@@ -33,9 +33,11 @@ type MatrixBoardProps = {
     row: MatrixBoardRow,
     column: MatrixBoardColumn,
   ) => string;
-  /** Estados mock por celda (`${row.id}:${column.id}`); por defecto pending. */
+  /** Estados por celda (`${row.id}:${column.id}`); por defecto pending. */
   cellStates?: Record<string, StatusCellState>;
   columns: MatrixBoardColumn[];
+  /** Pulsación de celda controlada por la pantalla (persistencia en API). */
+  onCellPress?: (row: MatrixBoardRow, column: MatrixBoardColumn) => void;
   /** En Tareas el pendiente no tiene fondo (DESIGN.md §4.8). */
   pendingTransparent?: boolean;
   rows: MatrixBoardRow[];
@@ -60,11 +62,14 @@ export const getNextStatusCellState = (
  * Matriz visual de Asistencia/Tareas (DESIGN.md §4.8, §5.2, §5.4): columna de
  * avatar fija, cabeceras melocotón y celdas de estado; scroll horizontal
  * sincronizado cabecera/filas y scroll vertical de alumnos.
+ * Componente controlado: los estados llegan por `cellStates` y la pulsación
+ * se delega en `onCellPress` (la pantalla decide persistencia y rollback).
  */
 export function MatrixBoard({
   actionAccessibilityLabel,
   cellStates,
   columns,
+  onCellPress,
   pendingTransparent = false,
   rows,
   showRowNames = false,
@@ -72,9 +77,6 @@ export function MatrixBoard({
   const headerScrollRef = useRef<ScrollView | null>(null);
   const rowScrollRefs = useRef(new Map<string, ScrollView>());
   const syncingRef = useRef(false);
-  const [toggledStates, setToggledStates] = useState<
-    Record<string, StatusCellState>
-  >({});
   const { width: windowWidth } = useWindowDimensions();
 
   const visibleColumnsWidth = Math.min(
@@ -98,14 +100,7 @@ export function MatrixBoard({
   };
 
   const getCellState = (cellId: string): StatusCellState =>
-    toggledStates[cellId] ?? cellStates?.[cellId] ?? 'pending';
-
-  const cycleCell = (cellId: string): void => {
-    setToggledStates((current) => ({
-      ...current,
-      [cellId]: getNextStatusCellState(getCellState(cellId)),
-    }));
-  };
+    cellStates?.[cellId] ?? 'pending';
 
   return (
     <View style={styles.container}>
@@ -174,7 +169,7 @@ export function MatrixBoard({
                   <View key={column.id} style={styles.columnCell}>
                     <StatusCell
                       accessibilityLabel={actionAccessibilityLabel(row, column)}
-                      onPress={() => cycleCell(cellId)}
+                      onPress={() => onCellPress?.(row, column)}
                       pendingTransparent={pendingTransparent}
                       state={getCellState(cellId)}
                       testID={`matrix-cell-${cellId}`}

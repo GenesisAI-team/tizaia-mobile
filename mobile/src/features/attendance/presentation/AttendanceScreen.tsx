@@ -1,6 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import {
+  DataStateView,
   MatrixBoard,
   ScreenBackground,
   ScreenTitle,
@@ -9,14 +11,20 @@ import {
   type MatrixBoardRow,
   type StatusCellState,
 } from '../../../shared/components';
-import { dp } from '../../../shared/theme/tizaiaTheme';
+import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
+import {
+  toUserMessage,
+  useSchoolInvalidation,
+  useSchoolResource,
+} from '../../../shared/state/schoolDataProvider';
 import {
   getStudentFullName,
   getStudentInitials,
 } from '../../../domain/school/models';
 import type { AttendanceStatus } from '../../../domain/school/models';
+import { selectActiveClassData } from '../../../domain/school/activeClassData';
 
 /** Mapeo de estado de asistencia a celda visual existente (sin cambios de icono). */
 const CELL_STATE_BY_ATTENDANCE: Record<AttendanceStatus, StatusCellState> = {
@@ -25,36 +33,107 @@ const CELL_STATE_BY_ATTENDANCE: Record<AttendanceStatus, StatusCellState> = {
   late: 'pending',
 };
 
+const ATTENDANCE_BY_CELL_STATE: Record<StatusCellState, AttendanceStatus> = {
+  done: 'present',
+  undone: 'absent',
+  pending: 'late',
+};
+
 /**
- * Asistencia definitiva (DESIGN.md §5.2, frame n1053 de Tizaia.op): título,
- * matriz de 10 días lectivos × alumnos de la clase activa con celdas de estado
- * y TabBar. Los 5 días más recientes quedan visibles y el resto usa scroll
- * horizontal. La persistencia queda para la fase funcional.
+ * Asistencia definitiva (DESIGN.md §5.2, frame n1053 de Tizaia.op): matriz de
+ * 10 días lectivos × alumnos de la clase activa con celdas de estado y TabBar.
+ *
+ * Persistencia (MOB-API-001): cada pulsación aplica un ciclo
+ * presente→ausente→retraso con **actualización optimista y rollback**: la
+ * celda cambia al instante; si el backend rechaza el `PUT` (p. ej.
+ * `409 NON_SCHOOL_DAY`), se revierte al estado previo y se informa.
  */
 export function AttendanceScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
+  const invalidate = useSchoolInvalidation();
 
-  const students = schoolRepository.getStudents();
-  const attendance = schoolRepository.getAttendanceForClass();
-  const schoolDays = schoolRepository.getSchoolDays();
+  const resource = useSchoolResource(async () => {
+    // El bootstrap agregado sirve datos de todo el centro: se acota a la
+    // clase activa para no mezclar alumnado ni asistencia de otras clases.
+    const bootstrap = await schoolRepository.getBootstrap();
+    return {
+      ...selectActiveClassData(bootstrap),
+      schoolDays: bootstrap.schoolDays,
+    };
+  }, []);
 
-  const columns: MatrixBoardColumn[] = schoolDays.map((day) => ({
-    id: day.date,
-    label: day.label,
-    secondaryLabel: day.secondaryLabel,
-  }));
+  /**
+   * Overrides optimistas por celda (`studentId:date`). Se limpian cuando el
+   * refetch tras invalidación confirma el estado servido por el backend.
+   */
+  const [optimistic, setOptimistic] = useState<
+    Record<string, AttendanceStatus>
+  >({});
+  const [savingCell, setSavingCell] = useState<string | undefined>(undefined);
 
-  const rows: MatrixBoardRow[] = students.map((student) => ({
-    id: student.id,
-    studentName: getStudentFullName(student),
-    initials: getStudentInitials(student),
-  }));
+  const onCellPress = useCallback(
+    (row: MatrixBoardRow, column: MatrixBoardColumn) => {
+      if (resource.state.status !== 'success') return;
+      const { attendance, schoolDays, students, activeClassId } =
+        resource.state.data;
+      const cellId = `${row.id}:${column.id}`;
+      if (schoolDays.some((day) => day.date === column.id) === false) return;
+      const student = students.find((item) => item.id === row.id);
+      if (student === undefined) return;
+
+      const serverRecord = attendance.find(
+        (record) => record.studentId === row.id && record.date === column.id,
+      );
+      // El override en curso manda para calcular el siguiente estado.
+      // Una celda sin registro parte del ciclo como "pendiente" (late).
+      const previousStatus = optimistic[cellId] ?? serverRecord?.status;
+      const currentStatus: AttendanceStatus = previousStatus ?? 'late';
+      const currentVisual = CELL_STATE_BY_ATTENDANCE[currentStatus];
+      const nextVisualOrder: StatusCellState[] = ['done', 'undone', 'pending'];
+      const nextVisual =
+        nextVisualOrder[
+          (nextVisualOrder.indexOf(currentVisual) + 1) % nextVisualOrder.length
+        ]!;
+      const nextStatus = ATTENDANCE_BY_CELL_STATE[nextVisual];
+
+      setOptimistic((current) => ({ ...current, [cellId]: nextStatus }));
+      setSavingCell(cellId);
+      void (async () => {
+        try {
+          await schoolRepository.setAttendanceStatus({
+            classId: activeClassId,
+            studentId: row.id,
+            date: column.id,
+            status: nextStatus,
+          });
+          invalidate();
+        } catch (error) {
+          // Rollback: se restaura el último estado confirmado.
+          setOptimistic((current) => {
+            const next = { ...current };
+            if (previousStatus === undefined) delete next[cellId];
+            else next[cellId] = previousStatus;
+            return next;
+          });
+          Alert.alert('No se pudo guardar la asistencia', toUserMessage(error));
+        } finally {
+          setSavingCell(undefined);
+        }
+      })();
+    },
+    [invalidate, optimistic, resource.state, schoolRepository],
+  );
 
   const cellStates: Record<string, StatusCellState> = {};
-  for (const record of attendance) {
-    cellStates[`${record.studentId}:${record.date}`] =
-      CELL_STATE_BY_ATTENDANCE[record.status];
+  if (resource.state.status === 'success') {
+    for (const record of resource.state.data.attendance) {
+      cellStates[`${record.studentId}:${record.date}`] =
+        CELL_STATE_BY_ATTENDANCE[record.status];
+    }
+    for (const [cellId, status] of Object.entries(optimistic)) {
+      cellStates[cellId] = CELL_STATE_BY_ATTENDANCE[status];
+    }
   }
 
   return (
@@ -62,16 +141,37 @@ export function AttendanceScreen(): React.JSX.Element {
       <View style={styles.titleBlock}>
         <ScreenTitle>ASISTENCIA</ScreenTitle>
       </View>
-      <View style={styles.board}>
-        <MatrixBoard
-          actionAccessibilityLabel={(row, column) =>
-            `Asistencia de ${row.studentName} en ${column.label}`
-          }
-          cellStates={cellStates}
-          columns={columns}
-          rows={rows}
-        />
-      </View>
+      <DataStateView
+        emptyMessage="No hay alumnos o días lectivos que mostrar."
+        onRetry={resource.reload}
+        state={resource.state}
+      />
+      {resource.state.status === 'success' && (
+        <View style={styles.board}>
+          <MatrixBoard
+            actionAccessibilityLabel={(row, column) =>
+              `Asistencia de ${row.studentName} en ${column.label}`
+            }
+            cellStates={cellStates}
+            columns={resource.state.data.schoolDays.map((day) => ({
+              id: day.date,
+              label: day.label,
+              secondaryLabel: day.secondaryLabel,
+            }))}
+            onCellPress={onCellPress}
+            rows={resource.state.data.students.map((student) => ({
+              id: student.id,
+              studentName: getStudentFullName(student),
+              initials: getStudentInitials(student),
+            }))}
+          />
+        </View>
+      )}
+      {savingCell !== undefined && (
+        <View pointerEvents="none" style={styles.savingBadge}>
+          <Text style={styles.savingText}>Guardando…</Text>
+        </View>
+      )}
       <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
   );
@@ -81,6 +181,20 @@ const styles = StyleSheet.create({
   board: {
     flex: 1,
     paddingHorizontal: dp(18),
+  },
+  savingBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFFCC',
+    borderRadius: dp(18),
+    bottom: dp(150),
+    paddingHorizontal: dp(24),
+    paddingVertical: dp(10),
+    position: 'absolute',
+  },
+  savingText: {
+    color: tizaiaColors.ink,
+    fontSize: dp(17),
+    fontWeight: '600',
   },
   tabBar: {
     alignSelf: 'center',

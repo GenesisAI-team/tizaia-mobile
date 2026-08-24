@@ -33,7 +33,26 @@ sirve de un backend propio:
   `/health`). Ejecución y contratos: [`backend/README.md`](../backend/README.md).
 - El endpoint del asistente (`/v1/assistant/messages`) llega con AI-001 (#69).
 
+### Consumo móvil de la API (MOB-API-001)
+
+- Puerto `SchoolRepository` del móvil **async** (`Promise<T>`), misma frontera
+  que el backend: sustituible por Supabase sin tocar pantallas (RFC-001 §9).
+- Adaptador HTTP en `mobile/src/infrastructure/api/` (`apiClient` con timeout
+  y normalización de la envolvente de errores, DTOs propios, mappers y
+  `ApiSchoolRepository`). Las pantallas no llaman a `fetch` ni importan
+  modelos del backend.
+- Estado compartido mínimo en `shared/state/`: provider de invalidación +
+  `useSchoolResource` (loading/success/empty/error con reintento). Sin React
+  Query por decisión de la issue #68.
+- Mutaciones: optimistas con rollback en asistencia, entregas, gestión de
+  anotaciones y lectura de correo; confirmadas con recarga en crear/borrar/
+  editar. Documentado por dominio en el código.
+- Configuración pública: `EXPO_PUBLIC_API_BASE_URL` con default
+  `http://10.0.2.2:3000` (emulador Android); localhost en iOS Simulator e IP
+  LAN en dispositivo físico. Sin secretos en variables `EXPO_PUBLIC_*`.
+- `InMemorySchoolRepository` deja de ser fuente de verdad en runtime y queda
+  como fake async para tests; `FakeAssistantGateway` sigue hasta AI-001 (#69).
+
 ## Documentación consultada
 
 Expo create-project/TypeScript y CNG, y Supabase Expo React Native quickstart (enlaces en el README). En la implementación de HU-001 se usaron además Context7 para Supabase JS y las guías oficiales actuales de Expo/Supabase; la anotación previa de que Context7 no estaba disponible era incorrecta. Para RFC-001 se consultará la documentación oficial de AI SDK (versión 7) antes de incorporar dependencias.
-

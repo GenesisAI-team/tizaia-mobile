@@ -15,6 +15,7 @@ import { StudentProfileScreen } from '../features/students/presentation/StudentP
 import { StudentsScreen } from '../features/students/presentation/StudentsScreen';
 import { TasksScreen } from '../features/tasks/presentation/TasksScreen';
 import { dp, tizaiaColors } from '../shared/theme/tizaiaTheme';
+import { SchoolDataProvider } from '../shared/state/schoolDataProvider';
 import { AppDrawerContent } from './AppDrawerContent';
 import type { RootDrawerParamList } from './types';
 
@@ -58,30 +59,36 @@ function HeaderMenuButton({ navigation }: { navigation: Navigation }) {
   );
 }
 
+/**
+ * Datos escolares compartidos: las pantallas y el drawer consumen el mismo
+ * estado invalidable; una mutación en cualquier pantalla refresca el resto.
+ */
 export function AppDrawerNavigator(): React.JSX.Element {
   return (
-    <Drawer.Navigator
-      drawerContent={(props) => <AppDrawerContent {...props} />}
-      screenOptions={({ navigation }) => ({
-        drawerPosition: 'right',
-        drawerStyle: styles.drawer,
-        drawerType: 'front',
-        headerLeft: () => <HeaderLogo navigation={navigation} />,
-        headerRight: () => <HeaderMenuButton navigation={navigation} />,
-        headerTitle: '',
-      })}
-    >
-      <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Attendance" component={AttendanceScreen} />
-      <Drawer.Screen name="Students" component={StudentsScreen} />
-      <Drawer.Screen name="Tasks" component={TasksScreen} />
-      <Drawer.Screen name="Mail" component={MailScreen} />
-      <Drawer.Screen name="Annotations" component={AnnotationsScreen} />
-      <Drawer.Screen name="Classes" component={ClassesScreen} />
-      <Drawer.Screen name="NewAnnotation" component={NewAnnotationScreen} />
-      <Drawer.Screen name="NewMail" component={NewMailScreen} />
-      <Drawer.Screen name="StudentProfile" component={StudentProfileScreen} />
-    </Drawer.Navigator>
+    <SchoolDataProvider>
+      <Drawer.Navigator
+        drawerContent={(props) => <AppDrawerContent {...props} />}
+        screenOptions={({ navigation }) => ({
+          drawerPosition: 'right',
+          drawerStyle: styles.drawer,
+          drawerType: 'front',
+          headerLeft: () => <HeaderLogo navigation={navigation} />,
+          headerRight: () => <HeaderMenuButton navigation={navigation} />,
+          headerTitle: '',
+        })}
+      >
+        <Drawer.Screen name="Home" component={HomeScreen} />
+        <Drawer.Screen name="Attendance" component={AttendanceScreen} />
+        <Drawer.Screen name="Students" component={StudentsScreen} />
+        <Drawer.Screen name="Tasks" component={TasksScreen} />
+        <Drawer.Screen name="Mail" component={MailScreen} />
+        <Drawer.Screen name="Annotations" component={AnnotationsScreen} />
+        <Drawer.Screen name="Classes" component={ClassesScreen} />
+        <Drawer.Screen name="NewAnnotation" component={NewAnnotationScreen} />
+        <Drawer.Screen name="NewMail" component={NewMailScreen} />
+        <Drawer.Screen name="StudentProfile" component={StudentProfileScreen} />
+      </Drawer.Navigator>
+    </SchoolDataProvider>
   );
 }
 

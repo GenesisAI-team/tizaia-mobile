@@ -1,4 +1,5 @@
 export { ActiveClassCard } from './ActiveClassCard';
+export { DataStateView } from './DataStateView';
 export { Fab } from './Fab';
 export { GlassCard } from './GlassCard';
 export { MatrixBoard } from './MatrixBoard';

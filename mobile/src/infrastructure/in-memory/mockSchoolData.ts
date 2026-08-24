@@ -11,6 +11,7 @@ import type {
   Student,
   SubmissionStatus,
 } from '../../domain/school/models';
+import { getStudentFullName } from '../../domain/school/models';
 import {
   getDayMonthLabel,
   getRecentSchoolDays,
@@ -373,6 +374,7 @@ export function createMockSchoolData(referenceDate: Date): MockSchoolData {
       annotations.push({
         id: `annotation-${annotationSeq}`,
         studentId: student.id,
+        managed: false,
         type,
         description: pick(random, ANNOTATION_DESCRIPTIONS[type]),
         createdAt: toDateFromIso(
@@ -401,6 +403,9 @@ export function createMockSchoolData(referenceDate: Date): MockSchoolData {
     mails.push({
       id: `mail-${mailSeq}`,
       senderStudentId: sender.id,
+      folder: 'inbox',
+      senderLabel: getStudentFullName(sender),
+      body: pick(random, MAIL_PREVIEWS),
       subject: pick(random, MAIL_SUBJECTS),
       preview: pick(random, MAIL_PREVIEWS),
       receivedAt: toDateFromIso(
@@ -409,6 +414,7 @@ export function createMockSchoolData(referenceDate: Date): MockSchoolData {
         randInt(random, 0, 59),
       ),
       isRead: random() < 0.6,
+      recipients: [],
     });
     mailSeq += 1;
   }

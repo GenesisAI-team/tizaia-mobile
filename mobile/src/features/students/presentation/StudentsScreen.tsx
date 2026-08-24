@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
+  DataStateView,
   Fab,
   GlassCard,
   ScreenBackground,
@@ -21,6 +29,10 @@ import { useTabBarPress } from '../../../navigation/useTabBarPress';
 import type { RootDrawerParamList } from '../../../navigation/types';
 import { useSchoolRepository } from '../../../app/AppDependenciesProvider';
 import {
+  useSchoolInvalidation,
+  useSchoolResource,
+} from '../../../shared/state/schoolDataProvider';
+import {
   getStudentFullName,
   getStudentInitials,
 } from '../../../domain/school/models';
@@ -34,23 +46,59 @@ type StudentListItem = {
 /**
  * Alumnos definitiva (DESIGN.md §5.3, frame n883 de Tizaia.op): tarjetas con
  * avatar, nombre y acciones (ver / aviso / borrar), FAB de alta y TabBar.
- * Muestra los alumnos de la clase activa; el ojo abre el perfil del alumno y
- * el aviso abre una nueva anotación precargada. El borrado sigue siendo local.
+ * Lista servida por la API (#67); el borrado pide confirmación, aplica el
+ * DELETE en el backend y solo se refleja si este lo confirma (recarga).
  */
 export function StudentsScreen(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
-  const [students, setStudents] = useState<StudentListItem[]>(() =>
-    schoolRepository.getStudents().map((student) => ({
-      id: student.id,
-      name: getStudentFullName(student),
-      initials: getStudentInitials(student),
-    })),
-  );
+  const invalidate = useSchoolInvalidation();
+  const resource = useSchoolResource(async () => {
+    const me = await schoolRepository.getMe();
+    return schoolRepository.getStudents(me.activeClass.id);
+  }, []);
+  const [deletingId, setDeletingId] = useState<string | undefined>(undefined);
 
-  const removeStudent = (studentId: string): void => {
-    setStudents((current) => current.filter((item) => item.id !== studentId));
+  const students: StudentListItem[] =
+    resource.state.status === 'success'
+      ? resource.state.data.map((student) => ({
+          id: student.id,
+          name: getStudentFullName(student),
+          initials: getStudentInitials(student),
+        }))
+      : [];
+
+  const removeStudent = (student: StudentListItem): void => {
+    Alert.alert(
+      'Eliminar alumno',
+      `¿Eliminar a ${student.name}? También se borrarán su asistencia, entregas y anotaciones.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDeletingId(student.id);
+              try {
+                await schoolRepository.deleteStudentCascade(student.id);
+                invalidate();
+              } catch (error) {
+                Alert.alert(
+                  'No se pudo eliminar',
+                  error instanceof Error
+                    ? error.message
+                    : 'Error inesperado al eliminar al alumno.',
+                );
+              } finally {
+                setDeletingId(undefined);
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -58,73 +106,85 @@ export function StudentsScreen(): React.JSX.Element {
       <View style={styles.titleBlock}>
         <ScreenTitle>ALUMNOS</ScreenTitle>
       </View>
-      <FlatList
-        contentContainerStyle={styles.listContent}
-        data={students}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No hay alumnos visibles.</Text>
-        }
-        renderItem={({ item }) => (
-          <GlassCard cornerRadius={22} style={styles.card}>
-            <StudentAvatar
-              accessibilityLabel={`Foto de ${item.name}`}
-              initials={item.initials}
-              size={dp(95)}
-            />
-            <Text numberOfLines={1} style={styles.name}>
-              {item.name}
-            </Text>
-            <View style={styles.actions}>
-              <Pressable
-                accessibilityLabel={`Ver detalle de ${item.name}`}
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() =>
-                  navigation.navigate('StudentProfile', { studentId: item.id })
-                }
-                style={({ pressed }) => [
-                  styles.viewButton,
-                  pressed && styles.pressed,
-                ]}
-                testID={`student-view-${item.id}`}
-              >
-                <EyeIcon color={tizaiaColors.inkButton} size={dp(40)} />
-              </Pressable>
-              <Pressable
-                accessibilityLabel={`Crear anotación para ${item.name}`}
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() =>
-                  navigation.navigate('NewAnnotation', { studentId: item.id })
-                }
-                style={({ pressed }) => [
-                  styles.warnButton,
-                  pressed && styles.pressed,
-                ]}
-                testID={`student-new-annotation-${item.id}`}
-              >
-                <WarningIcon color={tizaiaColors.warnTriangle} size={dp(46)} />
-              </Pressable>
-              <Pressable
-                accessibilityLabel={`Eliminar a ${item.name} de la lista`}
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => removeStudent(item.id)}
-                style={({ pressed }) => [
-                  styles.deleteButton,
-                  pressed && styles.pressed,
-                ]}
-                testID={`student-delete-${item.id}`}
-              >
-                <TrashIcon color={tizaiaColors.deleteIcon} size={dp(36)} />
-              </Pressable>
-            </View>
-          </GlassCard>
-        )}
-        style={styles.list}
+      <DataStateView
+        emptyMessage="No hay alumnos en esta clase."
+        onRetry={resource.reload}
+        state={resource.state}
       />
+      {resource.state.status === 'success' && (
+        <FlatList
+          contentContainerStyle={styles.listContent}
+          data={students}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <GlassCard cornerRadius={22} style={styles.card}>
+              <StudentAvatar
+                accessibilityLabel={`Foto de ${item.name}`}
+                initials={item.initials}
+                size={dp(95)}
+              />
+              <Text numberOfLines={1} style={styles.name}>
+                {item.name}
+              </Text>
+              <View style={styles.actions}>
+                <Pressable
+                  accessibilityLabel={`Ver detalle de ${item.name}`}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() =>
+                    navigation.navigate('StudentProfile', {
+                      studentId: item.id,
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.viewButton,
+                    pressed && styles.pressed,
+                  ]}
+                  testID={`student-view-${item.id}`}
+                >
+                  <EyeIcon color={tizaiaColors.inkButton} size={dp(40)} />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel={`Crear anotación para ${item.name}`}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() =>
+                    navigation.navigate('NewAnnotation', {
+                      studentId: item.id,
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.warnButton,
+                    pressed && styles.pressed,
+                  ]}
+                  testID={`student-new-annotation-${item.id}`}
+                >
+                  <WarningIcon
+                    color={tizaiaColors.warnTriangle}
+                    size={dp(46)}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel={`Eliminar a ${item.name} de la lista`}
+                  accessibilityRole="button"
+                  disabled={deletingId !== undefined}
+                  hitSlop={8}
+                  onPress={() => removeStudent(item)}
+                  style={({ pressed }) => [
+                    styles.deleteButton,
+                    (pressed || deletingId === item.id) && styles.pressed,
+                  ]}
+                  testID={`student-delete-${item.id}`}
+                >
+                  <TrashIcon color={tizaiaColors.deleteIcon} size={dp(36)} />
+                </Pressable>
+              </View>
+            </GlassCard>
+          )}
+          style={styles.list}
+        />
+      )}
       <Fab accessibilityLabel="Añadir alumno" style={styles.fab} />
       <TabBar onPressTab={onPressTab} style={styles.tabBar} />
     </ScreenBackground>
@@ -150,11 +210,6 @@ const styles = StyleSheet.create({
     height: dp(55),
     justifyContent: 'center',
     width: dp(62),
-  },
-  emptyText: {
-    color: tizaiaColors.textMenuSecondary,
-    padding: dp(48),
-    textAlign: 'center',
   },
   fab: {
     bottom: dp(141),
