@@ -20,26 +20,36 @@ export type ActiveClassData = {
   submissions: AssignmentSubmission[];
 };
 
+/**
+ * Únicos campos del bootstrap que consume el selector. El acoplamiento queda
+ * explícito: hoy llegan de una sola petición a `/v1/bootstrap`; si mañana se
+ * sirven desde endpoints por dominio, el selector no cambia.
+ */
+export type ClassScopedSource = Pick<
+  SchoolBootstrap,
+  'activeClassId' | 'students' | 'attendance' | 'assignments' | 'submissions'
+>;
+
 export const selectActiveClassData = (
-  bootstrap: SchoolBootstrap,
+  source: ClassScopedSource,
 ): ActiveClassData => {
-  const { activeClassId } = bootstrap;
-  const students = bootstrap.students.filter(
+  const { activeClassId } = source;
+  const students = source.students.filter(
     (student) => student.classId === activeClassId,
   );
   const studentIds = new Set(students.map((student) => student.id));
-  const assignments = bootstrap.assignments.filter(
+  const assignments = source.assignments.filter(
     (assignment) => assignment.classId === activeClassId,
   );
   const assignmentIds = new Set(assignments.map((assignment) => assignment.id));
   return {
     activeClassId,
     students,
-    attendance: bootstrap.attendance.filter((record) =>
+    attendance: source.attendance.filter((record) =>
       studentIds.has(record.studentId),
     ),
     assignments,
-    submissions: bootstrap.submissions.filter((submission) =>
+    submissions: source.submissions.filter((submission) =>
       assignmentIds.has(submission.assignmentId),
     ),
   };
