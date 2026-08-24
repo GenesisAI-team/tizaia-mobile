@@ -69,3 +69,16 @@ Queda fuera: integración móvil (#68), asistente AI SDK (#69).
 | Composition root sobre la API; fake en memoria solo para tests; sin claves de IA en bundle         | Criterios #68: ninguna pantalla usa mocks ni llama a `fetch` directamente                                                                                                  | Revisión cruzada de imports y trazabilidad                              |
 
 Queda fuera: AI SDK real (#69), Supabase, correo real, sincronización offline.
+
+## Hito AI-001 — Asistente AI SDK y tools (#69)
+
+| Artefacto                                                                                     | HU/RF cubiertos                                                                                  | Validación                                                                        |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `infrastructure/ai/modelProvider.ts` + config (`AI_PROVIDER/AI_MODEL/OPENAI_API_KEY/...`)     | INT-ASSISTANT-001; RFC-001 §5/§8 (proveedor directo, sin Gateway, clave solo en backend)          | `pnpm --dir backend typecheck`; 503 estable sin clave                              |
+| Store de conversaciones en memoria (`conversationStore`)                                      | RF-CHAT-004; RFC-001 §6 (TTL, límite, ids opacos)                                                | Tests unitarios TTL/límites/expiración                                             |
+| Catálogo de 20 tools de lectura por dominio sobre `SchoolService`                             | RF-CHAT-002..006; «mismo store que la API REST»; sin seeds ni HTTP interno                        | Tests unitarios por tool con seed determinista; errores normalizados               |
+| `schoolAssistant` + `POST /v1/assistant/messages` no streaming                                | HU-002/RF-CHAT-001..006; contrato estable `message`+`conversationId`; fechas «hoy/ayer» Madrid   | Tests de integración con modelo simulado (`ai/test`), 400/404/503/504/502          |
+| `ApiAssistantGateway` + `EXPO_PUBLIC_ASSISTANT_MODE=api\|fake`; n8n eliminado                 | INT-ASSISTANT-001 activa; Q-009; sin claves/SDK del proveedor en el bundle                        | Tests del gateway (mapeo, continuidad, errores) y suite completa móvil             |
+
+Queda fuera: tools de escritura, RAG, persistencia de conversaciones
+(Supabase), streaming/SSE y alertas normativas (Q-001).

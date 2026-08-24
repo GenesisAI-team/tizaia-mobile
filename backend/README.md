@@ -1,8 +1,9 @@
-# TizaIA Backend (API-001)
+# TizaIA Backend (API-001 + AI-001)
 
 API REST del MVP ampliado sobre un almacén **en memoria** con seeds
-deterministas (RFC-001). Node.js 22 + TypeScript estricto + Express 5 + Zod.
-Sin proveedores de IA, sin Supabase y sin dependencias de Vercel.
+deterministas (RFC-001). Node.js 22 + TypeScript estricto + Express 5 + Zod,
+y asistente con AI SDK 7 (proveedor directo). Sin Supabase y sin dependencias
+de Vercel.
 
 - Issue: [#67](https://github.com/GenesisAI-team/tizaia-mobile/issues/67)
 - Decisión técnica: [RFC-001](../spec/07-assistant-backend-rfc.md) (`Depends on #66`)
@@ -17,8 +18,14 @@ curl http://localhost:3000/health
 ```
 
 El puerto se configura con `PORT` (por defecto `3000`). Variables (ver
-`.env.example`): `PORT`, `CORS_ORIGINS`, `ENABLE_DEV_RESET`, `DEMO_MODE`.
-No se admiten secretos: este backend demo no necesita claves.
+`.env.example`): `PORT`, `CORS_ORIGINS`, `ENABLE_DEV_RESET`, `DEMO_MODE`, y
+las del asistente: `AI_PROVIDER=openai`, `AI_MODEL`, `OPENAI_API_KEY`,
+`AI_MAX_STEPS=6`, `AI_TIMEOUT_MS=30000`, `CONVERSATION_TTL_MS`,
+`CONVERSATION_MAX_MESSAGES`.
+
+**La clave del proveedor vive SOLO en el backend.** Sin clave configurada,
+todo el resto de la API funciona y el asistente responde `503
+ASSISTANT_UNAVAILABLE`.
 
 ## Scripts
 
@@ -48,7 +55,40 @@ Respuestas JSON; fechas ISO-8601. Errores con envolvente estable:
 ```
 
 Códigos usados: `400 VALIDATION_ERROR`, `404 NOT_FOUND`, `409 NON_SCHOOL_DAY`,
-`500 INTERNAL_ERROR`.
+`500 INTERNAL_ERROR`, y en el asistente: `503 ASSISTANT_UNAVAILABLE`,
+`504 ASSISTANT_TIMEOUT`, `502 ASSISTANT_PROVIDER_ERROR`.
+
+### Asistente (AI-001)
+
+| Método | Ruta                     | Cuerpo                                    |
+| ------ | ------------------------ | ----------------------------------------- |
+| POST   | `/v1/assistant/messages` | `{ "message": "...", "conversationId"? }` |
+
+Respuesta no streaming:
+
+```json
+{
+  "conversationId": "conv_...",
+  "message": "Ayer faltaron…",
+  "metadata": { "toolsUsed": ["listClassAbsences"] }
+}
+```
+
+- Crea conversación si no se envía `conversationId`; la continúa si es válida;
+  `404` si expiró o no existe. Las conversaciones viven en memoria del proceso
+  (TTL y límite de mensajes por entorno).
+- El modelo consulta los datos SOLO mediante 20 tools de lectura que llaman a
+  los mismos servicios de aplicación que esta API REST; nunca recibe el
+  dataset completo ni llama por HTTP a la propia API.
+- «hoy»/«ayer» se resuelven con `Europe/Madrid` y reloj inyectable.
+
+Ejemplo:
+
+```powershell
+curl -X POST http://localhost:3000/v1/assistant/messages `
+  -H "Content-Type: application/json" `
+  -d '{ "message": "¿Quién faltó ayer en 1.º Bachillerato D?" }'
+```
 
 ### Sistema
 

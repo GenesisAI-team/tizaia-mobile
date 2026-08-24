@@ -13,7 +13,8 @@
 | 9     | Datos demo en memoria (MVP)           | HU-004..HU-011                                            | done                    |
 | 10    | RFC-001 backend en memoria + AI SDK   | HU-002; Q-009; RF-CHAT                                    | done                    |
 | 11    | Backend propio `/v1` (implementación) | HU-002..HU-011; INT-BACKEND/INT-ASSISTANT                 | done                    |
-| 12    | Consumo móvil de la API (MOB-API-001) | HU-004..HU-011; INT-BACKEND-001                           | review                  |
+| 12    | Consumo móvil de la API (MOB-API-001) | HU-004..HU-011; INT-BACKEND-001                           | done                    |
+| 13    | Asistente AI SDK + tools (AI-001)     | HU-002; RF-CHAT; INT-ASSISTANT-001                        | review                  |
 
 El hito 9 implementa una capa de datos mock en memoria (`SchoolRepository` +
 generador determinista en `mobile/src/infrastructure/in-memory/`) que alimenta
@@ -36,8 +37,16 @@ El hito 12 es **MOB-API-001** (#68): el móvil sustituye los mocks por un
 adaptador HTTP (`infrastructure/api`) sobre el puerto async `SchoolRepository`,
 con estados de carga/vacío/error, mutaciones confirmadas u optimistas con
 rollback según el dominio, y `EXPO_PUBLIC_API_BASE_URL` documentada
-(`10.0.2.2` en emulador). El repositorio en memoria queda como fake de tests;
-el asistente sigue con su fake hasta AI-001 (#69).
+(`10.0.2.2` en emulador). El repositorio en memoria queda como fake de tests.
+
+El hito 13 es **AI-001** (#69): asistente real sobre AI SDK 7 en el backend
+(`infrastructure/ai` con modelProvider, store de conversaciones en memoria,
+20 tools de lectura sobre los servicios escolares compartidos con la API REST
+y `POST /v1/assistant/messages` no streaming). El móvil integra
+`ApiAssistantGateway` seleccionable por `EXPO_PUBLIC_ASSISTANT_MODE`
+(`api|fake`); n8n queda eliminado (Q-009) y RAG sigue fuera de alcance.
+Sin clave del proveedor, el endpoint responde 503 estable; CI y tests usan un
+modelo simulado sin llamadas reales ni consumo de créditos.
 
 ## Descomposición preliminar por HU
 
