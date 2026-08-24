@@ -17,6 +17,7 @@ import { ScreenTitle } from '../../../shared/components/ScreenTitle';
 import { TabBar } from '../../../shared/components/TabBar';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import { toUserMessage } from '../../../shared/state/schoolDataProvider';
 
 type ChatMessage = {
   id: string;
@@ -25,8 +26,6 @@ type ChatMessage = {
 };
 
 const ASSISTANT_GREETING = 'Buenas 👋 ¿En qué te puedo ayudar?';
-const ASSISTANT_ERROR_MESSAGE =
-  'No he podido responder. Inténtalo de nuevo en un momento.';
 
 /**
  * Home definitivo (DESIGN.md §5.1, frame n865 de Tizaia.op): título HOME,
@@ -71,10 +70,11 @@ export function HomeScreen(): React.JSX.Element {
         ...current,
         createMessage('assistant', response.message),
       ]);
-    } catch {
+    } catch (error) {
+      // Error recuperable y comprensible: red/timeout/404 de conversación…
       setMessages((current) => [
         ...current,
-        createMessage('assistant', ASSISTANT_ERROR_MESSAGE),
+        createMessage('assistant', toUserMessage(error)),
       ]);
     } finally {
       setIsSending(false);
