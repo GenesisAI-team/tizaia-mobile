@@ -26,6 +26,7 @@ import {
   getStudentInitials,
 } from '../../../domain/school/models';
 import type { SubmissionStatus } from '../../../domain/school/models';
+import { selectActiveClassData } from '../../../domain/school/activeClassData';
 
 /** Mapeo de estado de entrega a celda visual existente (sin cambios de icono). */
 const CELL_STATE_BY_SUBMISSION: Record<SubmissionStatus, StatusCellState> = {
@@ -52,14 +53,10 @@ export function TasksScreen(): React.JSX.Element {
   const invalidate = useSchoolInvalidation();
 
   const resource = useSchoolResource(async () => {
-    // El bootstrap agregado trae tareas y entregas de la clase activa.
+    // El bootstrap agregado sirve datos de todo el centro: se acota a la
+    // clase activa para no mezclar tareas ni entregas de otras clases.
     const bootstrap = await schoolRepository.getBootstrap();
-    return {
-      activeClassId: bootstrap.activeClassId,
-      students: bootstrap.students,
-      assignments: bootstrap.assignments,
-      submissions: bootstrap.submissions,
-    };
+    return selectActiveClassData(bootstrap);
   }, []);
 
   /** Overrides optimistas por celda (`studentId:assignmentId`). */

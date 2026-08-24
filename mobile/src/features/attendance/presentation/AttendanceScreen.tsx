@@ -24,6 +24,7 @@ import {
   getStudentInitials,
 } from '../../../domain/school/models';
 import type { AttendanceStatus } from '../../../domain/school/models';
+import { selectActiveClassData } from '../../../domain/school/activeClassData';
 
 /** Mapeo de estado de asistencia a celda visual existente (sin cambios de icono). */
 const CELL_STATE_BY_ATTENDANCE: Record<AttendanceStatus, StatusCellState> = {
@@ -53,12 +54,11 @@ export function AttendanceScreen(): React.JSX.Element {
   const invalidate = useSchoolInvalidation();
 
   const resource = useSchoolResource(async () => {
-    // El bootstrap agregado trae clase activa, días, alumnado y asistencia.
+    // El bootstrap agregado sirve datos de todo el centro: se acota a la
+    // clase activa para no mezclar alumnado ni asistencia de otras clases.
     const bootstrap = await schoolRepository.getBootstrap();
     return {
-      activeClassId: bootstrap.activeClassId,
-      students: bootstrap.students,
-      attendance: bootstrap.attendance,
+      ...selectActiveClassData(bootstrap),
       schoolDays: bootstrap.schoolDays,
     };
   }, []);

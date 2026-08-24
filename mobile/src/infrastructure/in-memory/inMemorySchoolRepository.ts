@@ -49,27 +49,21 @@ export class InMemorySchoolRepository implements SchoolRepository {
   // ---------- Consultas ----------
 
   public async getBootstrap(): Promise<SchoolBootstrap> {
-    const activeClassId = this.activeClassId;
-    const classes = [...this.data.classes];
+    // Paridad con `/v1/bootstrap` (backend #67): el agregado sirve datos de
+    // TODO el centro, sin filtrar por clase activa ni carpeta de correo. Las
+    // pantallas que solo representan la clase activa seleccionan con
+    // `selectActiveClassData`; así el fake no oculta mezclas entre clases.
     return {
       teacher: DEMO_TEACHER,
-      activeClassId,
-      classes,
+      activeClassId: this.activeClassId,
+      classes: [...this.data.classes],
       schoolDays: [...this.data.schoolDays],
-      students: this.data.students.filter(
-        (student) => student.classId === activeClassId,
-      ),
-      attendance: this.data.attendance.filter((record) =>
-        this.studentIdsOf(activeClassId).has(record.studentId),
-      ),
-      assignments: this.data.assignments.filter(
-        (assignment) => assignment.classId === activeClassId,
-      ),
-      submissions: this.data.submissions.filter((submission) =>
-        this.assignmentIdsOf(activeClassId).has(submission.assignmentId),
-      ),
+      students: [...this.data.students],
+      attendance: [...this.data.attendance],
+      assignments: [...this.data.assignments],
+      submissions: [...this.data.submissions],
       annotations: [...this.data.annotations],
-      mails: [...this.data.mails].filter((mail) => mail.folder === 'inbox'),
+      mails: [...this.data.mails],
     };
   }
 
@@ -353,22 +347,6 @@ export class InMemorySchoolRepository implements SchoolRepository {
   }
 
   // ---------- Ayudas privadas ----------
-
-  private studentIdsOf(classId: string): Set<string> {
-    return new Set(
-      this.data.students
-        .filter((student) => student.classId === classId)
-        .map((student) => student.id),
-    );
-  }
-
-  private assignmentIdsOf(classId: string): Set<string> {
-    return new Set(
-      this.data.assignments
-        .filter((assignment) => assignment.classId === classId)
-        .map((assignment) => assignment.id),
-    );
-  }
 
   private requireClass(classId: string): SchoolClass {
     const schoolClass = this.data.classes.find((item) => item.id === classId);
