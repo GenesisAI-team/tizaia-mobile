@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -31,6 +31,7 @@ import {
   useSchoolInvalidation,
   useSchoolResource,
 } from '../../../shared/state/schoolDataProvider';
+import type { SchoolClass, Student } from '../../../domain/school/models';
 
 type Recipient = {
   id: string;
@@ -39,6 +40,32 @@ type Recipient = {
 };
 
 const MAX_MESSAGE_LENGTH = 1000;
+
+/** Familia y grupo del alumno precargado por ruta (anotaciones/lista). */
+const buildPreloadedRecipients = (
+  student: Student,
+  classes: SchoolClass[],
+): Recipient[] => {
+  const group = classes.find(
+    (schoolClass) => schoolClass.id === student.classId,
+  );
+  return [
+    {
+      id: `family-${student.id}`,
+      kind: 'family' as const,
+      label: `Familia de ${student.firstName}`,
+    },
+    ...(group !== undefined
+      ? [
+          {
+            id: `group-${group.id}`,
+            kind: 'group' as const,
+            label: group.groupName,
+          },
+        ]
+      : []),
+  ];
+};
 
 /**
  * Nuevo Mail definitivo (DESIGN.md §5.11, frame n1825 de Tizaia.op): chips de
@@ -81,40 +108,20 @@ export function NewMailScreen(): React.JSX.Element {
     [],
   );
 
-  const preloadedRecipients: Recipient[] =
-    preloadResource.state.status === 'success'
-      ? (() => {
-          const data = preloadResource.state.data;
-          if (data === undefined || data.student === undefined) return [];
-          const group = data.classes.find(
-            (schoolClass) => schoolClass.id === data.student!.classId,
-          );
-          return [
-            {
-              id: `family-${data.student!.id}`,
-              kind: 'family' as const,
-              label: `Familia de ${data.student!.firstName}`,
-            },
-            ...(group !== undefined
-              ? [
-                  {
-                    id: `group-${group.id}`,
-                    kind: 'group' as const,
-                    label: group.groupName,
-                  },
-                ]
-              : []),
-          ];
-        })()
-      : [];
+  /** Alumno cuya precarga ya se ha volcado en `recipients` (una sola vez). */
+  const initializedStudentRef = useRef<string | undefined>(undefined);
 
-  const effectiveRecipients: Recipient[] = [
-    ...preloadedRecipients.filter(
-      (preloaded) =>
-        !recipients.some((recipient) => recipient.id === preloaded.id),
-    ),
-    ...recipients,
-  ];
+  // Fuente única de destinatarios: la precarga siembra `recipients` al
+  // terminar la carga inicial; a partir de ahí añadir/quitar opera sobre ese
+  // mismo estado, así cualquier chip visible se puede quitar de verdad.
+  useEffect(() => {
+    if (preloadResource.state.status !== 'success') return;
+    const data = preloadResource.state.data;
+    if (data === undefined || data.student === undefined) return;
+    if (initializedStudentRef.current === data.student.id) return;
+    initializedStudentRef.current = data.student.id;
+    setRecipients(buildPreloadedRecipients(data.student, data.classes));
+  }, [preloadResource.state]);
 
   const addRecipient = (candidate: Recipient): void => {
     setRecipients((current) =>
@@ -134,7 +141,7 @@ export function NewMailScreen(): React.JSX.Element {
   const trimmedMessage = message.trim();
   const canSend =
     !sending &&
-    effectiveRecipients.length > 0 &&
+    recipients.length > 0 &&
     trimmedSubject.length > 0 &&
     trimmedMessage.length > 0;
 
@@ -146,7 +153,7 @@ export function NewMailScreen(): React.JSX.Element {
         await schoolRepository.sendMail({
           subject: trimmedSubject,
           body: trimmedMessage,
-          recipientIds: effectiveRecipients.map((recipient) => recipient.id),
+          recipientIds: recipients.map((recipient) => recipient.id),
         });
         invalidate();
         Alert.alert(
@@ -233,7 +240,7 @@ export function NewMailScreen(): React.JSX.Element {
               recipientsResource.state.status === 'success' && (
                 <View style={styles.pickerRow}>
                   {pickerRecipients.map((candidate) => {
-                    const isAdded = effectiveRecipients.some(
+                    const isAdded = recipients.some(
                       (recipient) => recipient.id === candidate.id,
                     );
                     return (
@@ -260,7 +267,7 @@ export function NewMailScreen(): React.JSX.Element {
               )}
 
             <View style={styles.chipsRow}>
-              {effectiveRecipients.map((recipient) => (
+              {recipients.map((recipient) => (
                 <View
                   key={recipient.id}
                   style={[
