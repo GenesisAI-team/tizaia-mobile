@@ -67,8 +67,9 @@ export class ConversationStore {
     }
     conversation.messages.push(...messages);
     if (conversation.messages.length > this.options.maxMessages) {
-      conversation.messages = conversation.messages.slice(
-        -this.options.maxMessages,
+      conversation.messages = trimToTurnBoundary(
+        conversation.messages,
+        this.options.maxMessages,
       );
     }
     conversation.updatedAt = this.now();
@@ -81,4 +82,39 @@ export class ConversationStore {
       }
     }
   }
+}
+
+/**
+ * Recorta el historial conservando turnos completos (KISS).
+ *
+ * Un turno = `user` + todos los mensajes generados por modelo/tools hasta
+ * antes del siguiente `user`. Cortar con `slice(-max)` puede dejar un
+ * `tool` huérfano sin su `toolCall` o una interacción a medias. En su
+ * lugar, el límite se ajusta al siguiente `user` dentro de la ventana; si
+ * no hay ninguno, se retrocede al último `user` previo para no dejar un
+ * historial que empiece en `assistant`/`tool`.
+ */
+function trimToTurnBoundary(
+  messages: ModelMessage[],
+  maxMessages: number,
+): ModelMessage[] {
+  if (messages.length <= maxMessages) {
+    return messages;
+  }
+  const start = messages.length - maxMessages;
+  // Busca el siguiente `user` dentro de la ventana.
+  for (let index = start; index < messages.length; index += 1) {
+    if (messages[index]!.role === 'user') {
+      return messages.slice(index);
+    }
+  }
+  // Ventana sin `user`: retrocede al último `user` anterior para conservar
+  // el último turno completo aunque exceda ligeramente `maxMessages`.
+  for (let index = start - 1; index >= 0; index -= 1) {
+    if (messages[index]!.role === 'user') {
+      return messages.slice(index);
+    }
+  }
+  // Sin ningún `user` (no debería ocurrir; historial siempre empieza en user)
+  return messages.slice(start);
 }
