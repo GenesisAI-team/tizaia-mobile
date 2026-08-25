@@ -182,6 +182,72 @@ docker stop tizaia-api
 Imagen multi-stage (Node 22-alpine), usuario no root `tizaia`, healthcheck
 sobre `/health`, `PORT` y orígenes CORS configurables por entorno.
 
+## Smoke test manual con proveedor real (OPENAI_API_KEY)
+
+> Fuera de los tests automatizados: requiere `OPENAI_API_KEY` real y no se
+> ejecuta en CI. Verifica que el móvil no aborta el turno (> 30 s) y que el
+> backend consulta el estado real vía tools.
+
+```powershell
+# Terminal 1: backend con clave real (no versionar la clave)
+$env:OPENAI_API_KEY="sk-..."; $env:AI_MODEL="gpt-4o-mini"; $env:AI_TIMEOUT_MS="30000"; pnpm --dir backend dev
+# o en bash: OPENAI_API_KEY=sk-... AI_MODEL=gpt-4o-mini pnpm --dir backend dev
+```
+
+### Caso 1 — sin necesidad de datos escolares
+
+```powershell
+curl -X POST http://localhost:3000/v1/assistant/messages `
+  -H "Content-Type: application/json" `
+  -d '{ "message": "Hola, ¿qué puedes hacer?" }' | jq
+```
+
+Esperado: `200`, `conversationId` string, `message` en español con descripción
+de capacidades, `metadata.toolsUsed` puede ser `[]` (respuesta sin tool). La
+petición debe completar sin `504` ni `NetworkError` en el móvil (timeout del
+cliente asistente es 35 s > 30 s del backend).
+
+### Caso 2 — consulta que obligue a usar una tool
+
+```powershell
+curl -X POST http://localhost:3000/v1/assistant/messages `
+  -H "Content-Type: application/json" `
+  -d '{ "message": "¿Quién faltó ayer en mi clase?" }' | jq
+```
+
+Esperado:
+
+- `200` y `conversationId`.
+- `metadata.toolsUsed` contiene al menos una tool, típicamente
+  `listClassAbsences` (o `getClassAttendance` según el modelo).
+- `message` menciona alumnos ausentes o “no hay ausentes” basándose en el
+  resultado de la tool, no inventado.
+- Si se hace antes un `PUT /v1/attendance/class-1/<studentId>/<ayer>` a
+  `absent`, la siguiente llamada al asistente debe reflejar ese cambio (mismo
+  `SchoolService`/`SchoolRepository` en memoria).
+
+Verificación rápida del encadenamiento mutación → tool:
+
+```powershell
+# 1) Ver alumnos y marcar uno ausente ayer (ayer = fecha lectiva anterior a hoy en Europe/Madrid)
+curl http://localhost:3000/v1/classes/class-1/students | jq
+curl -X PUT http://localhost:3000/v1/attendance/class-1/<studentId>/2026-08-20 `
+  -H "Content-Type: application/json" -d '{"status":"absent"}'
+# 2) Preguntar al asistente y comprobar que la tool ve el estado mutado
+curl -X POST http://localhost:3000/v1/assistant/messages `
+  -H "Content-Type: application/json" `
+  -d '{ "message": "¿Quién faltó ayer en class-1?" }' | jq '.metadata.toolsUsed, .message'
+```
+
+Notas:
+
+- Sin `OPENAI_API_KEY` el endpoint responde `503 ASSISTANT_UNAVAILABLE` (no es
+  error).
+- El cliente móvil usa `ASSISTANT_TIMEOUT_MS=35_000` para no abortar mientras
+  el backend (`AI_TIMEOUT_MS=30_000`) aún genera con OpenAI.
+- Reiniciar el backend o el contenedor limpia conversaciones e historial (store
+  en memoria, sin persistencia en esta PR).
+
 ## Trazabilidad
 
 Cubre HU-002..HU-011 como datos de apoyo (INT-BACKEND-001) según
