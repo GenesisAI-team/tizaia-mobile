@@ -35,7 +35,16 @@ export type ApiClient = {
   delete(path: string): Promise<void>;
 };
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+export const DEFAULT_TIMEOUT_MS = 10_000;
+
+/**
+ * Timeout específico del asistente (AI-001): el backend permite
+ * `AI_TIMEOUT_MS=30_000` para el turno completo con tools; el móvil usa
+ * ~35 s para no abortar una petición válida a los 10 s del timeout escolar.
+ * Sin conectar la cancelación HTTP con el AbortController del backend
+ * (fuera de alcance de esta PR).
+ */
+export const ASSISTANT_TIMEOUT_MS = 35_000;
 
 type ErrorEnvelopeDto = {
   error?: { code?: unknown; message?: unknown; details?: unknown };

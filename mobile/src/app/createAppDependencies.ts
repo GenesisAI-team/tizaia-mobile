@@ -5,6 +5,7 @@ import type { AuthGateway } from '../features/auth/domain/authGateway';
 import { createSupabaseAuthGateway } from '../features/auth/infrastructure/supabaseAuthGateway';
 import { ApiSchoolRepository } from '../infrastructure/api/apiSchoolRepository';
 import {
+  ASSISTANT_TIMEOUT_MS,
   createApiClient,
   type ApiClient,
 } from '../infrastructure/api/apiClient';
@@ -36,11 +37,18 @@ function createAssistantGateway(
 
 export function createAppDependencies(): AppDependencies {
   const config = getAppConfig();
-  const apiClient = createApiClient({ baseUrl: config.apiBaseUrl });
+  // Cliente escolar: timeout ~10 s (operaciones CRUD rápidas).
+  const schoolApiClient = createApiClient({ baseUrl: config.apiBaseUrl });
+  // Cliente del asistente: ~35 s (> AI_TIMEOUT_MS=30 s) para no abortar
+  // mientras el backend aún genera con tools/OpenAI.
+  const assistantApiClient = createApiClient({
+    baseUrl: config.apiBaseUrl,
+    timeoutMs: ASSISTANT_TIMEOUT_MS,
+  });
   return {
     authGateway: createSupabaseAuthGateway(createSupabaseClient()),
     // Sin claves de IA en el bundle: la clave vive solo en el backend.
-    assistantGateway: createAssistantGateway(config, apiClient),
-    schoolRepository: new ApiSchoolRepository(apiClient),
+    assistantGateway: createAssistantGateway(config, assistantApiClient),
+    schoolRepository: new ApiSchoolRepository(schoolApiClient),
   };
 }

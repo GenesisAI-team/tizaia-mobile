@@ -13,8 +13,9 @@ type AssistantMessageDto = {
 
 /**
  * Adaptador HTTP del asistente (AI-001): consume el endpoint propio del
- * backend reutilizando `apiClient` (timeout, cancelación y errores
- * normalizados a dominio). Sin claves ni SDK de proveedor en el móvil.
+ * backend con un `ApiClient` dedicado a 35 s (> AI_TIMEOUT_MS=30 s del
+ * backend) para no abortar mientras OpenAI/tools aún trabajan; el cliente
+ * escolar mantiene sus 10 s. Sin claves ni SDK de proveedor en el móvil.
  */
 export class ApiAssistantGateway implements AssistantGateway {
   public constructor(private readonly client: ApiClient) {}
