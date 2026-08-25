@@ -1,0 +1,116 @@
+import {
+  generateText,
+  isStepCount,
+  type LanguageModel,
+  type ModelMessage,
+  type ToolSet,
+} from 'ai';
+
+/**
+ * Agente escolar del asistente (AI-001): orquesta `generateText` con tools de
+ * lectura sobre los servicios escolares. La IA redacta; los cálculos y
+ * filtros deterministas viven en las tools/backend.
+ */
+export type SchoolAssistantConfig = {
+  /** Máximo de pasos agénticos por turno (entorno `AI_MAX_STEPS`). */
+  maxSteps: number;
+  /** Tiempo máximo del turno en ms (entorno `AI_TIMEOUT_MS`). */
+  timeoutMs: number;
+};
+
+/**
+ * Política anti-alucinación (issue #69):
+ * - los datos escolares SIEMPRE provienen de una tool, nunca del historial
+ *   ni del propio modelo;
+ * - si falta un filtro esencial (clase, alumno, fecha), se pregunta antes;
+ * - cero resultados se comunica tal cual, sin inventar datos;
+ * - solo lectura: ninguna tool crea/edita/borra.
+ */
+export const SCHOOL_ASSISTANT_INSTRUCTIONS = `
+Eres el asistente del docente en la aplicación TizaIA (MVP demo).
+
+Reglas obligatorias:
+1. Responde SIEMPRE en español, con frases breves y claras.
+2. Los datos escolares (clases, alumnos, asistencia, tareas, anotaciones,
+   correo) deben obtenerse llamando a las herramientas disponibles. Nunca
+   inventes nombres, cifras ni fechas que no estén en el resultado de una
+   herramienta.
+3. Si una pregunta escolar necesita un dato esencial que falta (por ejemplo,
+   qué clase o qué alumno), pregunta antes de consultar.
+4. Las referencias «hoy» y «ayer» puedes pasarlas tal cual a las herramientas:
+   ellas resuelven la fecha real.
+5. Si una herramienta devuelve cero resultados, dilo explícitamente («no hay
+   registros») sin rellenar con suposiciones.
+6. Si una herramienta devuelve { error }, informa al docente de forma
+   comprensible y, si procede, reintenta con otros argumentos.
+7. Solo tienes capacidades de consulta: no digas nunca que has creado,
+   modificado o borrado información.
+`.trim();
+
+export type AssistantTurnInput = {
+  message: string;
+  history: ModelMessage[];
+};
+
+/** El turno superó `AI_TIMEOUT_MS`; el endpoint lo traduce en 504 estable. */
+export class AssistantTimeoutError extends Error {
+  public constructor() {
+    super('El asistente tardó demasiado en responder');
+    this.name = 'AssistantTimeoutError';
+  }
+}
+
+export type AssistantTurnResult = {
+  text: string;
+  /** Nombres únicos de las tools ejecutadas durante el turno. */
+  toolsUsed: string[];
+  /** Mensajes generados (pasos de tool + respuesta final) para el historial. */
+  responseMessages: ModelMessage[];
+};
+
+/** Ejecuta un turno completo del asistente sobre el modelo configurado. */
+export async function runSchoolTurn(
+  options: {
+    model: LanguageModel;
+    tools: ToolSet;
+    config: SchoolAssistantConfig;
+  } & AssistantTurnInput,
+): Promise<AssistantTurnResult> {
+  // AbortController propio: el timeout queda bajo nuestro control y el error
+  // resultante es tipado, sin depender de cómo envuelva el aborto cada
+  // proveedor/fetch.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.config.timeoutMs);
+  try {
+    const result = await generateText({
+      model: options.model,
+      system: SCHOOL_ASSISTANT_INSTRUCTIONS,
+      messages: [
+        ...options.history,
+        { role: 'user', content: options.message },
+      ],
+      tools: options.tools,
+      stopWhen: isStepCount(options.config.maxSteps),
+      abortSignal: controller.signal,
+    });
+    const toolsUsed = [
+      ...new Set(
+        result.steps.flatMap((step) =>
+          step.toolCalls.map((toolCall) => toolCall.toolName),
+        ),
+      ),
+    ];
+    return {
+      text: result.text,
+      toolsUsed,
+      responseMessages: result.responseMessages,
+    };
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new AssistantTimeoutError();
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}

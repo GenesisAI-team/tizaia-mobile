@@ -22,8 +22,18 @@ de #67 (bootstrap/me, clases, alumnado, asistencia `PUT`, entregas `PUT`,
 anotaciones con gestión, correo demo con bandejas, lectura, destinatarios y
 envío simulado). Los errores del backend se normalizan a dominio
 (`400/404/409/500` + fallo de red) y las pantallas muestran estados de
-carga/vacío/error con reintento. INT-ASSISTANT-001 sigue pendiente hasta
-AI-001 (#69): el asistente mantiene `FakeAssistantGateway`.
+carga/vacío/error con reintento.
+
+### Implementación AI-001 (#69)
+
+INT-ASSISTANT-001 queda **activa**: `ApiAssistantGateway` (móvil) consume
+`POST /v1/assistant/messages` reutilizando `apiClient`; la selección
+`api|fake` vive en `EXPO_PUBLIC_ASSISTANT_MODE` y n8n queda eliminado del repo.
+En el backend, 20 tools de lectura consultan los mismos servicios de
+aplicación que la API REST (sin seeds ni HTTP interno), conversaciones en
+memoria con TTL/límite, y errores estables `503/504/502` ante proveedor no
+configurado, timeout o fallo. Las fechas «hoy/ayer» se resuelven en backend
+con `Europe/Madrid` y reloj inyectable.
 
 ## Datos normativos (sin tablas en BOOTSTRAP-001)
 
