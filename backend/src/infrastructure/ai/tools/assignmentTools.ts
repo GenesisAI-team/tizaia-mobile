@@ -92,7 +92,7 @@ export function createAssignmentTools(context: SchoolToolContext): ToolSet {
 
     listMissingSubmissions: tool({
       description:
-        'Alumnos que NO entregaron una tarea concreta (estado Ã‚Â«no entregadaÃ‚Â»), con nombres.',
+        'Alumnos que NO entregaron una tarea concreta (estado «no entregada»), con nombres.',
       inputSchema: z.object({
         assignmentId: z.string().min(1).describe('Identificador de la tarea'),
         limit: limitSchema(),
@@ -129,7 +129,7 @@ export function createAssignmentTools(context: SchoolToolContext): ToolSet {
 
     getStudentTaskSummary: tool({
       description:
-        'Resumen de tareas de un alumno: totales por estado y tÃƒÂ­tulos de sus tareas no entregadas o pendientes.',
+        'Resumen de tareas de un alumno: totales por estado y títulos de sus tareas no entregadas o pendientes.',
       inputSchema: z.object({
         studentId: z.string().min(1).describe('Identificador del alumno'),
       }),

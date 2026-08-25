@@ -36,7 +36,7 @@ const toItem = (annotation: {
 });
 
 /**
- * Tools de anotaciones (AI-001): bÃºsqueda y resÃºmenes de solo lectura sobre
+ * Tools de anotaciones (AI-001): búsqueda y resúmenes de solo lectura sobre
  * `SchoolService`; fechas serializadas a ISO para salidas JSON estables.
  */
 export function createAnnotationTools(context: SchoolToolContext): ToolSet {
@@ -45,16 +45,12 @@ export function createAnnotationTools(context: SchoolToolContext): ToolSet {
   return {
     searchAnnotations: tool({
       description:
-        'Busca anotaciones con filtros opcionales: texto en la descripciÃ³n, alumno, clase o estado de gestiÃ³n.',
+        'Busca anotaciones con filtros opcionales: texto en la descripción, alumno, clase o estado de gestión.',
       inputSchema: z.object({
-        query: z
-          .string()
-          .min(1)
-          .optional()
-          .describe('Texto en la descripciÃ³n'),
+        query: z.string().min(1).optional().describe('Texto en la descripción'),
         studentId: z.string().min(1).optional().describe('Alumno concreto'),
         classId: z.string().min(1).optional().describe('Clase concreta'),
-        managed: z.boolean().optional().describe('Estado de gestiÃ³n'),
+        managed: z.boolean().optional().describe('Estado de gestión'),
         limit: limitSchema(),
       }),
       execute: async ({ query, studentId, classId, managed, limit }) =>
@@ -104,7 +100,7 @@ export function createAnnotationTools(context: SchoolToolContext): ToolSet {
 
     listUnmanagedAnnotations: tool({
       description:
-        'Anotaciones aÃºn sin gestionar, opcionalmente de una clase, mÃ¡s recientes primero.',
+        'Anotaciones aún sin gestionar, opcionalmente de una clase, más recientes primero.',
       inputSchema: z.object({
         classId: z.string().min(1).optional().describe('Clase concreta'),
         limit: limitSchema(),

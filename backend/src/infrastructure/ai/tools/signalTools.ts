@@ -5,10 +5,10 @@ import type { ToolSet } from 'ai';
 import { capList, runTool, type SchoolToolContext } from './shared.js';
 
 /**
- * Tool de seÃ±ales descriptivas (AI-001): devuelve ÃšNICAMENTE hechos
+ * Tool de señales descriptivas (AI-001): devuelve ÚNICAMENTE hechos
  * observables del alumno (faltas, tareas sin entregar/pendientes,
- * anotaciones) SIN umbrales normativos ni alertas formales: la decisiÃ³n
- * normativa sigue abierta (Q-001), asÃ­ que esta tool no emite juicios.
+ * anotaciones) SIN umbrales normativos ni alertas formales: la decisión
+ * normativa sigue abierta (Q-001), así que esta tool no emite juicios.
  */
 export function createSignalTools(context: SchoolToolContext): ToolSet {
   const { service } = context;
