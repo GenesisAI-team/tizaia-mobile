@@ -30,8 +30,14 @@ export function createAttendanceTools(context: SchoolToolContext): ToolSet {
       }),
       execute: async ({ classId, from, to }) =>
         runTool(async () => {
-          const fromDate = resolveFlexibleDate(from as FlexibleDate, now);
-          const toDate = resolveFlexibleDate(to as FlexibleDate, now);
+          const fromDate =
+            from === undefined
+              ? undefined
+              : resolveFlexibleDate(from as FlexibleDate, now);
+          const toDate =
+            to === undefined
+              ? undefined
+              : resolveFlexibleDate(to as FlexibleDate, now);
           const [records, students] = await Promise.all([
             service.listClassAttendance(classId, fromDate, toDate),
             service.listStudents(classId),

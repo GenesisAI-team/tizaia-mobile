@@ -119,6 +119,40 @@ describe('tools de asistencia', () => {
     assert.ok(result.totalStudents >= 20 && result.totalStudents <= 30);
   });
 
+  it('getClassAttendance sin rango devuelve todo el historial (no solo hoy)', async () => {
+    const { tools, service } = createContext();
+    const all = (await executeTool(tools, 'getClassAttendance', {
+      classId: 'class-1',
+    })) as {
+      totalRecords: number;
+      days: Array<{ date: string }>;
+    };
+    // Seed determinista: 10 días lectivos → varios días en el historial
+    assert.ok(all.days.length > 1);
+    assert.ok(all.totalRecords > 0);
+    const filtered = (await executeTool(tools, 'getClassAttendance', {
+      classId: 'class-1',
+      from: 'hoy',
+      to: 'hoy',
+    })) as { totalRecords: number; days: Array<{ date: string }> };
+    assert.equal(filtered.days.length, 1);
+    assert.equal(filtered.days[0]!.date, '2026-08-21');
+    assert.ok(all.totalRecords >= filtered.totalRecords);
+    // Coherencia con el servicio: sin rango = sin filtro de fechas
+    const directAll = await service.listClassAttendance('class-1');
+    assert.equal(all.totalRecords, directAll.length);
+  });
+
+  it('getClassAttendance resuelve «ayer» en Europe/Madrid', async () => {
+    const { tools } = createContext();
+    const result = (await executeTool(tools, 'getClassAttendance', {
+      classId: 'class-1',
+      from: 'ayer',
+      to: 'ayer',
+    })) as { days: Array<{ date: string }> };
+    assert.equal(result.days[0]!.date, '2026-08-20');
+  });
+
   it('getStudentAttendanceSummary agrega recuentos coherentes', async () => {
     const { tools } = createContext();
     const students = (await executeTool(tools, 'findStudents', {
