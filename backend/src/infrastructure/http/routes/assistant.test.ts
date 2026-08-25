@@ -64,7 +64,8 @@ describe('POST /v1/assistant/messages (integración con modelo simulado)', () =>
 
   before(async () => {
     // Secuencia de turnos: (1) tool + redacción, (2) continuación en dos
-    // POST, (3) consulta tras mutación REST. Un turno consume 1-2 llamadas.
+    // POST, (3) consulta tras mutación REST que debe disparar una tool real.
+    // Un turno consume 1-2 llamadas al modelo (toolCall + texto final).
     const model = new MockLanguageModelV4({
       doGenerate: [
         toolCallResult('call-1', 'listClassAbsences', {
@@ -75,7 +76,11 @@ describe('POST /v1/assistant/messages (integración con modelo simulado)', () =>
         toolCallResult('call-2', 'countUnreadMails', { folder: 'inbox' }),
         textResult('Tienes correos sin leer en la bandeja de entrada.'),
         textResult('De nada. ¿Algo más sobre tu bandeja?'),
-        textResult('Hecho: he consultado el estado actual del almacén.'),
+        toolCallResult('call-3', 'listClassAbsences', {
+          classId: 'class-1',
+          date: FIRST_SCHOOL_DAY,
+        }),
+        textResult('Hecho: he consultado la lista actualizada de ausentes.'),
       ],
     });
     server = await startTestServer({
@@ -173,15 +178,30 @@ describe('POST /v1/assistant/messages (integración con modelo simulado)', () =>
     assert.equal(put.status, 200);
     // El turno siguiente usa la misma instancia de servicio: sin reinicio,
     // las tools ven exactamente lo que la API escribió.
+    // El modelo simulado debe ejecutar una tool real (no texto hardcodeado)
+    // y la tool debe devolver el estado mutado.
     const response = await server.requestJson<AnyRecord>(
       '/v1/assistant/messages',
-      jsonInit('POST', { message: 'Resume la asistencia de hoy' }),
+      jsonInit('POST', {
+        message: `¿Quién faltó el ${FIRST_SCHOOL_DAY} en class-1?`,
+      }),
     );
     assert.equal(response.status, 200);
-    assert.equal(
-      response.body.message,
-      'Hecho: he consultado el estado actual del almacén.',
+    assert.ok(
+      Array.isArray(response.body.metadata.toolsUsed) &&
+        response.body.metadata.toolsUsed.includes('listClassAbsences'),
+      'el asistente debe haber ejecutado listClassAbsences tras la mutación',
     );
+    assert.match(String(response.body.message), /lista actualizada/);
+    // Verificación adicional: la mutación es visible también vía REST directa.
+    const attendance = await server.requestJson<AnyRecord[]>(
+      `/v1/classes/class-1/attendance?from=${FIRST_SCHOOL_DAY}&to=${FIRST_SCHOOL_DAY}`,
+    );
+    const mutated = (attendance.body as AnyRecord[]).find(
+      (record) => record.studentId === studentId,
+    ) as AnyRecord | undefined;
+    assert.ok(mutated, 'el registro mutado debe existir');
+    assert.equal(mutated.status, 'absent');
   });
 });
 
