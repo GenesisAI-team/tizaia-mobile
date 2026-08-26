@@ -1,8 +1,5 @@
-import {
-  createDrawerNavigator,
-  type DrawerNavigationProp,
-} from '@react-navigation/drawer';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { Platform, StyleSheet } from 'react-native';
 
 import { AnnotationsScreen } from '../features/annotations/presentation/AnnotationsScreen';
 import { NewAnnotationScreen } from '../features/annotations/presentation/NewAnnotationScreen';
@@ -14,50 +11,14 @@ import { NewMailScreen } from '../features/mail/presentation/NewMailScreen';
 import { StudentProfileScreen } from '../features/students/presentation/StudentProfileScreen';
 import { StudentsScreen } from '../features/students/presentation/StudentsScreen';
 import { TasksScreen } from '../features/tasks/presentation/TasksScreen';
-import { dp, tizaiaColors } from '../shared/theme/tizaiaTheme';
+import { AppHeaderLogo } from '../shared/components/AppHeader/AppHeaderLogo';
+import { AppHeaderMenuButton } from '../shared/components/AppHeader/AppHeaderMenuButton';
+import { tizaiaGradient } from '../shared/theme/tizaiaTheme';
 import { SchoolDataProvider } from '../shared/state/schoolDataProvider';
 import { AppDrawerContent } from './AppDrawerContent';
 import type { RootDrawerParamList } from './types';
 
 const Drawer = createDrawerNavigator<RootDrawerParamList>();
-
-type Navigation = DrawerNavigationProp<RootDrawerParamList>;
-
-/** Header común (DESIGN.md §4.1): texto LOGO a la izquierda. */
-function HeaderLogo({ navigation }: { navigation: Navigation }) {
-  return (
-    <Pressable
-      accessibilityLabel="Ir a Home"
-      accessibilityRole="button"
-      hitSlop={8}
-      onPress={() => navigation.navigate('Home')}
-      style={styles.headerButton}
-      testID="header-logo"
-    >
-      <Text style={styles.headerLogo}>LOGO</Text>
-    </Pressable>
-  );
-}
-
-/** Header común (DESIGN.md §4.1): icono hamburguesa de tres barras. */
-function HeaderMenuButton({ navigation }: { navigation: Navigation }) {
-  return (
-    <Pressable
-      accessibilityLabel="Abrir menú"
-      accessibilityRole="button"
-      hitSlop={8}
-      onPress={() => navigation.openDrawer()}
-      style={styles.headerButton}
-      testID="header-menu-button"
-    >
-      <View style={styles.menuIcon}>
-        <View style={styles.menuLine} />
-        <View style={styles.menuLine} />
-        <View style={styles.menuLine} />
-      </View>
-    </Pressable>
-  );
-}
 
 /**
  * Datos escolares compartidos: las pantallas y el drawer consumen el mismo
@@ -72,8 +33,18 @@ export function AppDrawerNavigator(): React.JSX.Element {
           drawerPosition: 'right',
           drawerStyle: styles.drawer,
           drawerType: 'front',
-          headerLeft: () => <HeaderLogo navigation={navigation} />,
-          headerRight: () => <HeaderMenuButton navigation={navigation} />,
+          headerStyle: {
+            backgroundColor: tizaiaGradient.start,
+            // Android: elimina sombra/elevation del header por defecto
+            ...(Platform.OS === 'android' ? { elevation: 0 } : {}),
+          },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <AppHeaderLogo onPress={() => navigation.navigate('Home')} />
+          ),
+          headerRight: () => (
+            <AppHeaderMenuButton onPress={() => navigation.openDrawer()} />
+          ),
           headerTitle: '',
         })}
       >
@@ -95,29 +66,5 @@ export function AppDrawerNavigator(): React.JSX.Element {
 const styles = StyleSheet.create({
   drawer: {
     width: '100%',
-  },
-  headerButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 12,
-    minHeight: 48,
-    minWidth: 48,
-  },
-  headerLogo: {
-    color: tizaiaColors.ink,
-    fontSize: dp(38),
-    fontWeight: '700',
-  },
-  menuIcon: {
-    gap: dp(8),
-    height: dp(44),
-    justifyContent: 'center',
-    width: dp(52),
-  },
-  menuLine: {
-    backgroundColor: tizaiaColors.ink,
-    borderRadius: dp(3),
-    height: dp(5),
-    width: dp(48),
   },
 });
