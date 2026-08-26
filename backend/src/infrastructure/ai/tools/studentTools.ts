@@ -19,7 +19,7 @@ export function createStudentTools(context: SchoolToolContext): ToolSet {
   return {
     findStudents: tool({
       description:
-        'Busca alumnos por nombre (opcional) en una clase o en todo el centro. Devuelve id, nombre completo y clase.',
+        'Busca alumnos por nombre (opcional) en una clase o en todo el centro. Devuelve id, nombre completo y clase. Cuando el docente dice "mis alumnos" o no especifica otra clase, usa el activeClassId del contexto como classId.',
       inputSchema: z.object({
         query: z
           .string()

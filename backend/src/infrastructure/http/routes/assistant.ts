@@ -7,6 +7,7 @@ import type { SchoolService } from '../../../application/schoolService.js';
 import type { ConversationStore } from '../../ai/conversationStore.js';
 import {
   AssistantTimeoutError,
+  buildActiveClassContext,
   runSchoolTurn,
   type SchoolAssistantConfig,
 } from '../../ai/schoolAssistant.js';
@@ -64,12 +65,28 @@ export function createAssistantRouter(deps: AssistantRouterDeps): Router {
 
       let turn;
       try {
+        const me = await deps.service.me();
+        let activeClassContext: string | undefined;
+        if (
+          me.activeClass !== undefined &&
+          typeof me.teacher === 'object' &&
+          me.teacher !== null
+        ) {
+          const teacher = me.teacher as { name?: string };
+          activeClassContext = buildActiveClassContext({
+            teacherName: teacher.name ?? '',
+            activeClassId: me.activeClass.id,
+            groupName: me.activeClass.groupName,
+            subject: me.activeClass.subject,
+          });
+        }
         turn = await runSchoolTurn({
           model: deps.model,
           tools,
           config: deps.config,
           history: conversation.messages,
           message: input.message,
+          activeClassContext,
         });
       } catch (error) {
         if (error instanceof AssistantTimeoutError) {

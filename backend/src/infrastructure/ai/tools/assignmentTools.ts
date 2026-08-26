@@ -19,7 +19,7 @@ export function createAssignmentTools(context: SchoolToolContext): ToolSet {
   return {
     listAssignments: tool({
       description:
-        'Lista tareas del centro o de una clase concreta, con fecha de entrega.',
+        'Lista tareas del centro o de una clase concreta, con fecha de entrega. Cuando el docente dice "mis tareas" o no especifica otra clase, usa el activeClassId del contexto como classId.',
       inputSchema: z.object({
         classId: z.string().min(1).optional().describe('Clase concreta'),
         limit: limitSchema(),

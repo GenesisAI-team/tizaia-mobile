@@ -54,7 +54,7 @@ export function createClassTools(context: SchoolToolContext): ToolSet {
 
     getClassSummary: tool({
       description:
-        'Resumen de una clase concreta por `classId`: número de alumnos, asistencia del día de referencia, tareas totales y anotaciones sin gestionar.',
+        'Resumen de una clase concreta por `classId`: número de alumnos, asistencia del día de referencia, tareas totales y anotaciones sin gestionar. Cuando el docente dice "mi clase" o no especifica otra clase, usa el activeClassId del contexto.',
       inputSchema: z.object({
         classId: z.string().min(1).describe('Identificador de la clase'),
       }),
