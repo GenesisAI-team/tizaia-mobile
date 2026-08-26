@@ -34,7 +34,7 @@ export default function App(): React.JSX.Element {
     <AppDependenciesProvider dependencies={dependencies}>
       <AuthProvider gateway={dependencies.authGateway}>
         <NavigationContainer>
-          <StatusBar style="auto" />
+          <StatusBar style="dark" />
           <RootNavigator />
         </NavigationContainer>
       </AuthProvider>
