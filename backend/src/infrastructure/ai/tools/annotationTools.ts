@@ -45,7 +45,7 @@ export function createAnnotationTools(context: SchoolToolContext): ToolSet {
   return {
     searchAnnotations: tool({
       description:
-        'Busca anotaciones con filtros opcionales: texto en la descripción, alumno, clase o estado de gestión.',
+        'Busca anotaciones con filtros opcionales: texto en la descripción, alumno, clase o estado de gestión. Cuando el docente dice "mis anotaciones" o no especifica otra clase, usa el activeClassId del contexto como classId.',
       inputSchema: z.object({
         query: z.string().min(1).optional().describe('Texto en la descripción'),
         studentId: z.string().min(1).optional().describe('Alumno concreto'),
@@ -100,7 +100,7 @@ export function createAnnotationTools(context: SchoolToolContext): ToolSet {
 
     listUnmanagedAnnotations: tool({
       description:
-        'Anotaciones aún sin gestionar, opcionalmente de una clase, más recientes primero.',
+        'Anotaciones aún sin gestionar, opcionalmente de una clase, más recientes primero. Cuando el docente dice "mis anotaciones" o no especifica otra clase, usa el activeClassId del contexto como classId.',
       inputSchema: z.object({
         classId: z.string().min(1).optional().describe('Clase concreta'),
         limit: limitSchema(),

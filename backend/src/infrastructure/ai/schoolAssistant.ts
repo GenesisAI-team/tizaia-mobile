@@ -19,6 +19,33 @@ export type SchoolAssistantConfig = {
 };
 
 /**
+ * Contexto mínimo del docente inyectado en cada turno del asistente para que
+ * las consultas naturales ("mi clase", "mis alumnos"...) se resuelvan sin
+ * pedir IDs al usuario (issue #81).
+ */
+export type ActiveClassContext = {
+  teacherName: string;
+  activeClassId: string;
+  groupName: string;
+  subject: string;
+};
+
+/**
+ * Construye un bloque corto de texto con el contexto activo del docente para
+ * inyectar en el system prompt de cada turno. Nunca pasa el dataset completo.
+ */
+export function buildActiveClassContext(ctx: ActiveClassContext): string {
+  return [
+    '',
+    '## Contexto del docente',
+    `- Docente: ${ctx.teacherName}`,
+    `- activeClassId: ${ctx.activeClassId}`,
+    `- Clase activa: ${ctx.groupName} (${ctx.subject})`,
+    '',
+  ].join('\n');
+}
+
+/**
  * Política anti-alucinación (issue #69):
  * - los datos escolares SIEMPRE provienen de una tool, nunca del historial
  *   ni del propio modelo;
@@ -35,8 +62,15 @@ Reglas obligatorias:
    correo) deben obtenerse llamando a las herramientas disponibles. Nunca
    inventes nombres, cifras ni fechas que no estén en el resultado de una
    herramienta.
-3. Si una pregunta escolar necesita un dato esencial que falta (por ejemplo,
-   qué clase o qué alumno), pregunta antes de consultar.
+3. Cuando el docente consulta datos de su clase actual sin especificar otra
+   (p. ej. "mi clase", "mis alumnos", "mis tareas", "quién faltó ayer",
+   "asistencia hoy"), usa el activeClassId del bloque de contexto del docente
+   para pasar como classId a la herramienta correspondiente. No pidas al
+   docente identificadores internos como classId, studentId o assignmentId.
+   Si el docente menciona otra clase por nombre, resuélvela con listClasses
+   y usa esa clase. Pide aclaración solo cuando exista ambigüedad real que
+   no pueda resolverse con el contexto ni con las herramientas (por ejemplo,
+   varios alumnos con el mismo nombre: lista los nombres legibles).
 4. Las referencias «hoy» y «ayer» puedes pasarlas tal cual a las herramientas:
    ellas resuelven la fecha real.
 5. Si una herramienta devuelve cero resultados, dilo explícitamente («no hay
@@ -50,6 +84,11 @@ Reglas obligatorias:
 export type AssistantTurnInput = {
   message: string;
   history: ModelMessage[];
+  /**
+   * Contexto mínimo del docente (activeClassId, grupo, asignatura) inyectado
+   * como bloque en el system prompt para resolver consultas naturales (#81).
+   */
+  activeClassContext?: string;
 };
 
 /** El turno superó `AI_TIMEOUT_MS`; el endpoint lo traduce en 504 estable. */
@@ -76,6 +115,11 @@ export async function runSchoolTurn(
     config: SchoolAssistantConfig;
   } & AssistantTurnInput,
 ): Promise<AssistantTurnResult> {
+  const system =
+    options.activeClassContext !== undefined
+      ? `${SCHOOL_ASSISTANT_INSTRUCTIONS}\n${options.activeClassContext}`
+      : SCHOOL_ASSISTANT_INSTRUCTIONS;
+
   // AbortController propio: el timeout queda bajo nuestro control y el error
   // resultante es tipado, sin depender de cómo envuelva el aborto cada
   // proveedor/fetch.
@@ -84,7 +128,7 @@ export async function runSchoolTurn(
   try {
     const result = await generateText({
       model: options.model,
-      system: SCHOOL_ASSISTANT_INSTRUCTIONS,
+      system,
       messages: [
         ...options.history,
         { role: 'user', content: options.message },

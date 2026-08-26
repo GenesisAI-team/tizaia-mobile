@@ -22,7 +22,7 @@ export function createAttendanceTools(context: SchoolToolContext): ToolSet {
   return {
     getClassAttendance: tool({
       description:
-        'Asistencia agregada de una clase entre dos fechas (por defecto todo el registro): presentes, ausentes, retrasos y sin registrar por día.',
+        'Asistencia agregada de una clase entre dos fechas (por defecto todo el registro): presentes, ausentes, retrasos y sin registrar por día. Cuando el docente dice "mi clase" o no especifica otra clase, usa el activeClassId del contexto.',
       inputSchema: z.object({
         classId: z.string().min(1).describe('Identificador de la clase'),
         from: flexibleDateSchema,
@@ -77,7 +77,7 @@ export function createAttendanceTools(context: SchoolToolContext): ToolSet {
 
     listClassAbsences: tool({
       description:
-        'Alumnos ausentes de una clase en una fecha concreta («hoy», «ayer» o ISO). Devuelve la lista con nombres y el recuento.',
+        'Alumnos ausentes de una clase en una fecha concreta («hoy», «ayer» o ISO). Devuelve la lista con nombres y el recuento. Cuando el docente dice "mi clase" o no especifica otra clase, usa el activeClassId del contexto.',
       inputSchema: z.object({
         classId: z.string().min(1).describe('Identificador de la clase'),
         date: flexibleDateSchema,
