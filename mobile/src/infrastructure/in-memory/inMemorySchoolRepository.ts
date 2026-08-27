@@ -1,7 +1,9 @@
 import type {
   Annotation,
+  AnnotationListItem,
   AnnotationType,
   AssignmentSubmission,
+  AttendanceBoard,
   AttendanceRecord,
   AttendanceStatus,
   Mail,
@@ -12,7 +14,12 @@ import type {
   Student,
   StudentProgress,
   SubmissionStatus,
+  TaskBoard,
   Teacher,
+} from '../../domain/school/models';
+import {
+  getStudentFullName,
+  getStudentInitials,
 } from '../../domain/school/models';
 import type { SchoolRepository } from '../../domain/school/schoolRepository';
 import { createMockSchoolData, type MockSchoolData } from './mockSchoolData';
@@ -49,21 +56,40 @@ export class InMemorySchoolRepository implements SchoolRepository {
   // ---------- Consultas ----------
 
   public async getBootstrap(): Promise<SchoolBootstrap> {
-    // Paridad con `/v1/bootstrap` (backend #67): el agregado sirve datos de
-    // TODO el centro, sin filtrar por clase activa ni carpeta de correo. Las
-    // pantallas que solo representan la clase activa seleccionan con
-    // `selectActiveClassData`; así el fake no oculta mezclas entre clases.
+    // #76: bootstrap mínimo solo contexto global
     return {
       teacher: DEMO_TEACHER,
       activeClassId: this.activeClassId,
       classes: [...this.data.classes],
+    };
+  }
+
+  public async getAttendanceBoard(classId: string): Promise<AttendanceBoard> {
+    this.requireClass(classId);
+    return {
+      students: this.data.students.filter((s) => s.classId === classId),
       schoolDays: [...this.data.schoolDays],
-      students: [...this.data.students],
-      attendance: [...this.data.attendance],
-      assignments: [...this.data.assignments],
-      submissions: [...this.data.submissions],
-      annotations: [...this.data.annotations],
-      mails: [...this.data.mails],
+      attendance: this.data.attendance.filter((record) =>
+        this.data.students.some(
+          (s) => s.id === record.studentId && s.classId === classId,
+        ),
+      ),
+    };
+  }
+
+  public async getTaskBoard(classId: string): Promise<TaskBoard> {
+    this.requireClass(classId);
+    const students = this.data.students.filter((s) => s.classId === classId);
+    const assignments = this.data.assignments.filter(
+      (a) => a.classId === classId,
+    );
+    const assignmentIds = new Set(assignments.map((a) => a.id));
+    return {
+      students,
+      assignments,
+      submissions: this.data.submissions.filter((sub) =>
+        assignmentIds.has(sub.assignmentId),
+      ),
     };
   }
 
@@ -136,8 +162,42 @@ export class InMemorySchoolRepository implements SchoolRepository {
     };
   }
 
-  public async getAnnotations(): Promise<Annotation[]> {
-    return [...this.data.annotations];
+  public async getAnnotations(filters?: {
+    classId?: string;
+    studentId?: string;
+    managed?: boolean;
+  }): Promise<AnnotationListItem[]> {
+    let filtered = [...this.data.annotations];
+    if (filters?.classId) {
+      filtered = filtered.filter((annotation) => {
+        const student = this.data.students.find(
+          (s) => s.id === annotation.studentId,
+        );
+        return student?.classId === filters.classId;
+      });
+    }
+    if (filters?.studentId) {
+      filtered = filtered.filter((a) => a.studentId === filters.studentId);
+    }
+    if (filters?.managed !== undefined) {
+      filtered = filtered.filter((a) => a.managed === filters.managed);
+    }
+    filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return filtered.map((annotation) => {
+      const student = this.data.students.find(
+        (s) => s.id === annotation.studentId,
+      );
+      return {
+        id: annotation.id,
+        studentId: annotation.studentId,
+        studentName: student ? getStudentFullName(student) : 'Alumno',
+        studentInitials: student ? getStudentInitials(student) : 'AL',
+        type: annotation.type,
+        description: annotation.description,
+        managed: annotation.managed,
+        createdAt: annotation.createdAt,
+      };
+    });
   }
 
   public async getMails(folder?: MailFolder): Promise<Mail[]> {

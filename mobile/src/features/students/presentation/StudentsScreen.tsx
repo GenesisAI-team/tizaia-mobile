@@ -33,6 +33,7 @@ import {
   useSchoolInvalidation,
   useSchoolResource,
 } from '../../../shared/state/schoolDataProvider';
+import { useAppBootstrap } from '../../../shared/state/appBootstrapProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -55,10 +56,24 @@ export function StudentsScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
   const invalidate = useSchoolInvalidation();
-  const resource = useSchoolResource(async () => {
-    const me = await schoolRepository.getMe();
-    return schoolRepository.getStudents(me.activeClass.id);
-  }, []);
+  const {
+    activeClassId,
+    state: bootstrapState,
+    reload: reloadBootstrap,
+  } = useAppBootstrap();
+
+  const studentsResource = useSchoolResource(async () => {
+    if (activeClassId === null) throw new Error('Cargando clase activa...');
+    return schoolRepository.getStudents(activeClassId);
+  }, [activeClassId]);
+
+  const resource =
+    activeClassId === null
+      ? ({
+          state: bootstrapState as unknown as typeof studentsResource.state,
+          reload: reloadBootstrap,
+        } as typeof studentsResource)
+      : studentsResource;
   const [deletingId, setDeletingId] = useState<string | undefined>(undefined);
 
   const students: StudentListItem[] =

@@ -12,7 +12,7 @@ export function createSystemRouter(
 ): Router {
   const router = Router();
 
-  // Grafo coherente con todos los dominios del MVP para hidratar el móvil.
+  // Bootstrap mínimo: solo contexto global (teacher/activeClassId/classes). #76 reduce overfetch.
   router.get('/v1/bootstrap', async (_req, res) => {
     res.json(await service.getBootstrap());
   });

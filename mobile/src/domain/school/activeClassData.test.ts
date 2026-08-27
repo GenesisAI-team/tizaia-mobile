@@ -2,21 +2,12 @@ import type {
   Assignment,
   AssignmentSubmission,
   AttendanceRecord,
-  Mail,
-  SchoolBootstrap,
-  SchoolClass,
-  SchoolDay,
   Student,
-  Teacher,
 } from './models';
-import { selectActiveClassData } from './activeClassData';
-
-const TEACHER: Teacher = { id: 'teacher-1', name: 'Laura', email: 'l@t.es' };
-
-const CLASSES: SchoolClass[] = [
-  { id: 'class-1', groupName: '1.º BACHILLER D', subject: 'Tecnología' },
-  { id: 'class-2', groupName: '2 ESO G', subject: 'Tecnología' },
-];
+import {
+  selectActiveClassData,
+  type ClassScopedSource,
+} from './activeClassData';
 
 const STUDENTS: Student[] = [
   {
@@ -40,11 +31,6 @@ const STUDENTS: Student[] = [
     lastName: 'Ruiz',
     description: null,
   },
-];
-
-const SCHOOL_DAYS: SchoolDay[] = [
-  { date: '2026-08-18', label: 'Mar', secondaryLabel: '18/08' },
-  { date: '2026-08-19', label: 'Mié', secondaryLabel: '19/08' },
 ];
 
 const ATTENDANCE: AttendanceRecord[] = [
@@ -92,26 +78,19 @@ const SUBMISSIONS: AssignmentSubmission[] = [
   },
 ];
 
-const MAILS: Mail[] = [];
-
-function createBootstrap(): SchoolBootstrap {
+function createSource(): ClassScopedSource {
   return {
-    teacher: TEACHER,
     activeClassId: 'class-1',
-    classes: CLASSES,
-    schoolDays: SCHOOL_DAYS,
     students: STUDENTS,
     attendance: ATTENDANCE,
     assignments: ASSIGNMENTS,
     submissions: SUBMISSIONS,
-    annotations: [],
-    mails: MAILS,
   };
 }
 
 describe('selectActiveClassData', () => {
   it('acota alumnos y asistencia a la clase activa', () => {
-    const data = selectActiveClassData(createBootstrap());
+    const data = selectActiveClassData(createSource());
 
     expect(data.activeClassId).toBe('class-1');
     expect(data.students.map((student) => student.id)).toEqual([
@@ -125,7 +104,7 @@ describe('selectActiveClassData', () => {
   });
 
   it('acota tareas y entregas a la clase activa', () => {
-    const data = selectActiveClassData(createBootstrap());
+    const data = selectActiveClassData(createSource());
 
     expect(data.assignments.map((assignment) => assignment.id)).toEqual([
       'assignment-1',

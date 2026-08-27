@@ -67,3 +67,15 @@ por Supabase sin cambiar la UI ni las tools del asistente (ver
   30 correos, docente demo Laura Martínez y clase activa `class-1`.
 - Mutaciones persistentes durante la vida del proceso; reinicio restaura el
   seed; sin réplicas. Sin IA, Supabase ni Vercel en esta entrega.
+
+### Evolución #76 — Bootstrap mínimo y agregados por clase
+
+- **Bootstrap reducido:** `GET /v1/bootstrap` solo `teacher/activeClassId/classes` (sin `students/attendance/assignments/submissions/annotations/mails/contacts/schoolDays`). Evita descargar ~3300 objetos para pantallas que necesitan ~250.
+- **Agregados por caso de uso (1 request por matriz):**
+  - `GET /v1/classes/:classId/attendance-board` → `students + schoolDays + attendance` (Asistencia).
+  - `GET /v1/classes/:classId/task-board` → `students + assignments + submissions` (Tareas) — evita N+1 `1 + N submissions` del cliente (#74); servidor compone en memoria, futuro Supabase con `WHERE assignment_id IN (...)`.
+  - `GET /v1/annotations?classId=&managed=` enriquecido con `studentName/studentInitials` (Opción A): 1 request sin bootstrap (proyección de lectura, no duplica dominio).
+- **Provider mínimo móvil:** `AppBootstrapProvider` carga bootstrap mínimo 1 vez al montar el drawer y expone `activeClassId` a todas las pantallas; `StudentsScreen` evita waterfall `getMe → getStudents` por pantalla.
+- **Puerto móvil:** `SchoolRepository` evoluciona a `getAttendanceBoard/getTaskBoard/getAnnotations({classId})` orientados a casos de uso; `ApiSchoolRepository` sigue siendo la única capa que conoce HTTP; pantallas no llaman a `fetch`; `selectActiveClassData` queda como utilidad pura para tests/fallback.
+- **FlatList sin paginación de alumnado:** 20–30 alumnos por clase se traen completos y `FlatList` virtualiza render (ventana visible); `initialNumToRender/windowSize` no se optimizan sin profiler. Paginación/cursor se reserva para colecciones no acotadas (`mails`, `annotations` con cientos).
+- **Sin caché en esta issue:** no React Query, no AsyncStorage, no persistencia; la optimización es de contratos y carga eficiente de primera carga.

@@ -1,7 +1,9 @@
 import type {
   Annotation,
+  AnnotationListItem,
   AnnotationType,
   AssignmentSubmission,
+  AttendanceBoard,
   AttendanceRecord,
   AttendanceStatus,
   Mail,
@@ -12,12 +14,15 @@ import type {
   Student,
   StudentProgress,
   SubmissionStatus,
+  TaskBoard,
   Teacher,
 } from '../../domain/school/models';
 import type { SchoolRepository } from '../../domain/school/schoolRepository';
 import type { ApiClient } from './apiClient';
 import type {
   AnnotationDto,
+  AnnotationListItemDto,
+  AttendanceBoardResponseDto,
   AttendanceRecordDto,
   BootstrapResponseDto,
   MailDto,
@@ -27,10 +32,13 @@ import type {
   StudentDto,
   StudentProgressResponseDto,
   SubmissionDto,
+  TaskBoardResponseDto,
 } from './contracts';
 import {
   toAnnotation,
+  toAnnotationListItem,
   toAssignmentSubmission,
+  toAttendanceBoard,
   toAttendanceRecord,
   toMail,
   toMailRecipientRef,
@@ -39,6 +47,7 @@ import {
   toSchoolClass,
   toStudent,
   toStudentProgress,
+  toTaskBoard,
 } from './mappers';
 
 /**
@@ -88,9 +97,35 @@ export class ApiSchoolRepository implements SchoolRepository {
     return toStudentProgress(dto);
   }
 
-  public async getAnnotations(): Promise<Annotation[]> {
-    const dtos = await this.client.get<AnnotationDto[]>('/v1/annotations');
-    return dtos.map(toAnnotation);
+  public async getAttendanceBoard(classId: string): Promise<AttendanceBoard> {
+    const dto = await this.client.get<AttendanceBoardResponseDto>(
+      `/v1/classes/${encodeURIComponent(classId)}/attendance-board`,
+    );
+    return toAttendanceBoard(dto);
+  }
+
+  public async getTaskBoard(classId: string): Promise<TaskBoard> {
+    const dto = await this.client.get<TaskBoardResponseDto>(
+      `/v1/classes/${encodeURIComponent(classId)}/task-board`,
+    );
+    return toTaskBoard(dto);
+  }
+
+  public async getAnnotations(filters?: {
+    classId?: string;
+    studentId?: string;
+    managed?: boolean;
+  }): Promise<AnnotationListItem[]> {
+    const params = new URLSearchParams();
+    if (filters?.classId) params.set('classId', filters.classId);
+    if (filters?.studentId) params.set('studentId', filters.studentId);
+    if (filters?.managed !== undefined)
+      params.set('managed', String(filters.managed));
+    const query = params.toString();
+    const path =
+      query.length > 0 ? `/v1/annotations?${query}` : '/v1/annotations';
+    const dtos = await this.client.get<AnnotationListItemDto[]>(path);
+    return dtos.map(toAnnotationListItem);
   }
 
   public async getMails(folder?: MailFolder): Promise<Mail[]> {

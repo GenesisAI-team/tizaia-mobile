@@ -7,13 +7,14 @@ import {
   listAnnotationsQuerySchema,
   managedBodySchema,
 } from '../schemas.js';
-import { toAnnotationDto } from '../dto.js';
+import { toAnnotationDto, toAnnotationListItemDto } from '../dto.js';
 import { singleQuery } from './classes.js';
 
 /** Anotaciones: listado con filtros, creación y gestión (BR-ANOT-002). */
 export function createAnnotationsRouter(service: SchoolService): Router {
   const router = Router();
 
+  // Listado enriquecido (Opción A #76): incluye studentName/initials, sin bootstrap.
   router.get('/v1/annotations', async (req, res) => {
     const filters = parseWith(listAnnotationsQuerySchema, {
       classId: singleQuery(req.query.classId),
@@ -22,7 +23,7 @@ export function createAnnotationsRouter(service: SchoolService): Router {
     });
     res.json(
       (
-        await service.listAnnotations({
+        await service.listAnnotationListItems({
           classId: filters.classId,
           studentId: filters.studentId,
           managed:
@@ -30,7 +31,7 @@ export function createAnnotationsRouter(service: SchoolService): Router {
               ? undefined
               : filters.managed === 'true',
         })
-      ).map(toAnnotationDto),
+      ).map(toAnnotationListItemDto),
     );
   });
 

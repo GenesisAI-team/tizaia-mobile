@@ -21,13 +21,13 @@ import {
   useSchoolInvalidation,
   useSchoolResource,
 } from '../../../shared/state/schoolDataProvider';
+import { useAppBootstrap } from '../../../shared/state/appBootstrapProvider';
 import { getDayMonthLabel } from '../../../domain/school/schoolDates';
 import {
   getStudentFullName,
   getStudentInitials,
 } from '../../../domain/school/models';
 import type { SubmissionStatus } from '../../../domain/school/models';
-import { selectActiveClassData } from '../../../domain/school/activeClassData';
 
 /** Mapeo de estado de entrega a celda visual existente (sin cambios de icono). */
 const CELL_STATE_BY_SUBMISSION: Record<SubmissionStatus, StatusCellState> = {
@@ -52,13 +52,24 @@ export function TasksScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
   const invalidate = useSchoolInvalidation();
+  const {
+    activeClassId,
+    state: bootstrapState,
+    reload: reloadBootstrap,
+  } = useAppBootstrap();
 
-  const resource = useSchoolResource(async () => {
-    // El bootstrap agregado sirve datos de todo el centro: se acota a la
-    // clase activa para no mezclar tareas ni entregas de otras clases.
-    const bootstrap = await schoolRepository.getBootstrap();
-    return selectActiveClassData(bootstrap);
-  }, []);
+  const boardResource = useSchoolResource(async () => {
+    if (activeClassId === null) throw new Error('Cargando clase activa...');
+    return schoolRepository.getTaskBoard(activeClassId);
+  }, [activeClassId]);
+
+  const resource =
+    activeClassId === null
+      ? ({
+          state: bootstrapState as unknown as typeof boardResource.state,
+          reload: reloadBootstrap,
+        } as typeof boardResource)
+      : boardResource;
 
   /** Overrides optimistas por celda (`studentId:assignmentId`). */
   const [optimistic, setOptimistic] = useState<

@@ -1,7 +1,9 @@
 import type {
   Annotation,
+  AnnotationListItem,
   Assignment,
   AssignmentSubmission,
+  AttendanceBoard,
   AttendanceRecord,
   Mail,
   MailRecipientRef,
@@ -9,6 +11,7 @@ import type {
   SchoolClass,
   SchoolDay,
   Student,
+  TaskBoard,
 } from '../domain/school/models';
 import type { SchoolRepository } from '../domain/school/schoolRepository';
 
@@ -27,7 +30,32 @@ export const SCHOOL_DAYS: SchoolDay[] = [
   { date: '2026-08-19', label: 'Mié', secondaryLabel: '19/08' },
 ];
 
-export function createWholeSchoolBootstrap(): SchoolBootstrap {
+/** Fixture mínimo de bootstrap (#76): solo contexto global. */
+export function createBootstrapFixture(): SchoolBootstrap {
+  return {
+    teacher: { id: 'teacher-1', name: 'Laura Martínez', email: 'l@t.es' },
+    activeClassId: ACTIVE_CLASS_ID,
+    classes: [
+      {
+        id: ACTIVE_CLASS_ID,
+        groupName: '1.º BACHILLER D',
+        subject: 'Tecnología',
+      },
+      { id: OTHER_CLASS_ID, groupName: '2 ESO G', subject: 'Tecnología' },
+    ],
+  };
+}
+
+/** Fixture completo previo (#76) ahora solo para selector legacy; expone todo el centro. */
+export function createWholeSchoolBootstrap(): SchoolBootstrap & {
+  schoolDays: SchoolDay[];
+  students: Student[];
+  attendance: AttendanceRecord[];
+  assignments: Assignment[];
+  submissions: AssignmentSubmission[];
+  annotations: Annotation[];
+  mails: Mail[];
+} {
   const classes: SchoolClass[] = [
     {
       id: ACTIVE_CLASS_ID,
@@ -122,6 +150,65 @@ export function createWholeSchoolBootstrap(): SchoolBootstrap {
   };
 }
 
+export function createAttendanceBoardFixture(
+  overrides?: Partial<AttendanceBoard>,
+): AttendanceBoard {
+  const bootstrap = createWholeSchoolBootstrap();
+  return {
+    students: bootstrap.students.filter((s) => s.classId === ACTIVE_CLASS_ID),
+    schoolDays: [...SCHOOL_DAYS],
+    attendance: bootstrap.attendance.filter((r) =>
+      bootstrap.students.some(
+        (s) => s.id === r.studentId && s.classId === ACTIVE_CLASS_ID,
+      ),
+    ),
+    ...overrides,
+  };
+}
+
+export function createTaskBoardFixture(
+  overrides?: Partial<TaskBoard>,
+): TaskBoard {
+  const bootstrap = createWholeSchoolBootstrap();
+  const assignments = bootstrap.assignments.filter(
+    (a) => a.classId === ACTIVE_CLASS_ID,
+  );
+  const assignmentIds = new Set(assignments.map((a) => a.id));
+  return {
+    students: bootstrap.students.filter((s) => s.classId === ACTIVE_CLASS_ID),
+    assignments,
+    submissions: bootstrap.submissions.filter((s) =>
+      assignmentIds.has(s.assignmentId),
+    ),
+    ...overrides,
+  };
+}
+
+export function createAnnotationListFixture(): AnnotationListItem[] {
+  return [
+    {
+      id: 'ann-1',
+      studentId: 's-1',
+      studentName: 'Ana García',
+      studentInitials: 'AG',
+      type: 'positive',
+      description: 'Buena participación',
+      managed: false,
+      createdAt: new Date('2026-08-19T10:00:00'),
+    },
+    {
+      id: 'ann-2',
+      studentId: 's-2',
+      studentName: 'Bruno Díaz',
+      studentInitials: 'BD',
+      type: 'contrary',
+      description: 'Retraso',
+      managed: true,
+      createdAt: new Date('2026-08-18T10:00:00'),
+    },
+  ];
+}
+
 /** Destinatarios disponibles para el selector de Nuevo Mail. */
 export const AVAILABLE_RECIPIENTS: MailRecipientRef[] = [
   { kind: 'family', id: 'family-s-1', label: 'Familia de Ana' },
@@ -138,19 +225,20 @@ export const AVAILABLE_RECIPIENTS: MailRecipientRef[] = [
 export function createSchoolRepositoryStub(
   overrides: Partial<SchoolRepository> = {},
 ): jest.Mocked<SchoolRepository> {
-  const bootstrap = createWholeSchoolBootstrap();
+  const bootstrap = createBootstrapFixture();
+  const whole = createWholeSchoolBootstrap();
   const stub: SchoolRepository = {
-    getBootstrap: jest.fn(async () => createWholeSchoolBootstrap()),
+    getBootstrap: jest.fn(async () => createBootstrapFixture()),
     getMe: jest.fn(async () => ({
       teacher: bootstrap.teacher,
       activeClass: bootstrap.classes[0]!,
     })),
     getClasses: jest.fn(async () => bootstrap.classes),
     getStudents: jest.fn(async (classId: string) =>
-      bootstrap.students.filter((student) => student.classId === classId),
+      whole.students.filter((student) => student.classId === classId),
     ),
     getStudentProgress: jest.fn(async (studentId: string) => ({
-      student: bootstrap.students.find((student) => student.id === studentId)!,
+      student: whole.students.find((student) => student.id === studentId)!,
       class: bootstrap.classes[0]!,
       attendance: {
         totalDays: 0,
@@ -167,7 +255,17 @@ export function createSchoolRepositoryStub(
       },
       tasks: { total: 0, submitted: 0, notSubmitted: 0, pending: 0 },
     })),
-    getAnnotations: jest.fn(async () => []),
+    getAttendanceBoard: jest.fn(async (classId: string) => {
+      const board = createAttendanceBoardFixture();
+      if (classId === ACTIVE_CLASS_ID) return board;
+      return { students: [], schoolDays: [...SCHOOL_DAYS], attendance: [] };
+    }),
+    getTaskBoard: jest.fn(async (classId: string) => {
+      const board = createTaskBoardFixture();
+      if (classId === ACTIVE_CLASS_ID) return board;
+      return { students: [], assignments: [], submissions: [] };
+    }),
+    getAnnotations: jest.fn(async () => createAnnotationListFixture()),
     getMails: jest.fn(async () => []),
     searchRecipients: jest.fn(async () => AVAILABLE_RECIPIENTS),
     setAttendanceStatus: jest.fn(async (input): Promise<AttendanceRecord> => ({

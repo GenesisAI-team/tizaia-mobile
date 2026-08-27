@@ -1,8 +1,10 @@
 import type {
   Annotation,
+  AnnotationListItem,
   AnnotationType,
   Assignment,
   AssignmentSubmission,
+  AttendanceBoard,
   AttendanceRecord,
   AttendanceStatus,
   Mail,
@@ -14,11 +16,14 @@ import type {
   Student,
   StudentProgress,
   SubmissionStatus,
+  TaskBoard,
   Teacher,
 } from '../../domain/school/models';
 import type {
   AnnotationDto,
+  AnnotationListItemDto,
   AssignmentDto,
+  AttendanceBoardResponseDto,
   AttendanceRecordDto,
   BootstrapResponseDto,
   MailDto,
@@ -29,6 +34,7 @@ import type {
   StudentDto,
   StudentProgressResponseDto,
   SubmissionDto,
+  TaskBoardResponseDto,
   TeacherDto,
 } from './contracts';
 
@@ -185,13 +191,33 @@ export const toSchoolBootstrap = (
   teacher: toTeacher(dto.teacher),
   activeClassId: dto.activeClassId,
   classes: dto.classes.map(toSchoolClass),
-  schoolDays: dto.schoolDays.map(toSchoolDay),
+});
+
+export const toAttendanceBoard = (
+  dto: AttendanceBoardResponseDto,
+): AttendanceBoard => ({
   students: dto.students.map(toStudent),
+  schoolDays: dto.schoolDays.map(toSchoolDay),
   attendance: dto.attendance.map(toAttendanceRecord),
+});
+
+export const toTaskBoard = (dto: TaskBoardResponseDto): TaskBoard => ({
+  students: dto.students.map(toStudent),
   assignments: dto.assignments.map(toAssignment),
   submissions: dto.submissions.map(toAssignmentSubmission),
-  annotations: dto.annotations.map(toAnnotation),
-  mails: dto.mails.map(toMail),
+});
+
+export const toAnnotationListItem = (
+  dto: AnnotationListItemDto,
+): AnnotationListItem => ({
+  id: dto.id,
+  studentId: dto.studentId,
+  studentName: dto.studentName,
+  studentInitials: dto.studentInitials,
+  type: assertAnnotationType(dto.type),
+  description: dto.description,
+  managed: dto.managed,
+  createdAt: new Date(dto.createdAt),
 });
 
 /** `/v1/me`: docente activo y clase activa. La clase debe existir siempre. */

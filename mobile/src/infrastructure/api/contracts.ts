@@ -89,17 +89,29 @@ export type StudentContactDto = {
   email: string;
 };
 
+/** Bootstrap mínimo (#76): solo contexto global. */
 export type BootstrapResponseDto = {
   teacher: TeacherDto;
   activeClassId: string;
   classes: SchoolClassDto[];
-  schoolDays: SchoolDayDto[];
+};
+
+/** Agregados por clase (#76). */
+export type AttendanceBoardResponseDto = {
   students: StudentDto[];
+  schoolDays: SchoolDayDto[];
   attendance: AttendanceRecordDto[];
+};
+
+export type TaskBoardResponseDto = {
+  students: StudentDto[];
   assignments: AssignmentDto[];
   submissions: SubmissionDto[];
-  annotations: AnnotationDto[];
-  mails: MailDto[];
+};
+
+export type AnnotationListItemDto = AnnotationDto & {
+  studentName: string;
+  studentInitials: string;
 };
 
 export type MeResponseDto = {
