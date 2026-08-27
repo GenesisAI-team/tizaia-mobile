@@ -88,6 +88,28 @@ percepción de rendimiento y reduce el salto visual al llegar los datos.
   de runtime nativo en Jest; `jest.config.js` incluye `jest-setup.js` con
   `setUpTests()` y el mock oficial de worklets. No se prueban frames.
 
+## Branding: BrandMark, fuente única del logo (issue #95)
+
+`shared/components/BrandMark.tsx` es la **fuente única** (single source) del
+logotipo de Tizaia: círculo `#FFFFFFC7` con halo melocotón `#F8C4A6` y la
+letra "T" en tinta. No se deben crear copias manuales del logo ni de la "T".
+
+Todas las variantes derivan del **mismo base** y escalan sus proporciones a
+partir del diámetro `login` (168dp, radio 84, halo 120, T 64). Si aparece una
+"T" nueva, debe reutilizarse este componente, no duplicarse estilos.
+
+Variantes disponibles (`variant` prop):
+
+| Variante  | Tamaño            | Uso                                                                                                                   |
+| --------- | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `login`   | 168dp (grande)    | Pantalla de Login (`LoginScreen`), tamaño intacto.                                                                    |
+| `header`  | 40dp (compacto)   | Header global (`AppHeaderLogo`): cabe en el header sin aumentar su altura, sin recortar el halo ni desplazar el menú. |
+| `loading` | 72dp (intermedio) | Transición de autenticación, preparado para #94 (aún no consumido).                                                   |
+
+El header global reutiliza `BrandMark variant="header"` dentro del botón de
+`AppHeaderLogo` (`accessible={false}` para evitar doble lectura accesible: el
+botón ya anuncia "Ir a Home").
+
 ## Calidad y native checks
 
 ```powershell

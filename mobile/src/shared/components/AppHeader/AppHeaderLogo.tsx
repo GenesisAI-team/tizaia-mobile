@@ -1,6 +1,6 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
-import { dp, tizaiaColors } from '../../theme/tizaiaTheme';
+import { BrandMark } from '../BrandMark';
 
 type AppHeaderLogoProps = {
   onPress: () => void;
@@ -9,6 +9,7 @@ type AppHeaderLogoProps = {
 /**
  * Logo del header que navega a Home (DESIGN.md §4.1).
  * Extraído de AppDrawerNavigator para mantener la navegación limpia.
+ * Reutiliza la fuente única BrandMark con la variante compacta `header`.
  */
 export function AppHeaderLogo({
   onPress,
@@ -22,7 +23,8 @@ export function AppHeaderLogo({
       style={styles.button}
       testID="header-logo"
     >
-      <Text style={styles.logo}>LOGO</Text>
+      {/* accessible=false: el botón ya anuncia "Ir a Home"; evitar doble lectura */}
+      <BrandMark accessible={false} variant="header" />
     </Pressable>
   );
 }
@@ -34,10 +36,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     minHeight: 48,
     minWidth: 48,
-  },
-  logo: {
-    color: tizaiaColors.ink,
-    fontSize: dp(38),
-    fontWeight: '700',
   },
 });

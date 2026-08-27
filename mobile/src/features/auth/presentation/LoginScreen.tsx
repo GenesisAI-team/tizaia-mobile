@@ -10,12 +10,12 @@ import {
   View,
 } from 'react-native';
 
+import { BrandMark } from '../../../shared/components/BrandMark';
 import { GlassCard } from '../../../shared/components/GlassCard';
 import { GoogleGIcon } from '../../../shared/components/GoogleGIcon';
 import { ScreenBackground } from '../../../shared/components/ScreenBackground';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useAuth } from '../application/AuthProvider';
-import { BrandMark } from './BrandMark';
 
 /**
  * Pantalla Login definitiva (DESIGN.md §5.8, frame n1681 de Tizaia.op).
@@ -41,7 +41,7 @@ export function LoginScreen(): React.JSX.Element {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.brandBlock}>
-            <BrandMark />
+            <BrandMark variant="login" />
             <Text style={styles.brand}>TIZAIA</Text>
             <Text style={styles.tagline}>Tu aula, más cerca</Text>
           </View>
