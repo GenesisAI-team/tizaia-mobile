@@ -6,20 +6,18 @@ import { tizaiaColors } from '../theme/tizaiaTheme';
  * Marca de Tizaia (DESIGN.md §5.8, nodo BrandMark n1686): círculo
  * #FFFFFFC7 con halo melocotón #F8C4A6 y la letra "T" en tinta.
  *
- * Fuente única (single source) del logotipo. Todas las variantes derivan del
- * mismo base y escalan sus proporciones a partir del diámetro `login` (168px
- * de diseño, → 84dp de radio, halo 120, T 64). No se crean copias manuales.
+ * Fuente única (single source) del logotipo. `login` y `loading` escalan por
+ * ratios desde el diámetro `login` (168px de diseño, → 84dp de radio, halo
+ * 120, T 64). `header` usa medidas enteras y círculos anidados centrados por
+ * Flexbox para evitar fracciones y offsets absolutos a 40dp.
  *
  * Variantes:
  * - `login`: 168dp, tamaño completo del Login (comportamiento inicial intacto).
- * - `header`: ~40dp, logo compacto que cabe en el header común sin aumentar su
- *   altura ni recortar el halo ni desplazar el menú. Sombra más ligera para
- *   evitar desplazamiento óptico a tamaño pequeño (refine #98).
- * - `loading`: tamaño intermedio (~72dp) para la transición de autenticación
- *   estática con spinner (refine #98, antes animada en #94).
- *
- * La sombra/elevación se escala por variante para mantener círculos
- * concéntricos y `T` visualmente centrada a todas las escalas.
+ * - `header`: 40dp exterior / 28dp halo interior, geometría entera, sin
+ *   offsets fraccionarios, sin sombra, concéntrico por Flexbox (fix visual
+ *   header: evita grosor desigual por antialiasing a 40dp).
+ * - `loading`: 72dp intermedio para la transición de autenticación estática
+ *   con spinner (refine #98).
  */
 export type BrandMarkVariant = 'login' | 'header' | 'loading';
 
@@ -38,9 +36,9 @@ const VARIANT_SIZE: Record<BrandMarkVariant, number> = {
   loading: 72,
 };
 
-/** Sombra/elevación por variante: la de `header` es más ligera para evitar desplazamiento óptico a 40dp. */
+/** Sombra/elevación por variante. `header` sin sombra para evitar desplazamiento óptico a 40dp. */
 const VARIANT_SHADOW: Record<
-  BrandMarkVariant,
+  Exclude<BrandMarkVariant, 'header'>,
   {
     elevation: number;
     shadowOffset: { height: number; width: number };
@@ -59,12 +57,6 @@ const VARIANT_SHADOW: Record<
     shadowOffset: { height: 4, width: 0 },
     shadowOpacity: 0.14,
     shadowRadius: 10,
-  },
-  header: {
-    elevation: 2,
-    shadowOffset: { height: 1, width: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
 };
 
@@ -85,6 +77,26 @@ export function BrandMark({
   variant = 'login',
   accessible = true,
 }: BrandMarkProps): React.JSX.Element {
+  if (variant === 'header') {
+    // Medidas enteras y círculos anidados centrados por Flexbox.
+    // 40dp exterior + 28dp halo interior (validado vs 30dp: 28 mantiene
+    // proporción 70% cercana al 71.4% del login y deja 6dp de corona blanca
+    // uniforme; 30dp da 5dp y se percibe más pesado). Sin left/top fraccionarios
+    // y sin sombra para evitar grosor desigual por antialiasing.
+    return (
+      <View
+        accessibilityLabel={accessible ? 'Logotipo de Tizaia' : undefined}
+        accessibilityRole={accessible ? 'image' : undefined}
+        accessible={accessible}
+        style={[styles.mark, styles.markHeader]}
+      >
+        <View style={styles.haloHeader}>
+          <Text style={styles.letterHeader}>T</Text>
+        </View>
+      </View>
+    );
+  }
+
   const size = VARIANT_SIZE[variant];
   const haloSize = size * RATIOS.halo;
   const haloOffset = size * RATIOS.haloOffset;
@@ -131,9 +143,24 @@ const styles = StyleSheet.create({
     backgroundColor: tizaiaColors.peach,
     position: 'absolute',
   },
+  haloHeader: {
+    alignItems: 'center',
+    backgroundColor: tizaiaColors.peach,
+    borderRadius: 14,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
+  },
   letter: {
     color: tizaiaColors.inkButton,
     fontWeight: '700',
+    textAlign: 'center',
+  },
+  letterHeader: {
+    color: tizaiaColors.inkButton,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 15,
     textAlign: 'center',
   },
   mark: {
@@ -144,5 +171,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     shadowColor: '#8D5A43',
+  },
+  markHeader: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFFC7',
+    borderColor: tizaiaColors.white,
+    borderRadius: 20,
+    borderWidth: 1,
+    elevation: 0,
+    height: 40,
+    justifyContent: 'center',
+    shadowOpacity: 0,
+    width: 40,
   },
 });
