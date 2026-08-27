@@ -48,6 +48,37 @@ Flujo de verificación manual:
 5. Verificar contra el backend (`curl /v1/bootstrap` o los endpoints de dominio).
 6. Reiniciar el backend: el seed determinista se restaura.
 
+## UI: sistema de skeleton loading (issue #85)
+
+Las pantallas de datos muestran durante la **primera carga** un esqueleto con la
+estructura del contenido real (lista de alumnos, bandeja, matriz de
+asistencia/tareas, perfil, clases) en lugar del spinner global. Mejora la
+percepción de rendimiento y reduce el salto visual al llegar los datos.
+
+- **Decisión técnica**: se usa `react-native-reanimated` (ya presente en el
+  stack, 4.5.1) para el pulso de opacidad 0.45→0.85; **no** se añade una
+  librería de skeletons ni se duplica la animación. `react-native-worklets`
+  es peer dependency de Reanimated y no se declara explícitamente.
+- **Cuándo skeleton y cuándo spinner**: skeleton = primera carga con
+  estructura conocida (`DataStateView` con prop `skeleton`); spinner =
+  mutaciones y formularios (botones de guardado, preload de
+  `NewMailScreen`/`NewAnnotationScreen`), donde el texto de estado ya
+  comunica la operación.
+- **Tokens**: los bloques usan `tizaiaColors.skeleton` y los radios de
+  `tizaiaRadius`/`dp()`; la geometría de cada composición imita las tarjetas
+  reales (avatar, líneas, acciones, matriz) para que el skeleton "se
+  convierta" en el contenido.
+- **Accesibilidad**: los bloques son decorativos (`accessible={false}` y
+  `importantForAccessibility="no-hide-descendants"`); el contenedor expone
+  "Cargando contenido" al lector. La animación se detiene si el sistema
+  solicita "reducir movimiento" (`AccessibilityInfo`).
+- **Escalabilidad**: al crecer el volumen de datos (Supabase) el skeleton es
+  estable: muestra siempre las mismas filas de ejemplo, independiente del
+  backend.
+- **Tests**: `react-native-reanimated` y `react-native-worklets` no disponen
+  de runtime nativo en Jest; `jest.config.js` incluye `jest-setup.js` con
+  `setUpTests()` y el mock oficial de worklets. No se prueban frames.
+
 ## Calidad y native checks
 
 ```powershell

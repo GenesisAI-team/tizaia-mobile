@@ -17,6 +17,7 @@ import {
   GlassCard,
   ScreenBackground,
   ScreenTitle,
+  StudentProfileSkeleton,
   TabBar,
 } from '../../../shared/components';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
@@ -114,7 +115,10 @@ export function StudentProfileScreen(): React.JSX.Element {
         <View style={styles.titleBlock}>
           <ScreenTitle variant="form">ALUMNO</ScreenTitle>
         </View>
-        <DataStateView state={{ status: 'loading' }} />
+        <DataStateView
+          skeleton={<StudentProfileSkeleton />}
+          state={{ status: 'loading' }}
+        />
         <TabBar onPressTab={onPressTab} style={styles.tabBar} />
       </ScreenBackground>
     );

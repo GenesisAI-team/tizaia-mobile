@@ -1,6 +1,7 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import {
+  ClassListSkeleton,
   DataStateView,
   Fab,
   GlassCard,
@@ -40,6 +41,7 @@ export function ClassesScreen(): React.JSX.Element {
       <DataStateView
         emptyMessage="No hay clases disponibles."
         onRetry={resource.reload}
+        skeleton={<ClassListSkeleton />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (
