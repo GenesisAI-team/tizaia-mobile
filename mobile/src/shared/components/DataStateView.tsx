@@ -14,19 +14,38 @@ type DataStateViewProps = {
   /** Texto mostrado cuando la consulta no devuelve datos. */
   emptyMessage?: string;
   onRetry?: () => void;
+  /**
+   * Esqueleto de carga (issue #85): composición `Skeleton*` con la geometría
+   * de la pantalla. Cuando se indica, la primera carga muestra la estructura
+   * del contenido en lugar del spinner global. El contenedor es accesible
+   * ("Cargando contenido"); los bloques internos se ocultan al lector.
+   */
+  skeleton?: React.ReactNode;
 };
 
 /**
  * Estados transversales de las pantallas conectadas a la API (MOB-API-001):
- * carga (spinner), vacío (mensaje) y error recuperable con reintento.
- * Las pantallas renderizan su contenido solo en `success`.
+ * carga (spinner o skeleton cuando `skeleton` se proporciona), vacío (mensaje)
+ * y error recuperable con reintento. Las pantallas renderizan su contenido
+ * solo en `success`.
  */
 export function DataStateView({
   state,
   emptyMessage = 'No hay datos disponibles.',
   onRetry,
+  skeleton,
 }: DataStateViewProps): React.JSX.Element | null {
   if (state.status === 'loading' && state.data === undefined) {
+    if (skeleton !== undefined) {
+      return (
+        <View
+          accessibilityLabel="Cargando contenido"
+          style={styles.skeletonContainer}
+        >
+          {skeleton}
+        </View>
+      );
+    }
     return (
       <View style={styles.container}>
         <ActivityIndicator
@@ -107,5 +126,10 @@ const styles = StyleSheet.create({
   },
   retryPressed: {
     opacity: 0.8,
+  },
+  skeletonContainer: {
+    flex: 1,
+    paddingHorizontal: dp(32),
+    paddingTop: dp(16),
   },
 });

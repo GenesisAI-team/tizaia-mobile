@@ -15,6 +15,7 @@ import {
   DataStateView,
   Fab,
   GlassCard,
+  MailListSkeleton,
   ScreenBackground,
   ScreenTitle,
   StudentAvatar,
@@ -176,6 +177,7 @@ export function MailScreen(): React.JSX.Element {
             : 'La bandeja está vacía.'
         }
         onRetry={resource.reload}
+        skeleton={<MailListSkeleton />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (

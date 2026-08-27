@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import {
+  BoardSkeleton,
   DataStateView,
   MatrixBoard,
   ScreenBackground,
@@ -144,6 +145,7 @@ export function AttendanceScreen(): React.JSX.Element {
       <DataStateView
         emptyMessage="No hay alumnos o días lectivos que mostrar."
         onRetry={resource.reload}
+        skeleton={<BoardSkeleton />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (

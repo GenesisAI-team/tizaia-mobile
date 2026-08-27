@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import {
+  AnnotationListSkeleton,
   DataStateView,
   Fab,
   GlassCard,
@@ -135,6 +136,7 @@ export function AnnotationsScreen(): React.JSX.Element {
       <DataStateView
         emptyMessage="No hay anotaciones registradas."
         onRetry={resource.reload}
+        skeleton={<AnnotationListSkeleton />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (

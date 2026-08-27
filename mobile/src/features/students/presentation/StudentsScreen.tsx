@@ -17,6 +17,7 @@ import {
   ScreenBackground,
   ScreenTitle,
   StudentAvatar,
+  StudentListSkeleton,
   TabBar,
 } from '../../../shared/components';
 import {
@@ -109,6 +110,7 @@ export function StudentsScreen(): React.JSX.Element {
       <DataStateView
         emptyMessage="No hay alumnos en esta clase."
         onRetry={resource.reload}
+        skeleton={<StudentListSkeleton />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (

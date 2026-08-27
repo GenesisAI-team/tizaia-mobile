@@ -47,6 +47,9 @@ export const tizaiaColors = {
   divider: '#DDC9BE',
   googleBorder: '#D9C5BB',
   white: '#FFFFFF',
+  /** Fondo de los bloques de skeleton loading (issue #85): tono cálido suave
+      entre divider y el brillo del cristal, sin confundirse con los bordes. */
+  skeleton: '#EADBCE',
 } as const;
 
 /** Degradado vertical global de pantalla (DESIGN.md §2). */

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import {
+  BoardSkeleton,
   DataStateView,
   Fab,
   MatrixBoard,
@@ -126,6 +127,7 @@ export function TasksScreen(): React.JSX.Element {
       <DataStateView
         emptyMessage="No hay tareas para esta clase."
         onRetry={resource.reload}
+        skeleton={<BoardSkeleton showRowNames />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (
