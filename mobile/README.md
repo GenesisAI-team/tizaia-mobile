@@ -88,52 +88,56 @@ percepción de rendimiento y reduce el salto visual al llegar los datos.
   de runtime nativo en Jest; `jest.config.js` incluye `jest-setup.js` con
   `setUpTests()` y el mock oficial de worklets. No se prueban frames.
 
-## Branding: BrandMark, fuente única del logo (issue #95)
+## Branding: BrandMark, fuente única del logo (issue #95, refine #98)
 
 `shared/components/BrandMark.tsx` es la **fuente única** (single source) del
 logotipo de Tizaia: círculo `#FFFFFFC7` con halo melocotón `#F8C4A6` y la
 letra "T" en tinta. No se deben crear copias manuales del logo ni de la "T".
 
 Todas las variantes derivan del **mismo base** y escalan sus proporciones a
-partir del diámetro `login` (168dp, radio 84, halo 120, T 64). Si aparece una
-"T" nueva, debe reutilizarse este componente, no duplicarse estilos.
+partir del diámetro `login` (168dp, radio 84, halo 120, T 64) y la
+sombra/elevación se escala por variante para mantener círculos concéntricos
+y `T` centrada a todas las escalas. Si aparece una "T" nueva, debe
+reutilizarse este componente, no duplicarse estilos.
 
 Variantes disponibles (`variant` prop):
 
-| Variante  | Tamaño            | Uso                                                                                                                   |
-| --------- | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `login`   | 168dp (grande)    | Pantalla de Login (`LoginScreen`), tamaño intacto.                                                                    |
-| `header`  | 40dp (compacto)   | Header global (`AppHeaderLogo`): cabe en el header sin aumentar su altura, sin recortar el halo ni desplazar el menú. |
-| `loading` | 72dp (intermedio) | Transición breve de autenticación (`AuthTransitionLoading`, issue #94).                                               |
+| Variante  | Tamaño            | Uso                                                                                                                                                                                             |
+| --------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `login`   | 168dp (grande)    | Pantalla de Login (`LoginScreen`), tamaño intacto, sombra `elevation 6 / radius 17`.                                                                                                            |
+| `header`  | 40dp (compacto)   | Header global (`AppHeaderLogo`): cabe en el header sin aumentar su altura, sin recortar el halo ni desplazar el menú, sombra ligera `elevation 2 / radius 4` para centrado óptico (refine #98). |
+| `loading` | 72dp (intermedio) | Transición breve de autenticación (`AuthTransitionLoading`, issue #94, refine #98 estático). Sombra intermedia `elevation 4 / radius 10`.                                                       |
 
 El header global reutiliza `BrandMark variant="header"` dentro del botón de
 `AppHeaderLogo` (`accessible={false}` para evitar doble lectura accesible: el
 botón ya anuncia "Ir a Home").
 
-## Auth: transición breve de marca (issue #94)
+## Auth: transición breve de marca (issue #94, refine #98)
 
 El loader genérico blanco de `App.tsx` (`ActivityIndicator` centrado) ha sido
-sustituido por `AuthTransitionLoading` — una microtransición con identidad
-TizaIA que se muestra solo mientras `isLoading === true`.
+sustituido por `AuthTransitionLoading` — una microtransición estática con
+identidad TizaIA que se muestra solo mientras `isLoading === true`.
 
 - **Qué cambia (solo visual):** fondo degradado `ScreenBackground` + `BrandMark`
   `variant="loading"` (72dp, intermedia entre `login` y `header`) + palabra
-  `TIZAIA` con animación secuencial `fade + translateY 4→0` por letra (stagger
-  `70ms`, duración `220ms` con Reanimated ya presente, sin añadir dependencias).
-  No se introduce `delay` artificial, no se bloquea la navegación y no se
-  condiciona la animación: si `isLoading` termina antes, se muestra
-  `Home`/`Login` inmediatamente; si tarda más, la animación permanece discreta.
+  `TIZAIA` estática (`28/700 ls7`) + `ActivityIndicator` `small` `inkButton`
+  debajo. Sin animación de letras ni `Reanimated` en este componente, sin
+  `delay` artificial y sin bloquear navegación: si `isLoading` termina antes,
+  se muestra `Home`/`Login` inmediatamente; si tarda más, el spinner permanece
+  discreto. Sirve para restauración inicial, fin de login Google/password y
+  cierre de sesión (mismo `isLoading`).
 - **Qué NO cambia:** `AuthProvider` mantiene un único `isLoading`, `RootNavigator`
   solo sustituye el componente visual, `signInWithGoogle` y
   `WebBrowser.openAuthSessionAsync` permanecen intactos, no se reutiliza
   `LoginScreen` como pantalla de espera post-OAuth y no se reintroduce la
   arquitectura `isInitializing/isAuthenticating` de la PR #87.
-- **Por qué:** el flujo `Login → Google → [TizaIA breve] → Home` evita la
-  pantalla técnica genérica sin reintroducir la reaparición del login con
-  `Entrando…` que provocaba la PR #87 al mantener `LoginScreen` montada durante
-  el OAuth. La PR #87 se considera enfoque descartado para esta UX.
+- **Por qué:** el flujo `Login → Google → [T + TIZAIA estático + spinner] → Home`
+  evita la pantalla técnica genérica sin reintroducir la reaparición del login
+  con `Entrando…` de la PR #87. La marca no se anima porque el estado suele
+  durar décimas y una animación de entrada se corta; la duración sigue
+  dependiendo exclusivamente del estado real.
 - **Accesibilidad:** contenedor con `accessibilityLabel="Cargando TizaIA"` y
-  `role="progressbar"`; animación respeta `reduceMotion` (sin traslación).
+  `role="progressbar"`; spinner con `accessibilityLabel="Cargando"`.
 
 ## Calidad y native checks
 
