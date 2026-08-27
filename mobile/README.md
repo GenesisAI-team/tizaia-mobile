@@ -75,6 +75,10 @@ percepción de rendimiento y reduce el salto visual al llegar los datos.
 - **Escalabilidad**: al crecer el volumen de datos (Supabase) el skeleton es
   estable: muestra siempre las mismas filas de ejemplo, independiente del
   backend.
+- **Regla viewport (refactor #89)**: los skeletons representan el viewport y la
+  geometría esperada del contenido, no el número real de registros. Los boards
+  de Asistencia (`rows={7}`) y Tareas (`rows={6}`) llenan el área visible con
+  valores explícitos por pantalla (KISS, sin cálculo dinámico).
 - **Tests**: `react-native-reanimated` y `react-native-worklets` no disponen
   de runtime nativo en Jest; `jest.config.js` incluye `jest-setup.js` con
   `setUpTests()` y el mock oficial de worklets. No se prueban frames.

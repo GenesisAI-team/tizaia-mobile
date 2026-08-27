@@ -145,7 +145,7 @@ export function AttendanceScreen(): React.JSX.Element {
       <DataStateView
         emptyMessage="No hay alumnos o días lectivos que mostrar."
         onRetry={resource.reload}
-        skeleton={<BoardSkeleton />}
+        skeleton={<BoardSkeleton columns={4} rows={7} />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (
