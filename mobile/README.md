@@ -79,6 +79,11 @@ percepción de rendimiento y reduce el salto visual al llegar los datos.
   geometría esperada del contenido, no el número real de registros. Los boards
   de Asistencia (`rows={7}`) y Tareas (`rows={6}`) llenan el área visible con
   valores explícitos por pantalla (KISS, sin cálculo dinámico).
+- **Skeletons scrollables (refactor #91)**: los skeletons de pantallas con
+  contenido scrollable (p. ej. `StudentProfileScreen`) respetan el mismo
+  contenedor, padding (`styles.content`) y eje de scroll que el contenido final
+  para minimizar layout shift y evitar recortes; el `titleBlock` con `flex:1`
+  solo se usa dentro de `titleRow`, no como contenedor vertical.
 - **Tests**: `react-native-reanimated` y `react-native-worklets` no disponen
   de runtime nativo en Jest; `jest.config.js` incluye `jest-setup.js` con
   `setUpTests()` y el mock oficial de worklets. No se prueban frames.

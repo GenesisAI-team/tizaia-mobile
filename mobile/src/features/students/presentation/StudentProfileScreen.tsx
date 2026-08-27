@@ -77,7 +77,7 @@ export function StudentProfileScreen(): React.JSX.Element {
   if (studentId === undefined) {
     return (
       <ScreenBackground>
-        <View style={styles.titleBlock}>
+        <View style={styles.singleTitle}>
           <ScreenTitle variant="form">ALUMNO</ScreenTitle>
         </View>
         <GlassCard cornerRadius={28} style={styles.card}>
@@ -93,7 +93,7 @@ export function StudentProfileScreen(): React.JSX.Element {
   if (resource.state.status === 'error' || resource.state.status === 'empty') {
     return (
       <ScreenBackground>
-        <View style={styles.titleBlock}>
+        <View style={styles.singleTitle}>
           <ScreenTitle variant="form">ALUMNO</ScreenTitle>
         </View>
         <DataStateView
@@ -112,13 +112,16 @@ export function StudentProfileScreen(): React.JSX.Element {
   ) {
     return (
       <ScreenBackground>
-        <View style={styles.titleBlock}>
-          <ScreenTitle variant="form">ALUMNO</ScreenTitle>
-        </View>
-        <DataStateView
-          skeleton={<StudentProfileSkeleton />}
-          state={{ status: 'loading' }}
-        />
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.titleRow}>
+            <View style={styles.titleGrow}>
+              <ScreenTitle variant="form">ALUMNO</ScreenTitle>
+            </View>
+          </View>
+          <View accessibilityLabel="Cargando contenido">
+            <StudentProfileSkeleton />
+          </View>
+        </ScrollView>
         <TabBar onPressTab={onPressTab} style={styles.tabBar} />
       </ScreenBackground>
     );
@@ -159,7 +162,7 @@ export function StudentProfileScreen(): React.JSX.Element {
     <ScreenBackground>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
+          <View style={styles.titleGrow}>
             <ScreenTitle variant="form">ALUMNO</ScreenTitle>
           </View>
           <Pressable
@@ -492,7 +495,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: dp(24),
   },
+  singleTitle: {
+    marginBottom: dp(24),
+    marginTop: dp(24),
+  },
   titleBlock: {
+    flex: 1,
+  },
+  titleGrow: {
     flex: 1,
   },
   titleRow: {
