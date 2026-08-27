@@ -127,7 +127,7 @@ export function TasksScreen(): React.JSX.Element {
       <DataStateView
         emptyMessage="No hay tareas para esta clase."
         onRetry={resource.reload}
-        skeleton={<BoardSkeleton columns={4} rows={6} showRowNames />}
+        skeleton={<BoardSkeleton columns={4} rows={10} showRowNames />}
         state={resource.state}
       />
       {resource.state.status === 'success' && (

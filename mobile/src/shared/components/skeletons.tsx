@@ -66,7 +66,7 @@ export function StudentProfileSkeleton(): React.JSX.Element {
 }
 
 export function StudentListSkeleton({
-  rows = 6,
+  rows = 8,
 }: ListSkeletonProps): React.JSX.Element {
   return (
     <View style={styles.studentList}>
@@ -107,7 +107,7 @@ export function MailListSkeleton({
 }
 
 export function AnnotationListSkeleton({
-  rows = 6,
+  rows = 8,
 }: ListSkeletonProps): React.JSX.Element {
   return (
     <View style={styles.annotationList}>
