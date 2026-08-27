@@ -4,9 +4,9 @@ import { dp, tizaiaColors } from '../theme/tizaiaTheme';
 import { Skeleton, SkeletonCircle, SkeletonText } from './Skeleton';
 
 /**
- * Skeletons semánticos (issue #85): composiciones de `Skeleton*` que imitan la
- * geometría de las tarjetas reales (DESIGN.md, `tizaiaTheme.ts`) para que la
- * primera carga "cargue la estructura" en vez de un spinner genérico.
+ * Skeletons semánticos (issue #85, refactor #89): composiciones de `Skeleton*`
+ * que imitan la geometría de las tarjetas reales (DESIGN.md, `tizaiaTheme.ts`)
+ * para que la primera carga "cargue la estructura" en vez de un spinner genérico.
  *
  * Geometría por pantalla:
  * - Alumnos: tarjeta height 145 (radius 22), avatar 95, botones 76/52/62.
@@ -18,6 +18,11 @@ import { Skeleton, SkeletonCircle, SkeletonText } from './Skeleton';
  * Los bloques heredan de `Skeleton`: pulso de opacidad con Reanimated, ocultos
  * al lector de pantalla y respetuosos con "reducir movimiento". El contenedor
  * accesible ("Cargando contenido") lo pone `DataStateView`.
+ *
+ * Regla viewport (#89): los skeletons representan el viewport y la geometría
+ * esperada, no el volumen real de registros. Asistencia usa `rows={7}` y
+ * Tareas `rows={6}` (valores explícitos por pantalla, KISS) para llenar el
+ * área visible sin predecir el número de alumnos ni calcular dinámicamente.
  */
 
 type ListSkeletonProps = {
@@ -152,6 +157,7 @@ export function ClassListSkeleton({
 type BoardSkeletonProps = {
   /** Número de celdas visibles (máx. `MAX_VISIBLE_COLUMNS` de MatrixBoard). */
   columns?: number;
+  /** Filas de ejemplo: representan el viewport, no el total real (#89). */
   rows?: number;
   /** Tareas muestra el nombre bajo el avatar; Asistencia no (DESIGN.md §5.4). */
   showRowNames?: boolean;
