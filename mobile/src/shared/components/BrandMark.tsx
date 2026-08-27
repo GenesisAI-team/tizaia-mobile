@@ -13,9 +13,13 @@ import { tizaiaColors } from '../theme/tizaiaTheme';
  * Variantes:
  * - `login`: 168dp, tamaño completo del Login (comportamiento inicial intacto).
  * - `header`: ~40dp, logo compacto que cabe en el header común sin aumentar su
- *   altura ni recortar el halo ni desplazar el menú.
- * - `loading`: tamaño intermedio (~72dp) preparado para la transición de
- *   autenticación (consumido por #94).
+ *   altura ni recortar el halo ni desplazar el menú. Sombra más ligera para
+ *   evitar desplazamiento óptico a tamaño pequeño (refine #98).
+ * - `loading`: tamaño intermedio (~72dp) para la transición de autenticación
+ *   estática con spinner (refine #98, antes animada en #94).
+ *
+ * La sombra/elevación se escala por variante para mantener círculos
+ * concéntricos y `T` visualmente centrada a todas las escalas.
  */
 export type BrandMarkVariant = 'login' | 'header' | 'loading';
 
@@ -32,6 +36,36 @@ const VARIANT_SIZE: Record<BrandMarkVariant, number> = {
   login: 168,
   header: 40,
   loading: 72,
+};
+
+/** Sombra/elevación por variante: la de `header` es más ligera para evitar desplazamiento óptico a 40dp. */
+const VARIANT_SHADOW: Record<
+  BrandMarkVariant,
+  {
+    elevation: number;
+    shadowOffset: { height: number; width: number };
+    shadowOpacity: number;
+    shadowRadius: number;
+  }
+> = {
+  login: {
+    elevation: 6,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.19,
+    shadowRadius: 17,
+  },
+  loading: {
+    elevation: 4,
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+  },
+  header: {
+    elevation: 2,
+    shadowOffset: { height: 1, width: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
 };
 
 /**
@@ -55,6 +89,7 @@ export function BrandMark({
   const haloSize = size * RATIOS.halo;
   const haloOffset = size * RATIOS.haloOffset;
   const letterSize = size * RATIOS.letter;
+  const shadow = VARIANT_SHADOW[variant];
 
   return (
     <View
@@ -63,7 +98,15 @@ export function BrandMark({
       accessible={accessible}
       style={[
         styles.mark,
-        { borderRadius: size / 2, height: size, width: size },
+        {
+          borderRadius: size / 2,
+          elevation: shadow.elevation,
+          height: size,
+          shadowOffset: shadow.shadowOffset,
+          shadowOpacity: shadow.shadowOpacity,
+          shadowRadius: shadow.shadowRadius,
+          width: size,
+        },
       ]}
     >
       <View
@@ -99,11 +142,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFFC7',
     borderColor: tizaiaColors.white,
     borderWidth: 1,
-    elevation: 6,
     justifyContent: 'center',
     shadowColor: '#8D5A43',
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.19,
-    shadowRadius: 17,
   },
 });
