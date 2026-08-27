@@ -104,11 +104,36 @@ Variantes disponibles (`variant` prop):
 | --------- | ----------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `login`   | 168dp (grande)    | Pantalla de Login (`LoginScreen`), tamaño intacto.                                                                    |
 | `header`  | 40dp (compacto)   | Header global (`AppHeaderLogo`): cabe en el header sin aumentar su altura, sin recortar el halo ni desplazar el menú. |
-| `loading` | 72dp (intermedio) | Transición de autenticación, preparado para #94 (aún no consumido).                                                   |
+| `loading` | 72dp (intermedio) | Transición breve de autenticación (`AuthTransitionLoading`, issue #94).                                               |
 
 El header global reutiliza `BrandMark variant="header"` dentro del botón de
 `AppHeaderLogo` (`accessible={false}` para evitar doble lectura accesible: el
 botón ya anuncia "Ir a Home").
+
+## Auth: transición breve de marca (issue #94)
+
+El loader genérico blanco de `App.tsx` (`ActivityIndicator` centrado) ha sido
+sustituido por `AuthTransitionLoading` — una microtransición con identidad
+TizaIA que se muestra solo mientras `isLoading === true`.
+
+- **Qué cambia (solo visual):** fondo degradado `ScreenBackground` + `BrandMark`
+  `variant="loading"` (72dp, intermedia entre `login` y `header`) + palabra
+  `TIZAIA` con animación secuencial `fade + translateY 4→0` por letra (stagger
+  `70ms`, duración `220ms` con Reanimated ya presente, sin añadir dependencias).
+  No se introduce `delay` artificial, no se bloquea la navegación y no se
+  condiciona la animación: si `isLoading` termina antes, se muestra
+  `Home`/`Login` inmediatamente; si tarda más, la animación permanece discreta.
+- **Qué NO cambia:** `AuthProvider` mantiene un único `isLoading`, `RootNavigator`
+  solo sustituye el componente visual, `signInWithGoogle` y
+  `WebBrowser.openAuthSessionAsync` permanecen intactos, no se reutiliza
+  `LoginScreen` como pantalla de espera post-OAuth y no se reintroduce la
+  arquitectura `isInitializing/isAuthenticating` de la PR #87.
+- **Por qué:** el flujo `Login → Google → [TizaIA breve] → Home` evita la
+  pantalla técnica genérica sin reintroducir la reaparición del login con
+  `Entrando…` que provocaba la PR #87 al mantener `LoginScreen` montada durante
+  el OAuth. La PR #87 se considera enfoque descartado para esta UX.
+- **Accesibilidad:** contenedor con `accessibilityLabel="Cargando TizaIA"` y
+  `role="progressbar"`; animación respeta `reduceMotion` (sin traslación).
 
 ## Calidad y native checks
 
