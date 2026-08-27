@@ -4,8 +4,9 @@ import Animated from 'react-native-reanimated';
 import { BrandMark } from './BrandMark';
 import { AuthTransitionLoading } from './AuthTransitionLoading';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe('AuthTransitionLoading', () => {
   it('muestra la marca TizaIA con variante loading y la palabra TIZAIA', async () => {
