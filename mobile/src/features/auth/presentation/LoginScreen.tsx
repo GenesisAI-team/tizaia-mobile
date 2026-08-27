@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,17 +16,31 @@ import { GoogleGIcon } from '../../../shared/components/GoogleGIcon';
 import { ScreenBackground } from '../../../shared/components/ScreenBackground';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useAuth } from '../application/AuthProvider';
-import { BrandMark } from './BrandMark';
+import { BrandBlock } from './BrandBlock';
 
 /**
  * Pantalla Login definitiva (DESIGN.md §5.8, frame n1681 de Tizaia.op).
  * Conserva el comportamiento de autenticación (HU-001); solo cambia la UI.
+ *
+ * AUTH-UX-086: durante isAuthenticating la pantalla permanece montada, los
+ * botones se deshabilitan y el botón de Google muestra un spinner inline con
+ * "Entrando…"; no se sustituye el login por un loader global. El navegador
+ * Custom Tab se precalienta al montar (warmUpAsync) y libera al desmontar
+ * (coolDownAsync) para reducir la latencia percibida del OAuth.
  */
 export function LoginScreen(): React.JSX.Element {
-  const { isLoading, error, signInWithGoogle, signInWithPassword } = useAuth();
+  const { isAuthenticating, error, signInWithGoogle, signInWithPassword } =
+    useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  useEffect(() => {
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
 
   const submitEmail = () => {
     void signInWithPassword({ email: email.trim(), password });
@@ -40,11 +55,7 @@ export function LoginScreen(): React.JSX.Element {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.brandBlock}>
-            <BrandMark />
-            <Text style={styles.brand}>TIZAIA</Text>
-            <Text style={styles.tagline}>Tu aula, más cerca</Text>
-          </View>
+          <BrandBlock style={styles.brandBlock} />
 
           <GlassCard
             cornerRadius={42}
@@ -108,20 +119,14 @@ export function LoginScreen(): React.JSX.Element {
                 {error}
               </Text>
             ) : null}
-            {isLoading ? (
-              <ActivityIndicator
-                accessibilityLabel="Cargando"
-                color={tizaiaColors.inkButton}
-              />
-            ) : null}
 
             <Pressable
               accessibilityRole="button"
-              disabled={isLoading}
+              disabled={isAuthenticating}
               onPress={submitEmail}
               style={({ pressed }) => [
                 styles.primaryButton,
-                (pressed || isLoading) && styles.buttonDimmed,
+                (pressed || isAuthenticating) && styles.buttonDimmed,
               ]}
             >
               <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
@@ -136,15 +141,25 @@ export function LoginScreen(): React.JSX.Element {
 
             <Pressable
               accessibilityRole="button"
-              disabled={isLoading}
+              disabled={isAuthenticating}
               onPress={() => void signInWithGoogle()}
               style={({ pressed }) => [
                 styles.googleButton,
-                (pressed || isLoading) && styles.buttonDimmed,
+                (pressed || isAuthenticating) && styles.buttonDimmed,
               ]}
             >
-              <GoogleGIcon size={dp(40)} />
-              <Text style={styles.googleButtonText}>Continuar con Google</Text>
+              {isAuthenticating ? (
+                <ActivityIndicator
+                  accessibilityLabel="Entrando con Google"
+                  color={tizaiaColors.ink}
+                  size="small"
+                />
+              ) : (
+                <GoogleGIcon size={dp(40)} />
+              )}
+              <Text style={styles.googleButtonText}>
+                {isAuthenticating ? 'Entrando…' : 'Continuar con Google'}
+              </Text>
             </Pressable>
           </GlassCard>
 
@@ -158,14 +173,6 @@ export function LoginScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  brand: {
-    color: tizaiaColors.ink,
-    fontSize: dp(44),
-    fontWeight: '700',
-    letterSpacing: dp(7),
-    marginTop: dp(16),
-    textAlign: 'center',
-  },
   brandBlock: {
     marginBottom: dp(40),
   },
@@ -337,12 +344,6 @@ const styles = StyleSheet.create({
     color: tizaiaColors.textSecondary,
     fontSize: dp(22),
     marginTop: dp(4),
-  },
-  tagline: {
-    color: tizaiaColors.textSecondary,
-    fontSize: dp(20),
-    marginTop: dp(2),
-    textAlign: 'center',
   },
   title: {
     color: tizaiaColors.ink,

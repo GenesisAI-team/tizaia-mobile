@@ -20,6 +20,14 @@ export type AuthGateway = {
 };
 
 export type AuthState = {
+  /** Restauración inicial de sesión (getSession). La UI muestra AuthLoadingScreen. */
+  isInitializing: boolean;
+  /** Operación activa del usuario (signInWithGoogle/signInWithPassword/signOut). La LoginScreen permanece montada. */
+  isAuthenticating: boolean;
+  /**
+   * Compatibilidad: derived = isInitializing || isAuthenticating.
+   * No debe volver a usarse como único booleano para UI con semánticas distintas (AUTH-UX-086).
+   */
   isLoading: boolean;
   session: Session | null;
   error: string | null;

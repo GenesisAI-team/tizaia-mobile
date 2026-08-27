@@ -20,14 +20,22 @@ type AuthContextValue = AuthState & {
   signOut: () => Promise<boolean>;
 };
 
+/**
+ * Estado persistido internamente. `isLoading` no se almacena: se deriva en el
+ * contexto como `isInitializing || isAuthenticating` para mantener
+ * compatibilidad (AUTH-UX-086).
+ */
+type AuthSnapshot = Omit<AuthState, 'isLoading'>;
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({
   gateway,
   children,
 }: PropsWithChildren<{ gateway: AuthGateway }>) {
-  const [state, setState] = useState<AuthState>({
-    isLoading: true,
+  const [state, setState] = useState<AuthSnapshot>({
+    isInitializing: true,
+    isAuthenticating: false,
     session: null,
     error: null,
   });
@@ -36,10 +44,22 @@ export function AuthProvider({
     let mounted = true;
     void gateway.getSession().then(({ session, error }) => {
       if (mounted)
-        setState({ isLoading: false, session, error: error?.message ?? null });
+        setState((current) => ({
+          ...current,
+          isInitializing: false,
+          session,
+          error: error?.message ?? null,
+        }));
     });
     const subscription = gateway.onAuthStateChange((_event, session) => {
-      if (mounted) setState({ isLoading: false, session, error: null });
+      // Un evento de auth confirma que la restauración terminó (SIGNED_IN/SIGNED_OUT).
+      if (mounted)
+        setState((current) => ({
+          ...current,
+          isInitializing: false,
+          session,
+          error: null,
+        }));
     });
     return () => {
       mounted = false;
@@ -49,21 +69,24 @@ export function AuthProvider({
 
   const value = useMemo<AuthContextValue>(() => {
     const run = async (operation: () => Promise<{ error: Error | null }>) => {
-      setState((current) => ({ ...current, isLoading: true, error: null }));
+      // La operación del usuario no toca isInitializing: la inicialización y
+      // la autenticación son estados con UI distinta (AUTH-UX-086).
+      setState((current) => ({
+        ...current,
+        isAuthenticating: true,
+        error: null,
+      }));
       const { error } = await operation();
-      if (error) {
-        setState((current) => ({
-          ...current,
-          isLoading: false,
-          error: error.message,
-        }));
-        return false;
-      }
-      setState((current) => ({ ...current, isLoading: false, error: null }));
-      return true;
+      setState((current) => ({
+        ...current,
+        isAuthenticating: false,
+        error: error?.message ?? null,
+      }));
+      return error ? false : true;
     };
     return {
       ...state,
+      isLoading: state.isInitializing || state.isAuthenticating,
       signInWithPassword: (credentials) =>
         run(() => gateway.signInWithPassword(credentials)),
       signInWithGoogle: () => run(() => gateway.signInWithGoogle()),

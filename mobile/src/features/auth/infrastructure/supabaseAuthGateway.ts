@@ -56,6 +56,11 @@ export function createSupabaseAuthGateway(client: SupabaseClient): AuthGateway {
         };
       }
 
+      // AUTH-UX-086: optimización limitada de latencia percibida. Android-only
+      // (la app es solo Android); precalienta la URL OAuth con el Custom Tabs
+      // service. Si falla, el OAuth debe continuar: es una mejora opcional.
+      await WebBrowser.mayInitWithUrlAsync(data.url).catch(() => undefined);
+
       const result = await WebBrowser.openAuthSessionAsync(
         data.url,
         redirectTo,

@@ -83,6 +83,29 @@ sirve de un backend propio:
   raíz de composición (por defecto `api`). Sin claves ni SDK del proveedor en
   el bundle.
 
+## UX de autenticación (AUTH-UX-086)
+
+- El estado de auth distingue **`isInitializing`** (restauración de sesión)
+  de **`isAuthenticating`** (operación del usuario: Google/correo/logout).
+  `isLoading = isInitializing || isAuthenticating` se mantiene como compatibilidad,
+  pero no vuelve a usarse como único booleano de UI porque mezclaba semánticas
+  distintas (pantalla blanca/global loading).
+- Pantallas: `AuthLoadingScreen` (fondo degradado + marca TizaIA + loader
+  discreto, solo para `isInitializing`) y `LoginScreen`, que **permanece montada**
+  durante `isAuthenticating` con el botón de Google en modo "Entrando…" (spinner
+  inline + texto), sin loaders globales. `BrandBlock` comparte marca/tagline
+  entre ambas.
+- OAuth Google: se mantiene Supabase OAuth + `expo-web-browser` (Custom Tabs).
+  El gateway precalienta la URL con `mayInitWithUrlAsync` (Android-only) antes de
+  `openAuthSessionAsync`; es una optimización opcional tolerante a fallos:
+  si falla, el OAuth continúa. `LoginScreen` llama `warmUpAsync`/`coolDownAsync`
+  en montaje/desmontaje.
+- Registro Context7 — Biblioteca: expo-web-browser v57 (SDK 57). Library ID:
+  `/websites/expo_dev_versions`. Consulta: `warmUpAsync`, `mayInitWithUrlAsync`
+  (confirmado no deprecado, solo Android), `coolDownAsync`, `openAuthSessionAsync`.
+  No se migró a Google Sign-In nativo: no aporta al MVP y añade dependencias
+  nativas; la evolución futura quedaría documentada como decisión técnica.
+
 ## Documentación consultada
 
 Expo create-project/TypeScript y CNG, y Supabase Expo React Native quickstart (enlaces en el README). En la implementación de HU-001 se usaron además Context7 para Supabase JS y las guías oficiales actuales de Expo/Supabase; la anotación previa de que Context7 no estaba disponible era incorrecta. Para AI-001 se consultó vía Context7 la documentación oficial de AI SDK (v7: `generateText`/tools/`ai/test`) antes de incorporar `ai@7.0.78` y `@ai-sdk/openai@4.x`.
