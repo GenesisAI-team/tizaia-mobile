@@ -22,6 +22,11 @@ import {
 export type CreateAppAssistantOptions = {
   /** Modelo del asistente; `undefined` ⇒ `POST /v1/assistant/messages` → 503. */
   model?: LanguageModel;
+  /**
+   * Trace de tools del asistente (issue #103): NUNCA por defecto; requiere
+   * además el header `x-assistant-trace` en cada petición.
+   */
+  traceEnabled?: boolean;
   assistantConfig: Pick<
     AssistantConfig,
     'maxSteps' | 'timeoutMs' | 'conversationTtlMs' | 'conversationMaxMessages'
@@ -89,6 +94,7 @@ export function createApp(options: CreateAppOptions): Express {
           maxSteps: options.assistant.assistantConfig.maxSteps,
           timeoutMs: options.assistant.assistantConfig.timeoutMs,
         },
+        traceEnabled: options.assistant.traceEnabled ?? false,
         model: options.assistant.model,
       }),
     );

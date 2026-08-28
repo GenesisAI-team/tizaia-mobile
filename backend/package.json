@@ -20,6 +20,7 @@
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "eval:assistant": "tsx src/assistant-eval/cli.ts",
     "validate": "pnpm typecheck && pnpm lint && pnpm test && pnpm format:check"
   },
   "dependencies": {
