@@ -18,10 +18,10 @@ curl http://localhost:3000/health
 ```
 
 El puerto se configura con `PORT` (por defecto `3000`). Variables (ver
-`.env.example`): `PORT`, `CORS_ORIGINS`, `ENABLE_DEV_RESET`, `DEMO_MODE`, y
-las del asistente: `AI_PROVIDER=openai`, `AI_MODEL`, `OPENAI_API_KEY`,
-`AI_MAX_STEPS=6`, `AI_TIMEOUT_MS=30000`, `CONVERSATION_TTL_MS`,
-`CONVERSATION_MAX_MESSAGES`.
+`.env.example`): `PORT`, `CORS_ORIGINS`, `ENABLE_DEV_RESET`, `DEMO_MODE`,
+`PERF_LOGGING`, y las del asistente: `AI_PROVIDER=openai`, `AI_MODEL`,
+`OPENAI_API_KEY`, `AI_MAX_STEPS=6`, `AI_TIMEOUT_MS=30000`,
+`CONVERSATION_TTL_MS`, `CONVERSATION_MAX_MESSAGES`.
 
 **La clave del proveedor vive SOLO en el backend.** Sin clave configurada,
 todo el resto de la API funciona y el asistente responde `503
@@ -37,8 +37,117 @@ pnpm typecheck     # tsc --noEmit
 pnpm lint          # eslint .
 pnpm test          # node:test + tsx (sin red externa)
 pnpm format:check  # prettier --check .
+pnpm bench:api     # benchmark HTTP local reproducible (issue #104)
 pnpm validate      # typecheck + lint + test + format
 ```
+
+## Benchmark y rendimiento (issue #104)
+
+`bench:api` mide de forma **local y reproducible** cuánto tarda cada endpoint,
+su P50/P95 y cuántos bytes devuelve, para comparar una PR frente a otra sin
+depender de la percepción manual. NO llama al proveedor de IA real (su coste y
+latencia dependen del proveedor; se mide en el eval runner del asistente).
+
+### Reproducción exacta
+
+```powershell
+# Terminal 1: backend levantado (seeds deterministas)
+pnpm --dir backend dev
+
+# Terminal 2: benchmark con 30 runs y 3 warmups (valores por defecto)
+pnpm --dir backend bench:api
+
+# Configurar (variables o flags equivalentes)
+$env:BENCH_RUNS="30"; $env:BENCH_WARMUP="3"; $env:BENCH_BASE_URL="http://localhost:3000"
+pnpm --dir backend bench:api
+```
+
+Endpoints medidos (críticos de #76 / PR #101): `/health`, `/v1/bootstrap`,
+`/v1/me`, `/v1/classes/class-1/students`, `/v1/classes/class-1/attendance-board`,
+`/v1/classes/class-1/task-board`, `/v1/annotations?classId=class-1`.
+
+Variables de entorno: `BENCH_BASE_URL` (default `http://localhost:3000`),
+`BENCH_RUNS` (default `30`), `BENCH_WARMUP` (default `3`), `BENCH_TIMEOUT_MS`
+(default `10000`). Flags equivalentes: `--base-url`, `--runs`, `--warmup`,
+`--timeout-ms`, `--output <path>`, `--baseline <path>` (tras `--` con pnpm).
+
+### Qué significan avg/P50/P95
+
+- **avg**: media aritmética de todas las ejecuciones medidas.
+- **P50**: percentil 50 — la latencia "típica"; la mitad de las peticiones
+  tardan menos. Más representativo que la media ante picos.
+- **P95**: percentil 95 — el peor caso esperable; solo el 5 % tarda más.
+- **min/max**: latencia mínima y máxima observadas.
+- **bytes**: tamaño de la respuesta (header `Content-Length` o tamaño del body
+  de la última ejecución correcta).
+- **err% / errors**: `errorRate` explícita por endpoint = `errors / runs`
+  (denominador `runs`), más el número absoluto de errores. Se considera error
+  cualquier petición con status ≥ 400, fallo de red, timeout o un `error`
+  asociado.
+
+### Guardar baseline y comparar
+
+```powershell
+# Antes (p. ej. en main): guardar baseline
+pnpm --dir backend bench:api -- --output .bench/baseline.json
+
+# Después de una PR: ejecutar y comparar contra el baseline
+pnpm --dir backend bench:api -- --baseline .bench/baseline.json
+
+# Guardar también la ejecución "después" para futuras comparaciones
+pnpm --dir backend bench:api -- --output .bench/after.json
+```
+
+La salida de comparación muestra `p50`, `p95`, `bytes` y `err%` con la
+variación, p. ej.:
+
+```text
+/v1/classes/class-1/attendance-board   p95: 31 ms -> 18 ms  (-41.9%)
+/v1/bootstrap                          bytes: 420 KB -> 2 KB (-99.5%)
+/v1/me                                 err%: 0.0% -> 10.0%
+```
+
+Los artefactos `.bench/` están ignorados por Git (salvo fixtures deliberados).
+
+### Por qué localhost NO es la latencia de producción
+
+Este benchmark mide el backend **en memoria** contra `localhost`:
+
+- No incluye la red real, latencia de Supabase/VPS, TLS, CDN, autenticación ni
+  bases de datos remotas. Un endpoint rápido hoy (memoria) puede tener un
+  patrón N+1 que sea caro con Supabase (#74).
+- Solo sirve para comparar **memoria con memoria** en la misma máquina/entorno
+  (y, cuando llegue Supabase, Supabase con Supabase). No mezclar localhost con
+  un VPS como si fueran equivalentes.
+- No se sacan conclusiones de una única petición: hacer 2–3 warmups, usar
+  `BENCH_RUNS` suficiente y ejecutar en el mismo entorno.
+- Regla operativa: **primero se mide, después se optimiza**, y una optimización
+  solo se incorpora si mejora P95/bytes sin añadir complejidad injustificada.
+
+### Instrumentación opt-in `PERF_LOGGING`
+
+Para observar la latencia server-side por request (sin depender del cliente):
+
+```powershell
+PERF_LOGGING=true pnpm --dir backend dev
+```
+
+Emite una línea estructurada JSON por request con la **plantilla de ruta** (p. ej.
+`/v1/classes/:classId/task-board`), método, status, `durationMs` y
+`responseBytes` (el `Content-Length` de la respuesta, o `null` si el header no
+está presente). Para rutas sin plantilla (p. ej. un 404) registra la etiqueta
+segura `<unknown>` en lugar de la URL real, para no exponer IDs ni query
+strings. NO incluye query strings, cuerpos ni datos personales. Codificado por
+defecto a `false` para no añadir ruido en ejecución normal. Opcionalmente añade
+`Server-Timing: app;dur=<ms>`.
+
+### Contar operaciones del repositorio (detectar N+1)
+
+Hay un decorador de test/benchmark (`CountingSchoolRepository`) que cuenta las
+llamadas a `SchoolRepository` sin cambiar el contrato de dominio. Sirve para
+ver, p. ej., que `task-board` compone 1× `getClass` + 1× `getStudents` + 1×
+`getAssignments` + 10× `getSubmissions` (un N+1 que sería caro con Supabase en
+#74). Vive en `src/test/` y no se incluye en el build de producción.
 
 ## Contratos REST
 

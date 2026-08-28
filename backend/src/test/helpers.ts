@@ -4,6 +4,7 @@ import type { LanguageModel } from 'ai';
 import { createApp, type CreateAppAssistantOptions } from '../app.js';
 import { createMemorySchoolRepository } from '../infrastructure/memory/index.js';
 import { getRecentSchoolDays } from '../seeds/schoolDates.js';
+import { CountingSchoolRepository } from './countingSchoolRepository.js';
 
 /**
  * Ayudas de test: servidor efímero sin red externa y fecha de referencia fija
@@ -33,6 +34,8 @@ export type TestServer = {
 
 export function startTestServer(options?: {
   devResetEnabled?: boolean;
+  /** Logging de rendimiento opt-in (issue #104). */
+  perfLogging?: boolean;
   /** Opciones del asistente (AI-001): modelo mock y configuración. */
   assistant?: CreateAppAssistantOptions & { model?: LanguageModel };
 }): Promise<TestServer> {
@@ -42,6 +45,7 @@ export function startTestServer(options?: {
     corsOrigins: ['*'],
     demoMode: true,
     devResetEnabled: options?.devResetEnabled ?? false,
+    perfLogging: options?.perfLogging ?? false,
     assistant: options?.assistant,
   });
   const server = app.listen(0);
@@ -96,4 +100,71 @@ export function jsonInit(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   };
+}
+
+/**
+ * Servidor de test con el `SchoolRepository` envuelto en un contador de
+ * operaciones (`CountingSchoolRepository`, issue #104) para detectar N+1
+ * ocultos por la memoria. El contador expone `getCounts()` después de una o
+ * varias peticiones.
+ */
+export async function startCountingTestServer(options?: {
+  devResetEnabled?: boolean;
+  /** Logging de rendimiento opt-in (issue #104). */
+  perfLogging?: boolean;
+  assistant?: CreateAppAssistantOptions & { model?: LanguageModel };
+}): Promise<
+  TestServer & { getCounts: () => Readonly<Record<string, number>> }
+> {
+  const repository = createMemorySchoolRepository(REFERENCE_DATE);
+  const counter = new CountingSchoolRepository(repository);
+  const app: Express = createApp({
+    repository: counter,
+    corsOrigins: ['*'],
+    demoMode: true,
+    devResetEnabled: options?.devResetEnabled ?? false,
+    perfLogging: options?.perfLogging ?? false,
+    assistant: options?.assistant,
+  });
+  const server = app.listen(0);
+  return new Promise((resolve, reject) => {
+    server.once('listening', () => {
+      const address = server.address() as AddressInfo | null;
+      if (address === null) {
+        reject(new Error('Servidor sin dirección'));
+        return;
+      }
+      const baseUrl = `http://127.0.0.1:${address.port}`;
+      resolve({
+        repository,
+        baseUrl,
+        request: (path, init) => fetch(`${baseUrl}${path}`, init),
+        requestJson: async <T>(
+          path: string,
+          init?: RequestInit,
+        ): Promise<JsonResponse<T>> => {
+          const response = await fetch(`${baseUrl}${path}`, init);
+          const headers: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            headers[key.toLowerCase()] = value;
+          });
+          let body: unknown;
+          try {
+            body = await response.json();
+          } catch {
+            body = null;
+          }
+          return { status: response.status, headers, body: body as T };
+        },
+        getCounts: () => counter.getCounts(),
+        close: () =>
+          new Promise<void>((resolveClose, rejectClose) => {
+            server.close((error) =>
+              error === undefined ? resolveClose() : rejectClose(error),
+            );
+          }),
+      });
+    });
+    server.once('error', reject);
+  });
 }
