@@ -1,4 +1,10 @@
-import { memo, useCallback, useEffect, useRef, type RefObject } from 'react';
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  type RefObject,
+} from 'react';
 import {
   FlatList,
   ScrollView,
@@ -69,6 +75,8 @@ const getCellState = (
   cellStates: MatrixBoardProps['cellStates'],
   cellId: string,
 ): StatusCellState => cellStates?.[cellId] ?? 'pending';
+
+const getMatrixBoardRowKey = (row: MatrixBoardRow): string => row.id;
 
 const areMatrixBoardRowItemPropsEqual = (
   previous: MatrixBoardRowItemProps,
@@ -199,7 +207,7 @@ export function MatrixBoard({
   const onCellPressRef = useRef(onCellPress);
   const { width: windowWidth } = useWindowDimensions();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     onCellPressRef.current = onCellPress;
   }, [onCellPress]);
 
@@ -289,7 +297,7 @@ export function MatrixBoard({
       <FlatList
         data={rows}
         extraData={cellStates}
-        keyExtractor={(row) => row.id}
+        keyExtractor={getMatrixBoardRowKey}
         renderItem={renderRow}
         showsVerticalScrollIndicator={false}
         style={styles.rows}
