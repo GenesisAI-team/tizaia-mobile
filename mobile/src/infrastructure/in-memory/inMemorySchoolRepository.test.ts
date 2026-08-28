@@ -1,68 +1,64 @@
 import { createInMemorySchoolRepository } from './index';
 
 /**
- * Paridad del fake con el contrato real de `/v1/bootstrap` (backend #67):
- * el agregado sirve datos de TODO el centro. Si el fake filtrase por clase
- * activa, ocultaría en tests los errores de pantallas que no seleccionan.
+ * #76: bootstrap mínimo solo contexto global; los boards por clase evitan overfetch.
  */
 describe('InMemorySchoolRepository.getBootstrap', () => {
-  it('incluye alumnos, asistencia, tareas y entregas de todas las clases', async () => {
+  it('devuelve solo teacher/activeClassId/classes sin overfetch', async () => {
     const repository = createInMemorySchoolRepository(new Date('2026-08-19'));
 
     const bootstrap = await repository.getBootstrap();
 
     expect(bootstrap.activeClassId).toBe('class-1');
-    // El seed tiene varias clases y alumnos fuera de la clase activa.
-    const otherClassIds = new Set(
-      bootstrap.classes
-        .filter((schoolClass) => schoolClass.id !== bootstrap.activeClassId)
-        .map((schoolClass) => schoolClass.id),
-    );
-    expect(otherClassIds.size).toBeGreaterThan(0);
-    const otherStudentIds = new Set(
-      bootstrap.students
-        .filter((student) => otherClassIds.has(student.classId))
-        .map((student) => student.id),
-    );
+    expect(bootstrap.classes.length).toBeGreaterThan(1);
+    expect(
+      (bootstrap as unknown as { students: unknown }).students,
+    ).toBeUndefined();
+    expect(
+      (bootstrap as unknown as { attendance: unknown }).attendance,
+    ).toBeUndefined();
+    expect(
+      (bootstrap as unknown as { assignments: unknown }).assignments,
+    ).toBeUndefined();
+  });
+});
 
-    expect(bootstrap.students.some((s) => otherClassIds.has(s.classId))).toBe(
+describe('InMemorySchoolRepository boards (#76)', () => {
+  it('attendance-board aísla por clase sin mezclar otras', async () => {
+    const repository = createInMemorySchoolRepository(new Date('2026-08-19'));
+    const board = await repository.getAttendanceBoard('class-1');
+    const otherStudents = await repository.getStudents('class-2');
+    const otherIds = new Set(otherStudents.map((s) => s.id));
+    expect(board.students.every((s) => s.classId === 'class-1')).toBe(true);
+    expect(board.attendance.every((r) => !otherIds.has(r.studentId))).toBe(
       true,
     );
+    expect(board.schoolDays.length).toBeGreaterThan(0);
+  });
+
+  it('task-board evita N+1 y aísla por clase', async () => {
+    const repository = createInMemorySchoolRepository(new Date('2026-08-19'));
+    const board = await repository.getTaskBoard('class-1');
+    expect(board.students.every((s) => s.classId === 'class-1')).toBe(true);
+    expect(board.assignments.every((a) => a.classId === 'class-1')).toBe(true);
+    const assignmentIds = new Set(board.assignments.map((a) => a.id));
     expect(
-      bootstrap.attendance.some((record) =>
-        otherStudentIds.has(record.studentId),
-      ),
-    ).toBe(true);
-    expect(
-      bootstrap.assignments.some(
-        (assignment) => assignment.classId !== bootstrap.activeClassId,
-      ),
-    ).toBe(true);
-    const otherAssignmentIds = new Set(
-      bootstrap.assignments
-        .filter((assignment) => assignment.classId !== bootstrap.activeClassId)
-        .map((assignment) => assignment.id),
-    );
-    expect(otherAssignmentIds.size).toBeGreaterThan(0);
-    expect(
-      bootstrap.submissions.some((submission) =>
-        otherAssignmentIds.has(submission.assignmentId),
-      ),
+      board.submissions.every((s) => assignmentIds.has(s.assignmentId)),
     ).toBe(true);
   });
 
-  it('no filtra la carpeta de correo: incluye los enviados del docente', async () => {
+  it('annotations enriquecidas filtran por clase y traen studentName', async () => {
     const repository = createInMemorySchoolRepository(new Date('2026-08-19'));
-    await repository.sendMail({
-      subject: 'Asunto',
-      body: 'Cuerpo del mensaje',
-      recipientIds: ['family-student-1'],
-    });
-
-    const bootstrap = await repository.getBootstrap();
-    const inbox = await repository.getMails('inbox');
-
-    expect(inbox.every((mail) => mail.folder === 'inbox')).toBe(true);
-    expect(bootstrap.mails.some((mail) => mail.folder === 'sent')).toBe(true);
+    const all = await repository.getAnnotations();
+    expect(all.length).toBeGreaterThan(0);
+    for (const item of all) {
+      expect(typeof item.studentName).toBe('string');
+      expect(item.studentInitials.length).toBeGreaterThanOrEqual(2);
+    }
+    const byClass = await repository.getAnnotations({ classId: 'class-1' });
+    const class1Students = await repository.getStudents('class-1');
+    const class1Ids = new Set(class1Students.map((s) => s.id));
+    for (const item of byClass)
+      expect(class1Ids.has(item.studentId)).toBe(true);
   });
 });

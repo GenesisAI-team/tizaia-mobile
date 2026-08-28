@@ -124,18 +124,37 @@ export type StudentProgress = {
   };
 };
 
-/** Grafo común servido por `/v1/bootstrap` para hidratar el móvil. */
+/** Bootstrap mínimo: contexto global sin overfetch (#76). */
 export type SchoolBootstrap = {
   teacher: Teacher;
   activeClassId: string;
   classes: SchoolClass[];
-  schoolDays: SchoolDay[];
+};
+
+/** Agregado de asistencia por clase: 1 request para la matriz (#76). */
+export type AttendanceBoard = {
   students: Student[];
+  schoolDays: SchoolDay[];
   attendance: AttendanceRecord[];
+};
+
+/** Agregado de tareas por clase: 1 request sin N+1 (#76). */
+export type TaskBoard = {
+  students: Student[];
   assignments: Assignment[];
   submissions: AssignmentSubmission[];
-  annotations: Annotation[];
-  mails: Mail[];
+};
+
+/** Anotación enriquecida para UI (Opción A #76): incluye datos de presentación del alumno. */
+export type AnnotationListItem = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentInitials: string;
+  type: AnnotationType;
+  description: string;
+  managed: boolean;
+  createdAt: Date;
 };
 
 export const getStudentFullName = (

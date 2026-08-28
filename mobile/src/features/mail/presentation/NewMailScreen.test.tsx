@@ -11,6 +11,7 @@ import type { AppDependencies } from '../../../app/createAppDependencies';
 import { FakeAssistantGateway } from '../../assistant/infrastructure/fakeAssistantGateway';
 import { FakeAuthGateway } from '../../auth/infrastructure/fakeAuthGateway';
 import { SchoolDataProvider } from '../../../shared/state/schoolDataProvider';
+import { AppBootstrapProvider } from '../../../shared/state/appBootstrapProvider';
 import { createSchoolRepositoryStub } from '../../../test/schoolRepositoryStubs';
 import { NewMailScreen } from './NewMailScreen';
 
@@ -35,7 +36,9 @@ function createTree(): React.JSX.Element {
   return (
     <AppDependenciesProvider dependencies={createDeps}>
       <SchoolDataProvider>
-        <NewMailScreen />
+        <AppBootstrapProvider>
+          <NewMailScreen />
+        </AppBootstrapProvider>
       </SchoolDataProvider>
     </AppDependenciesProvider>
   );
@@ -54,6 +57,11 @@ async function renderScreen(): Promise<ReactTestRenderer> {
   let renderer!: ReactTestRenderer;
   await act(async () => {
     renderer = create(createTree());
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
   activeRenderer = renderer;
   return renderer;

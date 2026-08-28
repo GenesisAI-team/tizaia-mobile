@@ -10,6 +10,7 @@ import type { AppDependencies } from '../../../app/createAppDependencies';
 import { FakeAssistantGateway } from '../../assistant/infrastructure/fakeAssistantGateway';
 import { FakeAuthGateway } from '../../auth/infrastructure/fakeAuthGateway';
 import { SchoolDataProvider } from '../../../shared/state/schoolDataProvider';
+import { AppBootstrapProvider } from '../../../shared/state/appBootstrapProvider';
 import {
   ACTIVE_CLASS_ID,
   createSchoolRepositoryStub,
@@ -49,10 +50,17 @@ async function renderScreen(repo: RepoStub): Promise<ReactTestRenderer> {
     renderer = create(
       <AppDependenciesProvider dependencies={createDependencies(repo)}>
         <SchoolDataProvider>
-          <AttendanceScreen />
+          <AppBootstrapProvider>
+            <AttendanceScreen />
+          </AppBootstrapProvider>
         </SchoolDataProvider>
       </AppDependenciesProvider>,
     );
+  });
+  // #76: bootstrap mínimo + board son 2 fetches secuenciales
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
   activeRenderer = renderer;
   return renderer;
@@ -75,7 +83,7 @@ function findAllByTestId(
   return renderer.root.findAll((node) => node.props.testID === testID);
 }
 
-describe('AttendanceScreen con bootstrap de centro completo', () => {
+describe('AttendanceScreen con boards por clase (#76)', () => {
   it('muestra solo el alumnado de la clase activa', async () => {
     const repo = createSchoolRepositoryStub();
     const renderer = await renderScreen(repo);

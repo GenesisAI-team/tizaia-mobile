@@ -31,6 +31,7 @@ import {
   useSchoolInvalidation,
   useSchoolResource,
 } from '../../../shared/state/schoolDataProvider';
+import { useAppBootstrap } from '../../../shared/state/appBootstrapProvider';
 import type { SchoolClass, Student } from '../../../domain/school/models';
 
 type Recipient = {
@@ -91,16 +92,29 @@ export function NewMailScreen(): React.JSX.Element {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
 
+  const { activeClassId, bootstrap, state: bootstrapState } = useAppBootstrap();
+
   /** Familia y grupo del alumno precargado por ruta (anotaciones/lista). */
-  const preloadResource = useSchoolResource(async () => {
+  const preloadInnerResource = useSchoolResource(async () => {
     const studentId = route.params?.studentId;
     if (studentId === undefined) return undefined;
-    const bootstrap = await schoolRepository.getBootstrap();
+    if (activeClassId === null || bootstrap === null)
+      throw new Error('Cargando clase activa...');
+    // Sin overfetch: solo alumnos de la clase activa
+    const students = await schoolRepository.getStudents(activeClassId);
     return {
-      student: bootstrap.students.find((item) => item.id === studentId),
+      student: students.find((item) => item.id === studentId),
       classes: bootstrap.classes,
     };
-  }, []);
+  }, [route.params?.studentId, activeClassId, bootstrap?.activeClassId]);
+
+  const preloadResource =
+    activeClassId === null || bootstrap === null
+      ? ({
+          state: bootstrapState as unknown as typeof preloadInnerResource.state,
+          reload: () => {},
+        } as typeof preloadInnerResource)
+      : preloadInnerResource;
 
   /** Listado de destinatarios disponibles para el selector (+Familias/+Grupos). */
   const recipientsResource = useSchoolResource(

@@ -19,44 +19,6 @@ const BOOTSTRAP_BODY = {
   classes: [
     { id: 'class-1', groupName: '1.º BACHILLER D', subject: 'Tecnología' },
   ],
-  schoolDays: [{ date: '2026-08-21', label: 'Vie', secondaryLabel: '21/08' }],
-  students: [
-    {
-      id: 'student-1',
-      classId: 'class-1',
-      firstName: 'Ada',
-      lastName: 'López',
-      birthDate: '2009-01-01',
-      schoolEmail: 'ada@edu.es',
-      description: null,
-    },
-  ],
-  attendance: [
-    {
-      id: 'att-1',
-      studentId: 'student-1',
-      date: '2026-08-21',
-      status: 'present',
-    },
-  ],
-  assignments: [
-    {
-      id: 'asg-1',
-      classId: 'class-1',
-      title: 'Práctica 1',
-      dueDate: '2026-08-21',
-    },
-  ],
-  submissions: [
-    {
-      id: 'sub-1',
-      assignmentId: 'asg-1',
-      studentId: 'student-1',
-      status: 'submitted',
-    },
-  ],
-  annotations: [],
-  mails: [],
 };
 
 describe('ApiSchoolRepository (contratos REST de #67)', () => {
@@ -75,7 +37,7 @@ describe('ApiSchoolRepository (contratos REST de #67)', () => {
     jest.restoreAllMocks();
   });
 
-  it('getBootstrap mapea el grafo agregado a dominio', async () => {
+  it('getBootstrap mapea el contexto mínimo a dominio', async () => {
     fetchMock.mockResolvedValue(jsonResponse(BOOTSTRAP_BODY));
 
     const bootstrap = await repository.getBootstrap();
@@ -83,14 +45,26 @@ describe('ApiSchoolRepository (contratos REST de #67)', () => {
     const [url] = fetchMock.mock.calls[0]! as unknown as [string];
     expect(url).toBe('http://localhost:3000/v1/bootstrap');
     expect(bootstrap.activeClassId).toBe('class-1');
-    expect(bootstrap.students[0]).toMatchObject({
-      id: 'student-1',
-      firstName: 'Ada',
-    });
+    expect(bootstrap.classes[0]).toMatchObject({ id: 'class-1' });
+    expect(
+      (bootstrap as unknown as { students: unknown }).students,
+    ).toBeUndefined();
   });
 
   it('getStudents pide la clase correspondiente', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(BOOTSTRAP_BODY.students));
+    fetchMock.mockResolvedValue(
+      jsonResponse([
+        {
+          id: 'student-1',
+          classId: 'class-1',
+          firstName: 'Ada',
+          lastName: 'López',
+          birthDate: '2009-01-01',
+          schoolEmail: 'ada@edu.es',
+          description: null,
+        },
+      ]),
+    );
 
     await repository.getStudents('class-1');
 

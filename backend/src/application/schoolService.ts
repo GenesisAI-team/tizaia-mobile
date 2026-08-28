@@ -1,11 +1,13 @@
 import type {
   Annotation,
   AnnotationType,
+  Assignment,
   AssignmentSubmission,
   AttendanceRecord,
   AttendanceStatus,
   MailRecipientRef,
   SchoolClass,
+  SchoolDay,
   Student,
   SubmissionStatus,
 } from '../domain/models.js';
@@ -24,33 +26,97 @@ export class SchoolService {
 
   // ---------- Sistema y bootstrap ----------
 
-  public async getBootstrap(): Promise<Record<string, unknown>> {
-    const repository = this.repository;
-    const classes = await repository.getClasses();
-    const assignments = await repository.getAssignments();
-    const attendance: AttendanceRecord[] = [];
-    for (const schoolClass of classes) {
-      attendance.push(
-        ...(await repository.getAttendanceForClass(schoolClass.id)),
-      );
-    }
+  /**
+   * Bootstrap mínimo para contexto global: docente, clase activa y listado de
+   * clases. Evita overfetch (#76): no incluye alumnado, asistencia, tareas,
+   * entregas, anotaciones ni mails. Las pantallas cargan agregados por caso de
+   * uso (`attendance-board`, `task-board`, anotaciones enriquecidas).
+   */
+  public async getBootstrap(): Promise<{
+    teacher: unknown;
+    activeClassId: string;
+    classes: SchoolClass[];
+  }> {
+    const [teacher, activeClassId, classes] = await Promise.all([
+      this.repository.getTeacher(),
+      this.repository.getActiveClassId(),
+      this.repository.getClasses(),
+    ]);
+    return { teacher, activeClassId, classes };
+  }
+
+  /**
+   * Agregado por caso de uso: matriz de asistencia de una clase.
+   * Devuelve únicamente datos de la clase solicitada (students + schoolDays +
+   * attendance), una sola operación HTTP sin mezclar otras clases ni dominios.
+   */
+  public async getAttendanceBoard(classId: string): Promise<{
+    students: Student[];
+    schoolDays: SchoolDay[];
+    attendance: AttendanceRecord[];
+  }> {
+    await this.requireClass(classId);
+    const [students, attendance, schoolDays] = await Promise.all([
+      this.repository.getStudents(classId),
+      this.repository.getAttendanceForClass(classId),
+      this.repository.getSchoolDays(),
+    ]);
+    return { students, schoolDays, attendance };
+  }
+
+  /**
+   * Agregado por caso de uso: matriz de tareas de una clase.
+   * Evita N+1 en cliente (1 request en lugar de 1 + N por assignment); el
+   * servidor compone submissions en memoria y el futuro adaptador Supabase
+   * podrá resolverlo con `WHERE assignment_id IN (...)` en una sola query.
+   */
+  public async getTaskBoard(classId: string): Promise<{
+    students: Student[];
+    assignments: Assignment[];
+    submissions: AssignmentSubmission[];
+  }> {
+    await this.requireClass(classId);
+    const [students, assignments] = await Promise.all([
+      this.repository.getStudents(classId),
+      this.repository.getAssignments(classId),
+    ]);
     const submissions: AssignmentSubmission[] = [];
     for (const assignment of assignments) {
-      submissions.push(...(await repository.getSubmissions(assignment.id)));
+      submissions.push(
+        ...(await this.repository.getSubmissions(assignment.id)),
+      );
     }
-    return {
-      teacher: await repository.getTeacher(),
-      activeClassId: await repository.getActiveClassId(),
-      classes,
-      schoolDays: await repository.getSchoolDays(),
-      students: await repository.getStudents(),
-      contacts: await repository.getAllContacts(),
-      attendance,
-      assignments,
-      submissions,
-      annotations: await repository.getAnnotations(),
-      mails: await repository.getMails(),
-    };
+    return { students, assignments, submissions };
+  }
+
+  /**
+   * Listado de anotaciones enriquecido para UI (Opción A #76): incluye
+   * `studentName`/`studentInitials` para pintar la tarjeta sin necesitar
+   * `GET /v1/bootstrap` completo. Es una proyección de lectura, no duplica
+   * dominio.
+   */
+  public async listAnnotationListItems(filters: {
+    classId?: string;
+    studentId?: string;
+    managed?: boolean;
+  }): Promise<
+    Array<Annotation & { studentName: string; studentInitials: string }>
+  > {
+    const annotations = await this.listAnnotations(filters);
+    const enriched: Array<
+      Annotation & { studentName: string; studentInitials: string }
+    > = [];
+    for (const annotation of annotations) {
+      const student = await this.repository.getStudent(annotation.studentId);
+      const studentName = student
+        ? `${student.firstName} ${student.lastName}`
+        : 'Alumno';
+      const studentInitials = student
+        ? `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase()
+        : 'AL';
+      enriched.push({ ...annotation, studentName, studentInitials });
+    }
+    return enriched;
   }
 
   public async me(): Promise<{

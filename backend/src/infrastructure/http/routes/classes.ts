@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { SchoolService } from '../../../application/schoolService.js';
 import { parseWith } from '../validation.js';
 import { classIdParamSchema, dateRangeQuerySchema } from '../schemas.js';
+import { toAttendanceBoardDto, toTaskBoardDto } from '../dto.js';
 
 /**
  * Clases: listado, detalle, resumen, alumnado, asistencia por rango y tareas.
@@ -40,6 +41,17 @@ export function createClassesRouter(service: SchoolService): Router {
   router.get('/v1/classes/:classId/assignments', async (req, res) => {
     const { classId } = parseWith(classIdParamSchema, req.params);
     res.json(await service.listAssignments(classId));
+  });
+
+  // Agregados por caso de uso (#76): una sola request por matriz
+  router.get('/v1/classes/:classId/attendance-board', async (req, res) => {
+    const { classId } = parseWith(classIdParamSchema, req.params);
+    res.json(toAttendanceBoardDto(await service.getAttendanceBoard(classId)));
+  });
+
+  router.get('/v1/classes/:classId/task-board', async (req, res) => {
+    const { classId } = parseWith(classIdParamSchema, req.params);
+    res.json(toTaskBoardDto(await service.getTaskBoard(classId)));
   });
 
   return router;

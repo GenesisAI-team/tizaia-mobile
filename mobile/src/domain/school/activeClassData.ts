@@ -2,15 +2,14 @@ import type {
   Assignment,
   AssignmentSubmission,
   AttendanceRecord,
-  SchoolBootstrap,
   Student,
 } from './models';
 
 /**
- * Vista del bootstrap acotada a la clase activa. `/v1/bootstrap` sirve datos
- * de todo el centro (RFC-001 §7); las matrices de Asistencia y Tareas solo
- * representan la clase activa, así que cada pantalla selecciona con este
- * selector en lugar de consumir el agregado completo.
+ * Vista acotada a la clase activa. Antes filtraba el bootstrap completo
+ * (`#76`); ahora los boards devuelven datos ya aislados por clase y el
+ * selector queda como utilidad pura para tests o fallback, sin ocultar mezclas
+ * entre clases en el fake.
  */
 export type ActiveClassData = {
   activeClassId: string;
@@ -21,14 +20,17 @@ export type ActiveClassData = {
 };
 
 /**
- * Únicos campos del bootstrap que consume el selector. El acoplamiento queda
- * explícito: hoy llegan de una sola petición a `/v1/bootstrap`; si mañana se
- * sirven desde endpoints por dominio, el selector no cambia.
+ * Fuente acotada por clase. Ya no depende de `SchoolBootstrap` mínimo (#76):
+ * hoy llega de boards `attendance-board`/`task-board`, pero el selector no
+ * cambia.
  */
-export type ClassScopedSource = Pick<
-  SchoolBootstrap,
-  'activeClassId' | 'students' | 'attendance' | 'assignments' | 'submissions'
->;
+export type ClassScopedSource = {
+  activeClassId: string;
+  students: Student[];
+  attendance: AttendanceRecord[];
+  assignments: Assignment[];
+  submissions: AssignmentSubmission[];
+};
 
 export const selectActiveClassData = (
   source: ClassScopedSource,

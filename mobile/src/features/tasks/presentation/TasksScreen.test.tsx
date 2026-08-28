@@ -11,6 +11,7 @@ import type { AppDependencies } from '../../../app/createAppDependencies';
 import { FakeAssistantGateway } from '../../assistant/infrastructure/fakeAssistantGateway';
 import { FakeAuthGateway } from '../../auth/infrastructure/fakeAuthGateway';
 import { SchoolDataProvider } from '../../../shared/state/schoolDataProvider';
+import { AppBootstrapProvider } from '../../../shared/state/appBootstrapProvider';
 import { createSchoolRepositoryStub } from '../../../test/schoolRepositoryStubs';
 import { TasksScreen } from './TasksScreen';
 
@@ -47,10 +48,16 @@ async function renderScreen(repo: RepoStub): Promise<ReactTestRenderer> {
     renderer = create(
       <AppDependenciesProvider dependencies={createDependencies(repo)}>
         <SchoolDataProvider>
-          <TasksScreen />
+          <AppBootstrapProvider>
+            <TasksScreen />
+          </AppBootstrapProvider>
         </SchoolDataProvider>
       </AppDependenciesProvider>,
     );
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
   activeRenderer = renderer;
   return renderer;
@@ -79,7 +86,7 @@ function textContents(renderer: ReactTestRenderer): string[] {
     .map((node) => String(node.props.children));
 }
 
-describe('TasksScreen con bootstrap de centro completo', () => {
+describe('TasksScreen con boards por clase (#76)', () => {
   it('muestra solo tareas y alumnado de la clase activa', async () => {
     const repo = createSchoolRepositoryStub();
     const renderer = await renderScreen(repo);

@@ -1,7 +1,9 @@
 import type {
   Annotation,
+  AnnotationListItem,
   AnnotationType,
   AssignmentSubmission,
+  AttendanceBoard,
   AttendanceRecord,
   AttendanceStatus,
   Mail,
@@ -12,6 +14,7 @@ import type {
   Student,
   StudentProgress,
   SubmissionStatus,
+  TaskBoard,
   Teacher,
 } from './models';
 
@@ -23,7 +26,7 @@ import type {
  */
 export interface SchoolRepository {
   // Consultas
-  /** Grafo común que hidrata clase activa, días, matrices, anotaciones y correo. */
+  /** Bootstrap mínimo: contexto global (teacher/activeClassId/classes) sin overfetch (#76). */
   getBootstrap(): Promise<SchoolBootstrap>;
   /** Docente activo y clase activa (`/v1/me`). */
   getMe(): Promise<{ teacher: Teacher; activeClass: SchoolClass }>;
@@ -32,7 +35,15 @@ export interface SchoolRepository {
   getStudents(classId: string): Promise<Student[]>;
   /** Seguimiento agregado del alumno (asistencia, anotaciones y tareas). */
   getStudentProgress(studentId: string): Promise<StudentProgress>;
-  getAnnotations(): Promise<Annotation[]>;
+  /** Boards por clase: 1 request por matriz, sin mezclar otras clases (#76). */
+  getAttendanceBoard(classId: string): Promise<AttendanceBoard>;
+  getTaskBoard(classId: string): Promise<TaskBoard>;
+  /** Anotaciones enriquecidas con datos de presentación del alumno (Opción A #76). */
+  getAnnotations(filters?: {
+    classId?: string;
+    studentId?: string;
+    managed?: boolean;
+  }): Promise<AnnotationListItem[]>;
   /** Bandeja solicitada; por defecto la entrada. */
   getMails(folder?: MailFolder): Promise<Mail[]>;
   /** Destinatarios disponibles (familias y grupos) con filtro opcional. */

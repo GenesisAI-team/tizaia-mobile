@@ -30,10 +30,7 @@ import {
   useSchoolInvalidation,
   useSchoolResource,
 } from '../../../shared/state/schoolDataProvider';
-import {
-  getStudentFullName,
-  getStudentInitials,
-} from '../../../domain/school/models';
+import { useAppBootstrap } from '../../../shared/state/appBootstrapProvider';
 import type { AnnotationType } from '../../../domain/school/models';
 import { formatDayMonth } from '../../../domain/school/schoolDates';
 
@@ -66,14 +63,25 @@ export function AnnotationsScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
   const invalidate = useSchoolInvalidation();
+  const {
+    activeClassId,
+    state: bootstrapState,
+    reload: reloadBootstrap,
+  } = useAppBootstrap();
 
-  const resource = useSchoolResource(async () => {
-    const [annotations, bootstrap] = await Promise.all([
-      schoolRepository.getAnnotations(),
-      schoolRepository.getBootstrap(),
-    ]);
-    return { annotations, studentsById: bootstrap.students };
-  }, []);
+  const annotationsResource = useSchoolResource(async () => {
+    if (activeClassId === null) throw new Error('Cargando clase activa...');
+    // 1 request enriquecida por clase, sin bootstrap (Opción A #76)
+    return schoolRepository.getAnnotations({ classId: activeClassId });
+  }, [activeClassId]);
+
+  const resource =
+    activeClassId === null
+      ? ({
+          state: bootstrapState as unknown as typeof annotationsResource.state,
+          reload: reloadBootstrap,
+        } as typeof annotationsResource)
+      : annotationsResource;
 
   /** Overrides optimistas del estado gestionado por id de anotación. */
   const [managedOverrides, setManagedOverrides] = useState<
@@ -83,24 +91,16 @@ export function AnnotationsScreen(): React.JSX.Element {
 
   const annotations: AnnotationListItem[] =
     resource.state.status === 'success'
-      ? (() => {
-          const { annotations, studentsById } = resource.state.data;
-          return annotations.map((annotation) => {
-            const student = studentsById.find(
-              (item) => item.id === annotation.studentId,
-            );
-            return {
-              id: annotation.id,
-              studentId: annotation.studentId,
-              studentName: student ? getStudentFullName(student) : 'Alumno',
-              initials: student ? getStudentInitials(student) : 'AL',
-              type: annotation.type,
-              description: annotation.description,
-              managed: managedOverrides[annotation.id] ?? annotation.managed,
-              dateLabel: formatDayMonth(annotation.createdAt),
-            };
-          });
-        })()
+      ? resource.state.data.map((annotation) => ({
+          id: annotation.id,
+          studentId: annotation.studentId,
+          studentName: annotation.studentName,
+          initials: annotation.studentInitials,
+          type: annotation.type,
+          description: annotation.description,
+          managed: managedOverrides[annotation.id] ?? annotation.managed,
+          dateLabel: formatDayMonth(annotation.createdAt),
+        }))
       : [];
 
   const toggleChecked = (item: AnnotationListItem): void => {

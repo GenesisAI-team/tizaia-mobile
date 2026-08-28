@@ -31,6 +31,7 @@ import {
   useSchoolInvalidation,
   useSchoolResource,
 } from '../../../shared/state/schoolDataProvider';
+import { useAppBootstrap } from '../../../shared/state/appBootstrapProvider';
 import {
   getStudentFullName,
   getStudentInitials,
@@ -84,11 +85,27 @@ export function NewAnnotationScreen(): React.JSX.Element {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const formResource = useSchoolResource(async () => {
-    // El bootstrap agregado trae alumnado y clases para selector y grupo.
-    const bootstrap = await schoolRepository.getBootstrap();
-    return { classes: bootstrap.classes, students: bootstrap.students };
-  }, []);
+  const {
+    activeClassId,
+    bootstrap,
+    state: bootstrapState,
+    reload: reloadBootstrap,
+  } = useAppBootstrap();
+
+  const studentsResource = useSchoolResource(async () => {
+    if (activeClassId === null || bootstrap === null)
+      throw new Error('Cargando clase activa...');
+    const students = await schoolRepository.getStudents(activeClassId);
+    return { classes: bootstrap.classes, students };
+  }, [activeClassId, bootstrap?.activeClassId]);
+
+  const formResource =
+    activeClassId === null || bootstrap === null
+      ? ({
+          state: bootstrapState as unknown as typeof studentsResource.state,
+          reload: reloadBootstrap,
+        } as typeof studentsResource)
+      : studentsResource;
 
   const selectedStudent =
     formResource.state.status === 'success'

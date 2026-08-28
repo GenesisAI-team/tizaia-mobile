@@ -34,23 +34,21 @@ describe('API REST (integración)', () => {
     assert.equal(response.body.activeClass.id, 'class-1');
   });
 
-  it('GET /v1/bootstrap devuelve un grafo coherente', async () => {
+  it('GET /v1/bootstrap devuelve contexto global mínimo', async () => {
     const response = await server.requestJson<AnyRecord>('/v1/bootstrap');
     assert.equal(response.status, 200);
-    const students = response.body.students as AnyRecord[];
-    const studentIds = new Set(students.map((student) => student.id));
-    for (const record of response.body.attendance as AnyRecord[]) {
-      assert.ok(studentIds.has(record.studentId));
-    }
-    for (const submission of response.body.submissions as AnyRecord[]) {
-      assert.ok(studentIds.has(submission.studentId));
-    }
-    for (const annotation of response.body.annotations as AnyRecord[]) {
-      assert.ok(studentIds.has(annotation.studentId));
-      assert.equal(typeof annotation.managed, 'boolean');
-    }
-    assert.equal((response.body.mails as AnyRecord[]).length, 30);
+    // #76: bootstrap mínimo solo teacher/activeClassId/classes (sin overfetch)
+    assert.ok(response.body.teacher);
+    assert.equal(typeof response.body.activeClassId, 'string');
     assert.equal((response.body.classes as AnyRecord[]).length, 6);
+    assert.equal(response.body.students, undefined);
+    assert.equal(response.body.attendance, undefined);
+    assert.equal(response.body.submissions, undefined);
+    assert.equal(response.body.annotations, undefined);
+    assert.equal(response.body.mails, undefined);
+    assert.equal(response.body.contacts, undefined);
+    assert.equal(response.body.schoolDays, undefined);
+    assert.equal(response.body.assignments, undefined);
   });
 
   it('gestiona clases: listado, detalle, resumen y errores', async () => {
@@ -128,12 +126,16 @@ describe('API REST (integración)', () => {
   });
 
   it('borra el alumno en cascada y no deja huérfanos visibles', async () => {
-    const bootstrapBefore =
-      await server.requestJson<AnyRecord>('/v1/bootstrap');
-    const student = (bootstrapBefore.body.students as AnyRecord[])[0]!;
-    const attendanceCount = (
-      bootstrapBefore.body.attendance as AnyRecord[]
-    ).filter((record) => record.studentId === student.id).length;
+    const studentsBefore = await server.requestJson<AnyRecord[]>(
+      '/v1/classes/class-1/students',
+    );
+    const student = studentsBefore.body[0]!;
+    const boardBefore = await server.requestJson<AnyRecord>(
+      '/v1/classes/class-1/attendance-board',
+    );
+    const attendanceCount = (boardBefore.body.attendance as AnyRecord[]).filter(
+      (record) => record.studentId === student.id,
+    ).length;
     assert.ok(attendanceCount > 0);
 
     const deleted = await server.request(`/v1/students/${student.id}`, {
@@ -146,14 +148,19 @@ describe('API REST (integración)', () => {
     );
     assert.equal(missing.status, 404);
 
-    const bootstrapAfter = await server.requestJson<AnyRecord>('/v1/bootstrap');
-    const stillThere = (bootstrapAfter.body.attendance as AnyRecord[]).some(
+    const boardAfter = await server.requestJson<AnyRecord>(
+      '/v1/classes/class-1/attendance-board',
+    );
+    const stillThere = (boardAfter.body.attendance as AnyRecord[]).some(
       (record) => record.studentId === student.id,
     );
     assert.equal(stillThere, false);
-    const orphanSubmissions = (
-      bootstrapAfter.body.submissions as AnyRecord[]
-    ).some((submission) => submission.studentId === student.id);
+    const taskAfter = await server.requestJson<AnyRecord>(
+      '/v1/classes/class-1/task-board',
+    );
+    const orphanSubmissions = (taskAfter.body.submissions as AnyRecord[]).some(
+      (submission) => submission.studentId === student.id,
+    );
     assert.equal(orphanSubmissions, false);
   });
 
@@ -256,8 +263,10 @@ describe('API REST (integración)', () => {
       assert.equal(annotation.managed, false);
     }
 
-    const bootstrap = await server.requestJson<AnyRecord>('/v1/bootstrap');
-    const studentId = (bootstrap.body.students as AnyRecord[])[0]!.id;
+    const studentsForAnnotation = await server.requestJson<AnyRecord[]>(
+      '/v1/classes/class-1/students',
+    );
+    const studentId = studentsForAnnotation.body[0]!.id;
 
     const created = await server.requestJson<AnyRecord>(
       '/v1/annotations',
@@ -383,6 +392,96 @@ describe('API REST (integración)', () => {
       }),
     );
     assert.equal(emptyRecipients.status, 400);
+  });
+
+  it('agregados por clase (#76): attendance-board y task-board aislados por clase', async () => {
+    const attendanceBoard = await server.requestJson<AnyRecord>(
+      '/v1/classes/class-1/attendance-board',
+    );
+    assert.equal(attendanceBoard.status, 200);
+    const students = attendanceBoard.body.students as AnyRecord[];
+    const attendance = attendanceBoard.body.attendance as AnyRecord[];
+    const schoolDays = attendanceBoard.body.schoolDays as AnyRecord[];
+    assert.ok(students.length >= 20 && students.length <= 30);
+    assert.ok(students.every((s) => s.classId === 'class-1'));
+    assert.ok(
+      attendance.every((r) => students.some((s) => s.id === r.studentId)),
+    );
+    assert.ok(schoolDays.length >= 10);
+    // No mezcla de otras clases
+    const otherClassStudents = await server.requestJson<AnyRecord[]>(
+      '/v1/classes/class-2/students',
+    );
+    const otherIds = new Set(otherClassStudents.body.map((s) => s.id));
+    assert.equal(
+      attendance.some((r) => otherIds.has(r.studentId)),
+      false,
+    );
+    assert.equal(attendanceBoard.body.assignments, undefined);
+    assert.equal(attendanceBoard.body.submissions, undefined);
+    assert.equal(attendanceBoard.body.mails, undefined);
+
+    const taskBoard = await server.requestJson<AnyRecord>(
+      '/v1/classes/class-1/task-board',
+    );
+    assert.equal(taskBoard.status, 200);
+    const taskStudents = taskBoard.body.students as AnyRecord[];
+    const assignments = taskBoard.body.assignments as AnyRecord[];
+    const submissions = taskBoard.body.submissions as AnyRecord[];
+    assert.ok(taskStudents.every((s) => s.classId === 'class-1'));
+    assert.equal(assignments.length, 10);
+    assert.ok(assignments.every((a) => a.classId === 'class-1'));
+    const assignmentIds = new Set(assignments.map((a) => a.id));
+    assert.ok(submissions.every((s) => assignmentIds.has(s.assignmentId)));
+    assert.ok(
+      submissions.every((s) =>
+        taskStudents.some((st) => st.id === s.studentId),
+      ),
+    );
+    assert.equal(taskBoard.body.attendance, undefined);
+    assert.equal(taskBoard.body.mails, undefined);
+
+    // 404 para clase inexistente
+    const missingBoard = await server.requestJson<AnyRecord>(
+      '/v1/classes/class-999/attendance-board',
+    );
+    assert.equal(missingBoard.status, 404);
+    const missingTask = await server.requestJson<AnyRecord>(
+      '/v1/classes/class-999/task-board',
+    );
+    assert.equal(missingTask.status, 404);
+  });
+
+  it('anotaciones enriquecidas (#76 Opción A) incluyen studentName/initials y filtran por clase', async () => {
+    const all = await server.requestJson<AnyRecord[]>('/v1/annotations');
+    assert.ok(all.body.length > 0);
+    for (const item of all.body) {
+      assert.equal(typeof item.studentName, 'string');
+      assert.ok(item.studentName.length > 0);
+      assert.equal(typeof item.studentInitials, 'string');
+      assert.ok(item.studentInitials.length >= 2);
+      assert.equal(typeof item.managed, 'boolean');
+    }
+    const byClass = await server.requestJson<AnyRecord[]>(
+      '/v1/annotations?classId=class-1',
+    );
+    assert.equal(byClass.status, 200);
+    // Cada anotación debe pertenecer a alumno de class-1
+    const class1Students = await server.requestJson<AnyRecord[]>(
+      '/v1/classes/class-1/students',
+    );
+    const class1Ids = new Set(class1Students.body.map((s) => s.id));
+    for (const item of byClass.body) {
+      assert.ok(class1Ids.has(item.studentId));
+      assert.equal(typeof item.studentName, 'string');
+    }
+    // No bootstrap necesario: verificar que no mezclamos otras clases
+    const class2Students = await server.requestJson<AnyRecord[]>(
+      '/v1/classes/class-2/students',
+    );
+    const class2Ids = new Set(class2Students.body.map((s) => s.id));
+    const mixed = byClass.body.some((item) => class2Ids.has(item.studentId));
+    assert.equal(mixed, false);
   });
 
   it('expone POST /v1/dev/reset solo bajo flag', async () => {

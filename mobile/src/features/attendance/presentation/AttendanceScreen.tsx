@@ -20,12 +20,12 @@ import {
   useSchoolInvalidation,
   useSchoolResource,
 } from '../../../shared/state/schoolDataProvider';
+import { useAppBootstrap } from '../../../shared/state/appBootstrapProvider';
 import {
   getStudentFullName,
   getStudentInitials,
 } from '../../../domain/school/models';
 import type { AttendanceStatus } from '../../../domain/school/models';
-import { selectActiveClassData } from '../../../domain/school/activeClassData';
 
 /** Mapeo de estado de asistencia a celda visual existente (sin cambios de icono). */
 const CELL_STATE_BY_ATTENDANCE: Record<AttendanceStatus, StatusCellState> = {
@@ -53,16 +53,24 @@ export function AttendanceScreen(): React.JSX.Element {
   const onPressTab = useTabBarPress();
   const schoolRepository = useSchoolRepository();
   const invalidate = useSchoolInvalidation();
+  const {
+    activeClassId,
+    state: bootstrapState,
+    reload: reloadBootstrap,
+  } = useAppBootstrap();
 
-  const resource = useSchoolResource(async () => {
-    // El bootstrap agregado sirve datos de todo el centro: se acota a la
-    // clase activa para no mezclar alumnado ni asistencia de otras clases.
-    const bootstrap = await schoolRepository.getBootstrap();
-    return {
-      ...selectActiveClassData(bootstrap),
-      schoolDays: bootstrap.schoolDays,
-    };
-  }, []);
+  const boardResource = useSchoolResource(async () => {
+    if (activeClassId === null) throw new Error('Cargando clase activa...');
+    return schoolRepository.getAttendanceBoard(activeClassId);
+  }, [activeClassId]);
+
+  const resource =
+    activeClassId === null
+      ? ({
+          state: bootstrapState as unknown as typeof boardResource.state,
+          reload: reloadBootstrap,
+        } as typeof boardResource)
+      : boardResource;
 
   /**
    * Overrides optimistas por celda (`studentId:date`). Se limpian cuando el
@@ -76,8 +84,8 @@ export function AttendanceScreen(): React.JSX.Element {
   const onCellPress = useCallback(
     (row: MatrixBoardRow, column: MatrixBoardColumn) => {
       if (resource.state.status !== 'success') return;
-      const { attendance, schoolDays, students, activeClassId } =
-        resource.state.data;
+      if (activeClassId === null) return;
+      const { attendance, schoolDays, students } = resource.state.data;
       const cellId = `${row.id}:${column.id}`;
       if (schoolDays.some((day) => day.date === column.id) === false) return;
       const student = students.find((item) => item.id === row.id);
@@ -123,7 +131,7 @@ export function AttendanceScreen(): React.JSX.Element {
         }
       })();
     },
-    [invalidate, optimistic, resource.state, schoolRepository],
+    [activeClassId, invalidate, optimistic, resource.state, schoolRepository],
   );
 
   const cellStates: Record<string, StatusCellState> = {};

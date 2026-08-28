@@ -1,8 +1,10 @@
 import type {
   Annotation,
+  Assignment,
   AssignmentSubmission,
   AttendanceRecord,
   Mail,
+  SchoolDay,
   Student,
 } from '../../domain/models.js';
 
@@ -99,3 +101,51 @@ function serializeMail(mail: Mail): MailDto {
 
 /** Alumno serializado (todos los campos ya son primitivos). */
 export const toStudentDto = (student: Student): Student => ({ ...student });
+
+/** Aggregado de asistencia por clase (#76): students + schoolDays + attendance. */
+export type AttendanceBoardDto = {
+  students: Student[];
+  schoolDays: SchoolDay[];
+  attendance: AttendanceRecordDto[];
+};
+
+export const toAttendanceBoardDto = (board: {
+  students: Student[];
+  schoolDays: SchoolDay[];
+  attendance: AttendanceRecord[];
+}): AttendanceBoardDto => ({
+  students: board.students.map(toStudentDto),
+  schoolDays: board.schoolDays.map((day) => ({ ...day })),
+  attendance: board.attendance.map(toAttendanceDto),
+});
+
+/** Agregado de tareas por clase (#76): students + assignments + submissions en 1 request. */
+export type TaskBoardDto = {
+  students: Student[];
+  assignments: Assignment[];
+  submissions: SubmissionDto[];
+};
+
+export const toTaskBoardDto = (board: {
+  students: Student[];
+  assignments: Assignment[];
+  submissions: AssignmentSubmission[];
+}): TaskBoardDto => ({
+  students: board.students.map(toStudentDto),
+  assignments: board.assignments.map((assignment) => ({ ...assignment })),
+  submissions: board.submissions.map(toSubmissionDto),
+});
+
+/** Anotación enriquecida para UI (Opción A #76) con datos de presentación del alumno. */
+export type AnnotationListItemDto = AnnotationDto & {
+  studentName: string;
+  studentInitials: string;
+};
+
+export const toAnnotationListItemDto = (
+  item: Annotation & { studentName: string; studentInitials: string },
+): AnnotationListItemDto => ({
+  ...toAnnotationDto(item),
+  studentName: item.studentName,
+  studentInitials: item.studentInitials,
+});

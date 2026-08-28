@@ -92,36 +92,60 @@ curl -X POST http://localhost:3000/v1/assistant/messages `
 
 ### Sistema
 
-| Método | Ruta            | Notas                                                |
-| ------ | --------------- | ---------------------------------------------------- |
-| GET    | `/health`       | Sonda de vida (healthcheck Docker)                   |
-| GET    | `/v1/bootstrap` | Grafo completo coherente para hidratar el móvil      |
-| GET    | `/v1/me`        | Docente activo y clase activa                        |
-| POST   | `/v1/dev/reset` | Solo con `ENABLE_DEV_RESET=true`; si no responde 404 |
+| Método | Ruta            | Notas                                                                                  |
+| ------ | --------------- | -------------------------------------------------------------------------------------- |
+| GET    | `/health`       | Sonda de vida (healthcheck Docker)                                                     |
+| GET    | `/v1/bootstrap` | Contexto global mínimo (`teacher` + `activeClassId` + `classes`) — sin overfetch (#76) |
+| GET    | `/v1/me`        | Docente activo y clase activa                                                          |
+| POST   | `/v1/dev/reset` | Solo con `ENABLE_DEV_RESET=true`; si no responde 404                                   |
+
+> **#76 — Bootstrap mínimo:** `GET /v1/bootstrap` ya no devuelve `students/attendance/assignments/submissions/annotations/mails/contacts/schoolDays`. Es solo `teacher/activeClassId/classes` (≈3 objetos vs 3300 antes). Cada pantalla carga su agregado por caso de uso en 1 request; ver **Agregados por clase**.
 
 ### Clases y alumnado
 
-| Método | Ruta                                                                                  |
-| ------ | ------------------------------------------------------------------------------------- |
-| GET    | `/v1/classes` · `/v1/classes/:classId` · `/v1/classes/:classId/summary`               |
-| GET    | `/v1/classes/:classId/students` · `/v1/classes/:classId/attendance?from=&to=`         |
-| GET    | `/v1/classes/:classId/assignments`                                                    |
-| GET    | `/v1/students/:studentId` (incluye contactos) · `/progress` · `/attendance?from=&to=` |
-| PATCH  | `/v1/students/:studentId` — solo `firstName`/`lastName` (Q-014 abierta)               |
-| DELETE | `/v1/students/:studentId` — borrado en cascada sin huérfanos                          |
+| Método | Ruta                                                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/v1/classes` · `/v1/classes/:classId` · `/v1/classes/:classId/summary`                                                  |
+| GET    | `/v1/classes/:classId/students` · `/v1/classes/:classId/attendance?from=&to=`                                            |
+| GET    | `/v1/classes/:classId/assignments`                                                                                       |
+| GET    | `/v1/classes/:classId/attendance-board` — agregado Asistencia (`students` + `schoolDays` + `attendance`, #76)            |
+| GET    | `/v1/classes/:classId/task-board` — agregado Tareas (`students` + `assignments` + `submissions`, 1 request sin N+1, #76) |
+| GET    | `/v1/students/:studentId` (incluye contactos) · `/progress` · `/attendance?from=&to=`                                    |
+| PATCH  | `/v1/students/:studentId` — solo `firstName`/`lastName` (Q-014 abierta)                                                  |
+| DELETE | `/v1/students/:studentId` — borrado en cascada sin huérfanos                                                             |
 
 ### Asistencia, tareas y anotaciones
 
-| Método | Ruta                                                   | Cuerpo                                                     |
-| ------ | ------------------------------------------------------ | ---------------------------------------------------------- |
-| PUT    | `/v1/attendance/:classId/:studentId/:date`             | `{ "status": "present" \| "absent" \| "late" }`            |
-| GET    | `/v1/assignments/:assignmentId/submissions`            | —                                                          |
-| PUT    | `/v1/assignments/:assignmentId/submissions/:studentId` | `{ "status": "submitted" \| "notSubmitted" \| "pending" }` |
-| GET    | `/v1/annotations?classId=&studentId=&managed=`         | —                                                          |
-| POST   | `/v1/annotations`                                      | `{ studentId, type, description }` → 201                   |
-| PATCH  | `/v1/annotations/:annotationId/managed`                | `{ "managed": true }`                                      |
+| Método | Ruta                                                   | Cuerpo                                                                                     |
+| ------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| PUT    | `/v1/attendance/:classId/:studentId/:date`             | `{ "status": "present" \| "absent" \| "late" }`                                            |
+| GET    | `/v1/assignments/:assignmentId/submissions`            | —                                                                                          |
+| PUT    | `/v1/assignments/:assignmentId/submissions/:studentId` | `{ "status": "submitted" \| "notSubmitted" \| "pending" }`                                 |
+| GET    | `/v1/annotations?classId=&studentId=&managed=`         | Anotaciones enriquecidas con `studentName`/`studentInitials` (Opción A #76, sin bootstrap) |
+| POST   | `/v1/annotations`                                      | `{ studentId, type, description }` → 201                                                   |
+| PATCH  | `/v1/annotations/:annotationId/managed`                | `{ "managed": true }`                                                                      |
 
 Fechas en formato `YYYY-MM-DD`; una fecha no lectiva responde `409 NON_SCHOOL_DAY`.
+
+### Agregados por caso de uso y por qué (#76)
+
+**Antes:** cada pantalla hacía `GET /v1/bootstrap` (≈3300 objetos: 6 clases × 25 alumnos + 1500 attendance + 1500 submissions + mails/anotaciones) y filtraba en cliente con `selectActiveClassData`. Varias pantallas mantenían skeleton visible y descargaban 6× más de lo necesario.
+
+**Después:**
+
+```
+Asistencia → GET /v1/classes/:classId/attendance-board → students(~25) + schoolDays(10) + attendance(~250)
+Tareas     → GET /v1/classes/:classId/task-board       → students + assignments(10) + submissions(~250) en 1 request (evita N+1: 1 vs 1+10)
+Anotaciones→ GET /v1/annotations?classId=active         → anotaciones + studentName/initials (proyección de lectura, sin bootstrap)
+Alumnos    → GET /v1/classes/:classId/students          → 20–30 alumnos (FlatList virtualiza render)
+Bootstrap  → GET /v1/bootstrap                          → solo teacher/activeClassId/classes (3 objetos, contexto global)
+```
+
+- **Overfetch vs virtualización:** los endpoints específicos resuelven overfetch de red; `FlatList` resuelve virtualización de render (monta ventana visible, no paginación 10×10 para 20–30 alumnos).
+- **Sin N+1:** `task-board` compone `submissions` en servidor en 1 respuesta; el futuro adaptador Supabase usará `WHERE assignment_id IN (...)` sin exponer N+1 al cliente (#74).
+- **Sin paginación de alumnado:** 20–30 filas no la necesitan; se reserva paginación/cursor para colecciones no acotadas (`mails`, `annotations` con cientos).
+- **Provider mínimo móvil:** `AppBootstrapProvider` carga bootstrap mínimo 1 vez y expone `activeClassId` a todas las pantallas, evitando waterfall `getMe → getStudents` por pantalla.
+- **Sin caché:** esta issue es de contratos y carga eficiente, no de React Query/AsyncStorage/persistencia.
 
 ### Correo demo
 
