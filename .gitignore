@@ -6,5 +6,7 @@
 /backend/node_modules/
 /backend/dist/
 /backend/coverage/
+# Artefactos del evaluador del asistente (issue #103)
+/backend/eval-results/
 
 /design/

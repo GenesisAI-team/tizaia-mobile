@@ -23,11 +23,24 @@ const postAssistantMessageSchema = z.object({
   conversationId: z.string().min(1).optional(),
 });
 
+/** Header `x-assistant-trace` presente ⇒ true cuando no es falsy explícito. */
+function headerAsBoolean(value: string | string[] | undefined): boolean {
+  if (value === undefined) return false;
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw !== undefined && raw !== '' && raw.toLowerCase() !== 'false';
+}
+
 export type AssistantRouterDeps = {
   service: SchoolService;
   store: ConversationStore;
   toolContext: Omit<SchoolToolContext, 'service'>;
   config: SchoolAssistantConfig;
+  /**
+   * Trace de tools habilitado por entorno (issue #103). Junto con el header
+   * `x-assistant-trace` de la petición, rellena `metadata.trace` con nombre +
+   * entrada de cada tool. Por defecto `false`; la respuesta sigue igual.
+   */
+  traceEnabled: boolean;
   /** `undefined` = asistente sin configurar → el endpoint responde 503. */
   model?: LanguageModel;
 };
@@ -63,6 +76,13 @@ export function createAssistantRouter(deps: AssistantRouterDeps): Router {
         throw new NotFoundError('Conversación no encontrada o expirada');
       }
 
+      // Trace gated doble (issue #103): entorno `ASSISTANT_TRACE_ENABLED`
+      // activo Y header explícito `x-assistant-trace`. Nunca por defecto.
+      const traceRequested = headerAsBoolean(
+        req.headers['x-assistant-trace'] ?? undefined,
+      );
+      const collectTrace = deps.traceEnabled && traceRequested;
+
       let turn;
       try {
         const me = await deps.service.me();
@@ -87,6 +107,7 @@ export function createAssistantRouter(deps: AssistantRouterDeps): Router {
           history: conversation.messages,
           message: input.message,
           activeClassContext,
+          collectTrace,
         });
       } catch (error) {
         if (error instanceof AssistantTimeoutError) {
@@ -111,7 +132,13 @@ export function createAssistantRouter(deps: AssistantRouterDeps): Router {
       res.json({
         conversationId: conversation.id,
         message: turn.text,
-        metadata: { toolsUsed: turn.toolsUsed },
+        metadata: {
+          toolsUsed: turn.toolsUsed,
+          // Solo presente bajo el gate de trace; la API por defecto no cambia.
+          ...(collectTrace && turn.toolTrace !== undefined
+            ? { trace: turn.toolTrace }
+            : {}),
+        },
       });
     } catch (error) {
       next(error);

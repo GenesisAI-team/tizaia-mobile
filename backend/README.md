@@ -21,11 +21,59 @@ El puerto se configura con `PORT` (por defecto `3000`). Variables (ver
 `.env.example`): `PORT`, `CORS_ORIGINS`, `ENABLE_DEV_RESET`, `DEMO_MODE`, y
 las del asistente: `AI_PROVIDER=openai`, `AI_MODEL`, `OPENAI_API_KEY`,
 `AI_MAX_STEPS=6`, `AI_TIMEOUT_MS=30000`, `CONVERSATION_TTL_MS`,
-`CONVERSATION_MAX_MESSAGES`.
+`CONVERSATION_MAX_MESSAGES`; trace opcional de tools (`ASSISTANT_TRACE_ENABLED`);
+y eval del asistente (`ASSISTANT_EVAL_ALLOW_REAL`, `ASSISTANT_EVAL_BASE_URL`,
+`ASSISTANT_EVAL_RUNS`, `ASSISTANT_EVAL_TIMEOUT_MS`, `ASSISTANT_EVAL_OUT`).
 
 **La clave del proveedor vive SOLO en el backend.** Sin clave configurada,
 todo el resto de la API funciona y el asistente responde `503
 ASSISTANT_UNAVAILABLE`.
+
+## Trace de tools (issue #103)
+
+El endpoint `POST /v1/assistant/messages` puede devolver, bajo un **gate doble**,
+un array `metadata.trace` con el nombre y la entrada de cada tool invocada. Solo
+aparece cuando el backend arranca con `ASSISTANT_TRACE_ENABLED=true` Y la
+petición incluye el header `x-assistant-trace: true`. Nunca se incluye por
+defecto, y la respuesta para el resto de clientes no cambia.
+
+```powershell
+$env:ASSISTANT_TRACE_ENABLED="true"; pnpm dev
+curl -X POST http://localhost:3000/v1/assistant/messages `
+  -H "Content-Type: application/json" `
+  -H "x-assistant-trace: true" `
+  -d '{ "message": "¿Quién faltó ayer en mi clase?" }' | jq '.metadata.trace'
+```
+
+Cada entrada es `{ "toolName": "...", "input": { ... } }`. Diseñado para
+inspeccionar el comportamiento del asistente sin exponer datos docentes
+sensibles en logs. `metadata.toolsUsed` (nombres deduplicados) se mantiene igual.
+
+## Evaluación del asistente (issue #103)
+
+Una batería versionada de **30 casos** (`src/assistant-eval/dataset.ts`, versión
+`ASSISTANT_EVAL_DATASET_VERSION=1`) con puntuación **pura** (sin LLM crítico):
+tools esperadas/prohibidas, llamada de tool obligatoria, resolución de la clase
+activa (los 7 prompts canarios de #81 están dentro), fuga de IDs internos,
+resolución de ambigüedad, errores HTTP/red/timeout y tasas de aprobación, con
+`avg`/`p50`/`p95` del tiempo de turno (nearest-rank). Cada caso usa una
+conversación independiente por run; solo los casos multi-turn reutilizan el
+mismo `conversationId`.
+
+Ejecución local con proveedor real (nunca en CI; opt-in explícito):
+
+```powershell
+$env:ASSISTANT_EVAL_ALLOW_REAL="true"    # desbloquea llamadas reales
+$env:ASSISTANT_EVAL_BASE_URL="http://localhost:3000"
+$env:ASSISTANT_EVAL_RUNS="1"             # avg de N runs (default 1)
+pnpm eval:assistant
+```
+
+Sin `ASSISTANT_EVAL_ALLOW_REAL=true` el runner aborta antes de red (seguro en
+CI) y sale `0`. Con proveedor, escribe el artefacto JSON en
+`eval-results/assistant-eval.json` (configurable con `ASSISTANT_EVAL_OUT`;
+directorio ignorado por git). Exit code `0` si la tasa global supera el umbral,
+`1` en caso contrario.
 
 ## Scripts
 
@@ -38,6 +86,7 @@ pnpm lint          # eslint .
 pnpm test          # node:test + tsx (sin red externa)
 pnpm format:check  # prettier --check .
 pnpm validate      # typecheck + lint + test + format
+pnpm eval:assistant # batería de eval del asistente (issue #103); ver sección abajo
 ```
 
 ## Contratos REST

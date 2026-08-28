@@ -19,7 +19,11 @@ const app = createApp({
   devResetEnabled: config.devResetEnabled,
   // El endpoint del asistente SIEMPRE está montado: sin clave responde 503
   // estable (`ASSISTANT_UNAVAILABLE`) en lugar de un 404 genérico.
-  assistant: { model, assistantConfig: config.assistant },
+  assistant: {
+    model,
+    traceEnabled: config.assistant.traceEnabled,
+    assistantConfig: config.assistant,
+  },
 });
 
 app.listen(config.port, () => {
