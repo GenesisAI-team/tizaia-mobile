@@ -186,6 +186,40 @@ describe('assistant-eval · scoring', () => {
       assert.equal(v.activeClassOk, false);
     });
 
+    it('no penaliza tools sin classId (getDashboardSummary resuelve la activa)', () => {
+      const v = scoreTurn(
+        baseCase({ expectedTools: ['getClassSummary', 'getDashboardSummary'] }),
+        baseTurn({
+          toolsUsed: ['getDashboardSummary'],
+          toolTrace: [{ toolName: 'getDashboardSummary', input: {} }],
+        }),
+      );
+      assert.equal(v.activeClassOk, true);
+    });
+
+    it('comprueba classId en tools que sí lo reciben (getClassSummary)', () => {
+      const pass = scoreTurn(
+        baseCase({ expectedTools: ['getClassSummary', 'getDashboardSummary'] }),
+        baseTurn({
+          toolsUsed: ['getClassSummary'],
+          toolTrace: [
+            { toolName: 'getClassSummary', input: { classId: 'class-1' } },
+          ],
+        }),
+      );
+      assert.equal(pass.activeClassOk, true);
+      const fail = scoreTurn(
+        baseCase({ expectedTools: ['getClassSummary', 'getDashboardSummary'] }),
+        baseTurn({
+          toolsUsed: ['getClassSummary'],
+          toolTrace: [
+            { toolName: 'getClassSummary', input: { classId: 'class-4' } },
+          ],
+        }),
+      );
+      assert.equal(fail.activeClassOk, false);
+    });
+
     it('marca trace_unavailable y activeClassOk null sin trace', () => {
       const v = scoreTurn(baseCase(), baseTurn({ toolTrace: [] }));
       assert.equal(v.activeClassOk, null);

@@ -26,8 +26,9 @@ Variables de entorno:
   ASSISTANT_EVAL_ALLOW_REAL Si no es "true", NO hace llamadas reales al
                            proveedor y termina sin red (seguro en CI).
 
-El backend debe publicar el endpoint y, para verificar la clase activa, tener
-ASSISTANT_TRACE_ENABLED=true (el eval siempre pide el header x-assistant-trace).`;
+El backend debe publicar el endpoint y, para verificar la clase activa, estar en
+DEMO_MODE=true con ASSISTANT_TRACE_ENABLED=true (el eval siempre pide el header
+x-assistant-trace).`;
 
 function printReport(cases: CaseResult[], summary: EvalSummary): void {
   console.log();

@@ -33,14 +33,16 @@ export type TestServer = {
 
 export function startTestServer(options?: {
   devResetEnabled?: boolean;
-  /** Opciones del asistente (AI-001): modelo mock y configuración. */
+  /** Modo demo (por defecto true). El trace de tools requiere demoMode. */
+  demoMode?: boolean;
+  /** Opciones del asistente (AI-001): modelo mock y configuraci��n. */
   assistant?: CreateAppAssistantOptions & { model?: LanguageModel };
 }): Promise<TestServer> {
   const repository = createMemorySchoolRepository(REFERENCE_DATE);
   const app: Express = createApp({
     repository,
     corsOrigins: ['*'],
-    demoMode: true,
+    demoMode: options?.demoMode ?? true,
     devResetEnabled: options?.devResetEnabled ?? false,
     assistant: options?.assistant,
   });

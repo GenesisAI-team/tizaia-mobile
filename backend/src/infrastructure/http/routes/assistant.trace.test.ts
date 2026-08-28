@@ -60,7 +60,10 @@ function textResult(text: string) {
 
 const TRACE_INPUT = { classId: 'class-1', date: 'ayer' };
 
-function buildServer(traceEnabled: boolean): Promise<TestServer> {
+function buildServer(opts: {
+  traceEnabled?: boolean;
+  demoMode?: boolean;
+}): Promise<TestServer> {
   const model = new MockLanguageModelV4({
     doGenerate: [
       toolCallResult('call-trace', 'listClassAbsences', TRACE_INPUT),
@@ -68,10 +71,11 @@ function buildServer(traceEnabled: boolean): Promise<TestServer> {
     ],
   });
   return startTestServer({
+    demoMode: opts.demoMode ?? true,
     assistant: {
       model: model as unknown as LanguageModel,
       assistantConfig: ASSISTANT_CONFIG,
-      traceEnabled,
+      traceEnabled: opts.traceEnabled ?? false,
     },
   });
 }
@@ -83,7 +87,7 @@ function buildServer(traceEnabled: boolean): Promise<TestServer> {
  */
 describe('POST /v1/assistant/messages · gate de trace (issue #103)', () => {
   it('con header x-assistant-trace añade metadata.trace (nombre + entrada)', async () => {
-    const server = await buildServer(true);
+    const server = await buildServer({ traceEnabled: true });
     try {
       const response = await server.requestJson<AnyRecord>(
         '/v1/assistant/messages',
@@ -111,7 +115,7 @@ describe('POST /v1/assistant/messages · gate de trace (issue #103)', () => {
   });
 
   it('sin header x-assistant-trace NO incluye trace (respuesta por defecto)', async () => {
-    const server = await buildServer(true);
+    const server = await buildServer({ traceEnabled: true });
     try {
       const response = await server.requestJson<AnyRecord>(
         '/v1/assistant/messages',
@@ -126,7 +130,32 @@ describe('POST /v1/assistant/messages · gate de trace (issue #103)', () => {
   });
 
   it('con ASSISTANT_TRACE_ENABLED=false (por defecto) el header NO activa trace', async () => {
-    const server = await buildServer(false);
+    const server = await buildServer({ traceEnabled: false });
+    try {
+      const response = await server.requestJson<AnyRecord>(
+        '/v1/assistant/messages',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-assistant-trace': 'true',
+          },
+          body: JSON.stringify({ message: '¿Quién faltó ayer?' }),
+        },
+      );
+      assert.equal(response.status, 200);
+      assert.equal(response.body.metadata.trace, undefined);
+      assert.deepEqual(response.body.metadata.toolsUsed, ['listClassAbsences']);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('sin demoMode (VPS) el env + header NO activan trace', async () => {
+    const server = await buildServer({
+      traceEnabled: true,
+      demoMode: false,
+    });
     try {
       const response = await server.requestJson<AnyRecord>(
         '/v1/assistant/messages',

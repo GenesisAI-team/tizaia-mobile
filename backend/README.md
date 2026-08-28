@@ -31,11 +31,18 @@ ASSISTANT_UNAVAILABLE`.
 
 ## Trace de tools (issue #103)
 
-El endpoint `POST /v1/assistant/messages` puede devolver, bajo un **gate doble**,
+El endpoint `POST /v1/assistant/messages` puede devolver, bajo un **gate triple**,
 un array `metadata.trace` con el nombre y la entrada de cada tool invocada. Solo
-aparece cuando el backend arranca con `ASSISTANT_TRACE_ENABLED=true` Y la
-petición incluye el header `x-assistant-trace: true`. Nunca se incluye por
-defecto, y la respuesta para el resto de clientes no cambia.
+aparece cuando se cumplen TODAS estas condiciones:
+
+1. el backend arranca en `DEMO_MODE=true` (por defecto; en una VPS se desactiva),
+2. el backend arranca con `ASSISTANT_TRACE_ENABLED=true`, Y
+3. la petición incluye el header `x-assistant-trace: true`.
+
+Nunca se incluye por defecto, y la respuesta para el resto de clientes no cambia.
+El gate exige `demoMode` para que un despliegue de producción (con
+`ASSISTANT_TRACE_ENABLED` activado por configuración) nunca exponga el trace de
+tools por accidente.
 
 ```powershell
 $env:ASSISTANT_TRACE_ENABLED="true"; pnpm dev
@@ -59,6 +66,20 @@ resolución de ambigüedad, errores HTTP/red/timeout y tasas de aprobación, con
 `avg`/`p50`/`p95` del tiempo de turno (nearest-rank). Cada caso usa una
 conversación independiente por run; solo los casos multi-turn reutilizan el
 mismo `conversationId`.
+
+**Denominadores de las tasas** (`src/assistant-eval/stats.ts`): salvo que se
+indique, el denominador es `totalRuns` (30 casos × `ASSISTANT_EVAL_RUNS`
+repeticiones).
+
+- `overallSuccessRate`: runs que pasan todos los veredictos ÷ totalRuns.
+- `toolSelectionSuccessRate`: runs con selección de tools correcta ÷ totalRuns.
+- `activeClassResolutionRate`: runs con verificación de clase activa correcta ÷
+  runs que la **requirieron y produjeron** una verificación (categorías de clase
+  con trace disponible). Es `null` si ningún run la requirió.
+- `internalIdLeakageRate`: runs que filtran IDs internos ÷ totalRuns (0 % es el
+  objetivo; conviene que sea bajo).
+- `httpErrorRate`: runs con error HTTP/red/timeout ÷ totalRuns. Solo los runs
+  **sin** error aportan turnos a latencia media/`p50`/`p95`.
 
 Ejecución local con proveedor real (nunca en CI; opt-in explícito):
 
