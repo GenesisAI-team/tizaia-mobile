@@ -23,6 +23,15 @@ const envSchema = z.object({
       (value) => value === 'true' || value === 'false',
       'DEMO_MODE debe ser "true" o "false"',
     ),
+  // Logging de rendimiento HTTP opt-in (issue #104). Desactivado por defecto
+  // para no añadir ruido en ejecución normal ni en logs.
+  PERF_LOGGING: z
+    .string()
+    .default('false')
+    .refine(
+      (value) => value === 'true' || value === 'false',
+      'PERF_LOGGING debe ser "true" o "false"',
+    ),
   // ---------- Asistente (AI-001, RFC-001) ----------
   AI_PROVIDER: z.enum(['openai']).default('openai'),
   AI_MODEL: z.string().min(1).default('gpt-4o-mini'),
@@ -49,6 +58,7 @@ export type AppConfig = {
   corsOrigins: string[];
   devResetEnabled: boolean;
   demoMode: boolean;
+  perfLogging: boolean;
   assistant: AssistantConfig;
 };
 
@@ -69,6 +79,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     corsOrigins: corsOrigins.length > 0 ? corsOrigins : ['*'],
     devResetEnabled: parsed.data.ENABLE_DEV_RESET === 'true',
     demoMode: parsed.data.DEMO_MODE === 'true',
+    perfLogging: parsed.data.PERF_LOGGING === 'true',
     assistant: {
       provider: parsed.data.AI_PROVIDER,
       model: parsed.data.AI_MODEL,

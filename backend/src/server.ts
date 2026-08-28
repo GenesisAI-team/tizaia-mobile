@@ -17,6 +17,7 @@ const app = createApp({
   corsOrigins: config.corsOrigins,
   demoMode: config.demoMode,
   devResetEnabled: config.devResetEnabled,
+  perfLogging: config.perfLogging,
   // El endpoint del asistente SIEMPRE está montado: sin clave responde 503
   // estable (`ASSISTANT_UNAVAILABLE`) en lugar de un 404 genérico.
   assistant: { model, assistantConfig: config.assistant },
