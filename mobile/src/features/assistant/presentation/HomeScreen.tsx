@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useNavigation } from '@react-navigation/native';
+import type { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import { useAssistantGateway } from '../../../app/AppDependenciesProvider';
 import { ScreenBackground } from '../../../shared/components/ScreenBackground';
@@ -17,7 +19,11 @@ import { ScreenTitle } from '../../../shared/components/ScreenTitle';
 import { TabBar } from '../../../shared/components/TabBar';
 import { dp, tizaiaColors } from '../../../shared/theme/tizaiaTheme';
 import { useTabBarPress } from '../../../navigation/useTabBarPress';
+import type { RootDrawerParamList } from '../../../navigation/types';
 import { toUserMessage } from '../../../shared/state/schoolDataProvider';
+import type { QuickAction } from './homeQuickActions';
+import { selectQuickActionSet } from './homeQuickActions';
+import { HomeWelcomeCard } from './HomeWelcomeCard';
 
 type ChatMessage = {
   id: string;
@@ -25,23 +31,22 @@ type ChatMessage = {
   content: string;
 };
 
-const ASSISTANT_GREETING = 'Buenas 👋 ¿En qué te puedo ayudar?';
-
 /**
  * Home definitivo (DESIGN.md §5.1, frame n865 de Tizaia.op): título HOME,
- * chat con burbuja de saludo, campo de mensaje y TabBar con Home activo.
- * La lógica real del asistente es HU-002; el gateway llega desde la raíz
- * de la aplicación.
+ * bienvenida con accesos rápidos cuando no hay conversación (MOB-HOME-001),
+ * chat real a partir del primer envío, campo de mensaje y TabBar con Home
+ * activo. La lógica real del asistente es HU-002; el gateway llega desde la
+ * raíz de la aplicación.
  */
 export function HomeScreen(): React.JSX.Element {
   const headerHeight = useHeaderHeight();
   const onPressTab = useTabBarPress();
   const assistantGateway = useAssistantGateway();
+  const navigation = useNavigation<DrawerNavigationProp<RootDrawerParamList>>();
   const conversationIdRef = useRef<string | undefined>(undefined);
   const nextIdRef = useRef(0);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'greeting', role: 'assistant', content: ASSISTANT_GREETING },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [quickActionSet] = useState(() => selectQuickActionSet());
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
 
@@ -81,6 +86,12 @@ export function HomeScreen(): React.JSX.Element {
     }
   };
 
+  const handleQuickActionPress = (action: QuickAction): void => {
+    navigation.navigate(action.route);
+  };
+
+  const showWelcome = messages.length === 0 && draft.trim().length === 0;
+
   return (
     <ScreenBackground>
       <KeyboardAvoidingView
@@ -114,6 +125,14 @@ export function HomeScreen(): React.JSX.Element {
               </Text>
             </View>
           )}
+          ListEmptyComponent={
+            showWelcome ? (
+              <HomeWelcomeCard
+                actionSet={quickActionSet}
+                onSelectAction={handleQuickActionPress}
+              />
+            ) : null
+          }
           style={styles.messages}
         />
         <View style={styles.inputRow}>
