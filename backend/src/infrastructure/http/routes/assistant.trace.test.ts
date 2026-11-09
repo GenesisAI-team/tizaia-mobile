@@ -81,9 +81,9 @@ function buildServer(opts: {
 }
 
 /**
- * Gate de trace (issue #103): el trace solo aparece con ASSISTANT_TRACE_ENABLED
- * EN EL BACKEND y el header `x-assistant-trace` en la petición. La respuesta
- * por defecto no cambia.
+ * Gate de trace (issue #103): el trace solo aparece con demoMode y
+ * ASSISTANT_TRACE_ENABLED EN EL BACKEND más el header `x-assistant-trace` en
+ * la petición. La respuesta por defecto no cambia.
  */
 describe('POST /v1/assistant/messages · gate de trace (issue #103)', () => {
   it('con header x-assistant-trace añade metadata.trace (nombre + entrada)', async () => {

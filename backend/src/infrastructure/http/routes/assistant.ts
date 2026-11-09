@@ -76,8 +76,9 @@ export function createAssistantRouter(deps: AssistantRouterDeps): Router {
         throw new NotFoundError('Conversación no encontrada o expirada');
       }
 
-      // Trace gated doble (issue #103): entorno `ASSISTANT_TRACE_ENABLED`
-      // activo Y header explícito `x-assistant-trace`. Nunca por defecto.
+      // Trace gated (issue #103): `traceEnabled` ya incorpora el gate de
+      // demoMode aplicado en `createApp`; aquí basta el AND con el header
+      // explícito `x-assistant-trace`. Nunca por defecto.
       const traceRequested = headerAsBoolean(
         req.headers['x-assistant-trace'] ?? undefined,
       );

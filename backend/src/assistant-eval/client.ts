@@ -8,8 +8,9 @@ import type { TurnObservation } from './types.js';
  * - Latencia con `performance.now()` (monotónico, no reloj de pared).
  * - Timeout con `AbortSignal.timeout`.
  * - SIEMPRE envía el header `x-assistant-trace: true`; el backend solo lo
- *   honra si además tiene `ASSISTANT_TRACE_ENABLED=true` y, en ese caso,
- *   devuelve `metadata.trace` (nombre + entrada de cada tool).
+ *   honra si además tiene `ASSISTANT_TRACE_ENABLED=true`, está en
+ *   `DEMO_MODE=true` y, en ese caso, devuelve `metadata.trace` (nombre +
+ *   entrada de cada tool).
  */
 
 export type EvalClientDeps = {

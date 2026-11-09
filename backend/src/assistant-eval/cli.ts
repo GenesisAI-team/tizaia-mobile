@@ -10,7 +10,7 @@ import { ASSISTANT_EVAL_DATASET_VERSION } from './dataset.js';
  * - Guarda de seguridad: las llamadas reales al proveedor SOLO se ejecutan si
  *   `ASSISTANT_EVAL_ALLOW_REAL=true` (opt-in explícito; nunca en CI).
  * - Salida: informe humano en stdout + artefacto JSON en `outputPath`
- *   (máquina-leyble). Con `--json`, el JSON completo va a stdout.
+ *   (máquina-legible). Con `--json`, el JSON completo va a stdout.
  */
 
 const USAGE = `Evaluador del asistente (issue #103).
