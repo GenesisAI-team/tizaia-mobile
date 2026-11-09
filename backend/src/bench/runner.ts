@@ -45,9 +45,12 @@ export async function benchSingleRun(
     });
     const durationMs = performance.now() - start;
     const contentLength = response.headers.get('content-length');
+    // `Number(header)` puede dar NaN con un header corrupto: en ese caso se
+    // mide el tamaño del body real en lugar de envenenar la columna bytes.
+    const contentBytes = contentLength === null ? null : Number(contentLength);
     const responseBytes =
-      contentLength !== null
-        ? Number(contentLength)
+      contentBytes !== null && Number.isFinite(contentBytes)
+        ? contentBytes
         : (await response.arrayBuffer()).byteLength;
     return {
       ok: response.status < 400,

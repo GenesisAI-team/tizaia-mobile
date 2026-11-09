@@ -18,8 +18,9 @@ import type { Express, Request, Response } from 'express';
  * la etiqueta segura `<unknown>` en lugar de la URL real.
  *
  * `responseBytes` es el `Content-Length` de la respuesta; `null` cuando el
- * header no está presente. No se evita nunca una linea por ausencia de tamaño.
- * Opcionalmente se añade `Server-Timing: app;dur=<ms>` en entorno de desarrollo.
+ * header no está presente. La línea se emite siempre: no se omite por
+ * ausencia de tamaño. Se añade `Server-Timing: app;dur=<ms>` mientras el
+ * logging opt-in está activo (no depende de NODE_ENV).
  */
 export function installPerfLogging(app: Express): void {
   app.use((req: Request, res: Response, next) => {

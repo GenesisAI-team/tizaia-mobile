@@ -97,6 +97,23 @@ describe('bench: benchSingleRun mide duración, bytes y estado', () => {
     assert.equal(run.status, 0);
     assert.equal(run.error, 'Error');
   });
+
+  it('usa el tamaño del body cuando content-length no es numérico', async () => {
+    const fetchLike: FetchLike = async () =>
+      ({
+        ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) =>
+            name.toLowerCase() === 'content-length' ? 'abc' : null,
+        },
+        arrayBuffer: async () => new ArrayBuffer(64),
+      }) as unknown as Response;
+    const run = await benchSingleRun(fetchLike, 'http://x/ok', 'GET', 1000);
+    // `Number('abc')` es NaN: corrompería la columna bytes. Debe caer al
+    // tamaño del body real (64).
+    assert.equal(run.responseBytes, 64);
+  });
 });
 
 describe('bench: comparación antes/después', () => {
