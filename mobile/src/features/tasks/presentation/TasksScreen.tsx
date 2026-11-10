@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import {
@@ -119,16 +119,49 @@ export function TasksScreen(): React.JSX.Element {
     [invalidate, optimistic, resource.state, schoolRepository],
   );
 
-  const cellStates: Record<string, StatusCellState> = {};
-  if (resource.state.status === 'success') {
-    for (const submission of resource.state.data.submissions) {
-      cellStates[`${submission.studentId}:${submission.assignmentId}`] =
-        CELL_STATE_BY_SUBMISSION[submission.status];
+  const cellStates = useMemo(() => {
+    const states: Record<string, StatusCellState> = {};
+    if (resource.state.status === 'success') {
+      for (const submission of resource.state.data.submissions) {
+        states[`${submission.studentId}:${submission.assignmentId}`] =
+          CELL_STATE_BY_SUBMISSION[submission.status];
+      }
+      for (const [cellId, status] of Object.entries(optimistic)) {
+        states[cellId] = CELL_STATE_BY_SUBMISSION[status];
+      }
     }
-    for (const [cellId, status] of Object.entries(optimistic)) {
-      cellStates[cellId] = CELL_STATE_BY_SUBMISSION[status];
-    }
-  }
+    return states;
+  }, [optimistic, resource.state]);
+
+  const columns = useMemo(
+    () =>
+      resource.state.status === 'success'
+        ? resource.state.data.assignments.map((assignment) => ({
+            id: assignment.id,
+            label: assignment.title,
+            secondaryLabel: getDayMonthLabel(assignment.dueDate),
+          }))
+        : [],
+    [resource.state],
+  );
+
+  const rows = useMemo(
+    () =>
+      resource.state.status === 'success'
+        ? resource.state.data.students.map((student) => ({
+            id: student.id,
+            studentName: getStudentFullName(student),
+            initials: getStudentInitials(student),
+          }))
+        : [],
+    [resource.state],
+  );
+
+  const getActionAccessibilityLabel = useCallback(
+    (row: MatrixBoardRow, column: MatrixBoardColumn) =>
+      `Entrega de ${column.label} para ${row.studentName}`,
+    [],
+  );
 
   return (
     <ScreenBackground>
@@ -144,22 +177,12 @@ export function TasksScreen(): React.JSX.Element {
       {resource.state.status === 'success' && (
         <View style={styles.board}>
           <MatrixBoard
-            actionAccessibilityLabel={(row, column) =>
-              `Entrega de ${column.label} para ${row.studentName}`
-            }
+            actionAccessibilityLabel={getActionAccessibilityLabel}
             cellStates={cellStates}
-            columns={resource.state.data.assignments.map((assignment) => ({
-              id: assignment.id,
-              label: assignment.title,
-              secondaryLabel: getDayMonthLabel(assignment.dueDate),
-            }))}
+            columns={columns}
             onCellPress={onCellPress}
             pendingTransparent
-            rows={resource.state.data.students.map((student) => ({
-              id: student.id,
-              studentName: getStudentFullName(student),
-              initials: getStudentInitials(student),
-            }))}
+            rows={rows}
             showRowNames
           />
         </View>

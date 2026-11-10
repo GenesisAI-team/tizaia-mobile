@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -134,16 +134,49 @@ export function AttendanceScreen(): React.JSX.Element {
     [activeClassId, invalidate, optimistic, resource.state, schoolRepository],
   );
 
-  const cellStates: Record<string, StatusCellState> = {};
-  if (resource.state.status === 'success') {
-    for (const record of resource.state.data.attendance) {
-      cellStates[`${record.studentId}:${record.date}`] =
-        CELL_STATE_BY_ATTENDANCE[record.status];
+  const cellStates = useMemo(() => {
+    const states: Record<string, StatusCellState> = {};
+    if (resource.state.status === 'success') {
+      for (const record of resource.state.data.attendance) {
+        states[`${record.studentId}:${record.date}`] =
+          CELL_STATE_BY_ATTENDANCE[record.status];
+      }
+      for (const [cellId, status] of Object.entries(optimistic)) {
+        states[cellId] = CELL_STATE_BY_ATTENDANCE[status];
+      }
     }
-    for (const [cellId, status] of Object.entries(optimistic)) {
-      cellStates[cellId] = CELL_STATE_BY_ATTENDANCE[status];
-    }
-  }
+    return states;
+  }, [optimistic, resource.state]);
+
+  const columns = useMemo(
+    () =>
+      resource.state.status === 'success'
+        ? resource.state.data.schoolDays.map((day) => ({
+            id: day.date,
+            label: day.label,
+            secondaryLabel: day.secondaryLabel,
+          }))
+        : [],
+    [resource.state],
+  );
+
+  const rows = useMemo(
+    () =>
+      resource.state.status === 'success'
+        ? resource.state.data.students.map((student) => ({
+            id: student.id,
+            studentName: getStudentFullName(student),
+            initials: getStudentInitials(student),
+          }))
+        : [],
+    [resource.state],
+  );
+
+  const getActionAccessibilityLabel = useCallback(
+    (row: MatrixBoardRow, column: MatrixBoardColumn) =>
+      `Asistencia de ${row.studentName} en ${column.label}`,
+    [],
+  );
 
   return (
     <ScreenBackground>
@@ -159,21 +192,11 @@ export function AttendanceScreen(): React.JSX.Element {
       {resource.state.status === 'success' && (
         <View style={styles.board}>
           <MatrixBoard
-            actionAccessibilityLabel={(row, column) =>
-              `Asistencia de ${row.studentName} en ${column.label}`
-            }
+            actionAccessibilityLabel={getActionAccessibilityLabel}
             cellStates={cellStates}
-            columns={resource.state.data.schoolDays.map((day) => ({
-              id: day.date,
-              label: day.label,
-              secondaryLabel: day.secondaryLabel,
-            }))}
+            columns={columns}
             onCellPress={onCellPress}
-            rows={resource.state.data.students.map((student) => ({
-              id: student.id,
-              studentName: getStudentFullName(student),
-              initials: getStudentInitials(student),
-            }))}
+            rows={rows}
           />
         </View>
       )}
