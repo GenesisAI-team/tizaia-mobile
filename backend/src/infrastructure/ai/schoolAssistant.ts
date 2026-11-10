@@ -11,6 +11,21 @@ import {
  * lectura sobre los servicios escolares. La IA redacta; los cálculos y
  * filtros deterministas viven en las tools/backend.
  */
+
+/**
+ * Parseo defensivo de la entrada de una tool para el trace (issue #103): el
+ * AI SDK suele entregar `input` como objeto, pero en calls dinámicos o
+ * inválidos puede llegar como string JSON. Devuelve lo que haya en ambos
+ * casos sin lanzar.
+ */
+function safeParseToolInput(input: unknown): unknown {
+  if (typeof input !== 'string') return input;
+  try {
+    return JSON.parse(input);
+  } catch {
+    return input;
+  }
+}
 export type SchoolAssistantConfig = {
   /** Máximo de pasos agénticos por turno (entorno `AI_MAX_STEPS`). */
   maxSteps: number;
@@ -103,6 +118,13 @@ export type AssistantTurnResult = {
   text: string;
   /** Nombres únicos de las tools ejecutadas durante el turno. */
   toolsUsed: string[];
+  /**
+   * Trace del turno (issue #103): nombre + entrada de cada tool ejecutada, en
+   * orden de ejecución. Solo se rellena cuando `collectTrace` es `true` en la
+   * opción de entrada; por defecto no se calcula para no añadir trabajo ni
+   * datos a la respuesta por defecto.
+   */
+  toolTrace?: Array<{ toolName: string; input: unknown }>;
   /** Mensajes generados (pasos de tool + respuesta final) para el historial. */
   responseMessages: ModelMessage[];
 };
@@ -113,6 +135,12 @@ export async function runSchoolTurn(
     model: LanguageModel;
     tools: ToolSet;
     config: SchoolAssistantConfig;
+    /**
+     * Cuando es `true`, `result.toolTrace` incluye nombre + entrada de cada
+     * tool ejecutada (issue #103). Gated por el backend (env) y el header de
+     * la petición en la ruta HTTP; aquí solo decide si se recolecta.
+     */
+    collectTrace?: boolean;
   } & AssistantTurnInput,
 ): Promise<AssistantTurnResult> {
   const system =
@@ -144,9 +172,22 @@ export async function runSchoolTurn(
         ),
       ),
     ];
+    const toolTrace =
+      options.collectTrace === true
+        ? result.steps.flatMap((step) =>
+            step.toolCalls.map((toolCall) => ({
+              toolName: toolCall.toolName,
+              input:
+                typeof toolCall.input === 'string'
+                  ? safeParseToolInput(toolCall.input)
+                  : toolCall.input,
+            })),
+          )
+        : undefined;
     return {
       text: result.text,
       toolsUsed,
+      ...(toolTrace === undefined ? {} : { toolTrace }),
       responseMessages: result.responseMessages,
     };
   } catch (error) {

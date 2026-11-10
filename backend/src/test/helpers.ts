@@ -85,6 +85,8 @@ function listenTestServer(
 
 type StartServerOptions = {
   devResetEnabled?: boolean;
+  /** Modo demo (por defecto true). El trace de tools requiere demoMode. */
+  demoMode?: boolean;
   /** Logging de rendimiento opt-in (issue #104). */
   perfLogging?: boolean;
   /** Opciones del asistente (AI-001): modelo mock y configuración. */
@@ -98,7 +100,7 @@ export function startTestServer(
   const app: Express = createApp({
     repository,
     corsOrigins: ['*'],
-    demoMode: true,
+    demoMode: options?.demoMode ?? true,
     devResetEnabled: options?.devResetEnabled ?? false,
     perfLogging: options?.perfLogging ?? false,
     assistant: options?.assistant,
@@ -132,7 +134,7 @@ export async function startCountingTestServer(
   const app: Express = createApp({
     repository: counter,
     corsOrigins: ['*'],
-    demoMode: true,
+    demoMode: options?.demoMode ?? true,
     devResetEnabled: options?.devResetEnabled ?? false,
     perfLogging: options?.perfLogging ?? false,
     assistant: options?.assistant,

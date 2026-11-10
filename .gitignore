@@ -9,5 +9,7 @@
 # Artefactos locales del benchmark (issue #104) — nunca se versionan salvo
 # fixtures deliberados.
 /backend/.bench/
+# Artefactos del evaluador del asistente (issue #103)
+/backend/eval-results/
 
 /design/
