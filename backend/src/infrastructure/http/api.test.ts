@@ -25,6 +25,12 @@ describe('API REST (integración)', () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.status, 'ok');
     assert.equal(response.headers['x-demo-mode'], 'true');
+    // GEN-43: sonda mínima, sin datos docentes.
+    assert.deepEqual(Object.keys(response.body).sort(), [
+      'demo',
+      'status',
+      'uptimeSeconds',
+    ]);
   });
 
   it('GET /v1/me devuelve docente y clase activa', async () => {
