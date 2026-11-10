@@ -123,8 +123,14 @@ export class SchoolService {
     teacher: unknown;
     activeClass: SchoolClass | undefined;
   }> {
-    const teacher = await this.repository.getTeacher();
-    const activeClassId = await this.repository.getActiveClassId();
+    // Lecturas independientes en paralelo (GH #102 / GEN-39): con un adaptador
+    // remoto se ahorra un round-trip por cada turno del asistente y por cada
+    // `/v1/me`. `getClass` sigue después porque depende de `activeClassId`;
+    // se relee en cada llamada para no servir una clase activa obsoleta.
+    const [teacher, activeClassId] = await Promise.all([
+      this.repository.getTeacher(),
+      this.repository.getActiveClassId(),
+    ]);
     return {
       teacher,
       activeClass: await this.repository.getClass(activeClassId),
