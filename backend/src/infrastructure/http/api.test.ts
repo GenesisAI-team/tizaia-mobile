@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { after, before, describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import {
   FIRST_SCHOOL_DAY,
   jsonInit,
@@ -12,11 +12,14 @@ type AnyRecord = Record<string, any>;
 describe('API REST (integración)', () => {
   let server: TestServer;
 
-  before(async () => {
+  // GEN-42: servidor y repositorio limpios por caso de prueba. Cada `it`
+  // arranca del seed determinista, es independiente del orden y cierra el
+  // puerto antes del siguiente (sin estado compartido ni leaks).
+  beforeEach(async () => {
     server = await startTestServer();
   });
 
-  after(async () => {
+  afterEach(async () => {
     await server.close();
   });
 
@@ -301,12 +304,8 @@ describe('API REST (integración)', () => {
   it('opera el correo demo: bandeja, lectura, destinatarios y envío', async () => {
     const inbox = await server.requestJson<AnyRecord[]>('/v1/mails');
     assert.equal(inbox.status, 200);
-    // El seed trae 30 correos; el test de cascada puede haber eliminado el
-    // correo de algún alumno borrado. La API debe coincidir con el almacén.
-    const expectedInbox = (await server.repository.getMails()).filter(
-      (mail) => mail.folder === 'inbox',
-    ).length;
-    assert.equal(inbox.body.length, expectedInbox);
+    // El seed trae exactamente 30 correos inbox.
+    assert.equal(inbox.body.length, 30);
 
     const unread = await server.requestJson<AnyRecord[]>(
       '/v1/mails?unread=true',
@@ -515,6 +514,39 @@ describe('API REST (integración)', () => {
     } finally {
       await resetServer.close();
     }
+  });
+
+  it('independencia: cada caso parte del seed determinista (GEN-42)', async () => {
+    // Alumnos class-1: el seed trae 23 y el primero es student-1 ("Lara").
+    const class1Students = await server.requestJson<AnyRecord[]>(
+      '/v1/classes/class-1/students',
+    );
+    assert.equal(class1Students.status, 200);
+    assert.equal(class1Students.body.length, 23);
+    assert.equal(class1Students.body[0]!.id, 'student-1');
+    assert.equal(class1Students.body[0]!.firstName, 'Lara');
+
+    // Alumnos class-2: el seed trae 28 y el primero es student-24 ("Elena").
+    const class2Students = await server.requestJson<AnyRecord[]>(
+      '/v1/classes/class-2/students',
+    );
+    assert.equal(class2Students.status, 200);
+    assert.equal(class2Students.body.length, 28);
+    assert.equal(class2Students.body[0]!.id, 'student-24');
+    assert.equal(class2Students.body[0]!.firstName, 'Elena');
+
+    // Bandeja inbox: el seed crea exactamente 30 correos sin enviar aún.
+    const inbox = await server.requestJson<AnyRecord[]>(
+      '/v1/mails?folder=inbox',
+    );
+    assert.equal(inbox.status, 200);
+    assert.equal(inbox.body.length, 30);
+
+    // Anotaciones: el seed trae exactamente 17.
+    const annotations =
+      await server.requestJson<AnyRecord[]>('/v1/annotations');
+    assert.equal(annotations.status, 200);
+    assert.equal(annotations.body.length, 17);
   });
 
   it('devuelve envolvente JSON para rutas desconocidas y JSON malformado', async () => {
