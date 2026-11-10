@@ -18,6 +18,7 @@ import {
   errorMiddleware,
   notFoundHandler,
 } from './infrastructure/http/errorMiddleware.js';
+import { installPerfLogging } from './infrastructure/http/perfLogging.js';
 
 export type CreateAppAssistantOptions = {
   /** Modelo del asistente; `undefined` ��' `POST /v1/assistant/messages` ��' 503. */
@@ -40,6 +41,8 @@ export type CreateAppOptions = {
   corsOrigins: string[];
   demoMode: boolean;
   devResetEnabled: boolean;
+  /** Logging de rendimiento HTTP opt-in (issue #104). */
+  perfLogging?: boolean;
   assistant?: CreateAppAssistantOptions;
 };
 
@@ -56,6 +59,9 @@ export function createApp(options: CreateAppOptions): Express {
 
   app.disable('x-powered-by');
   app.use(express.json({ limit: '256kb' }));
+  if (options.perfLogging === true) {
+    installPerfLogging(app);
+  }
   app.use(
     cors({
       origin:

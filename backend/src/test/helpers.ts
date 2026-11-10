@@ -1,9 +1,11 @@
 import type { AddressInfo } from 'node:net';
 import type { Express } from 'express';
+import type { Server } from 'node:http';
 import type { LanguageModel } from 'ai';
 import { createApp, type CreateAppAssistantOptions } from '../app.js';
 import { createMemorySchoolRepository } from '../infrastructure/memory/index.js';
 import { getRecentSchoolDays } from '../seeds/schoolDates.js';
+import { CountingSchoolRepository } from './countingSchoolRepository.js';
 
 /**
  * Ayudas de test: servidor efímero sin red externa y fecha de referencia fija
@@ -31,25 +33,18 @@ export type TestServer = {
   close: () => Promise<void>;
 };
 
-export function startTestServer(options?: {
-  devResetEnabled?: boolean;
-  /** Modo demo (por defecto true). El trace de tools requiere demoMode. */
-  demoMode?: boolean;
-  /** Opciones del asistente (AI-001): modelo mock y configuraci��n. */
-  assistant?: CreateAppAssistantOptions & { model?: LanguageModel };
-}): Promise<TestServer> {
-  const repository = createMemorySchoolRepository(REFERENCE_DATE);
-  const app: Express = createApp({
-    repository,
-    corsOrigins: ['*'],
-    demoMode: options?.demoMode ?? true,
-    devResetEnabled: options?.devResetEnabled ?? false,
-    assistant: options?.assistant,
-  });
-  const server = app.listen(0);
+/**
+ * Arranca un servidor Express efímero (puerto aleatorio) y resuelve el
+ * `TestServer` compartido por los suites de integración. Extraído para no
+ * duplicar el `listen`/promise/`request`/`close` entre variantes (issue #104).
+ */
+function listenTestServer(
+  httpServer: Server,
+  repository: ReturnType<typeof createMemorySchoolRepository>,
+): Promise<TestServer> {
   return new Promise((resolve, reject) => {
-    server.once('listening', () => {
-      const address = server.address() as AddressInfo | null;
+    httpServer.once('listening', () => {
+      const address = httpServer.address() as AddressInfo | null;
       if (address === null) {
         reject(new Error('Servidor sin dirección'));
         return;
@@ -78,14 +73,39 @@ export function startTestServer(options?: {
         },
         close: () =>
           new Promise<void>((resolveClose, rejectClose) => {
-            server.close((error) =>
+            httpServer.close((error) =>
               error === undefined ? resolveClose() : rejectClose(error),
             );
           }),
       });
     });
-    server.once('error', reject);
+    httpServer.once('error', reject);
   });
+}
+
+type StartServerOptions = {
+  devResetEnabled?: boolean;
+  /** Modo demo (por defecto true). El trace de tools requiere demoMode. */
+  demoMode?: boolean;
+  /** Logging de rendimiento opt-in (issue #104). */
+  perfLogging?: boolean;
+  /** Opciones del asistente (AI-001): modelo mock y configuración. */
+  assistant?: CreateAppAssistantOptions & { model?: LanguageModel };
+};
+
+export function startTestServer(
+  options?: StartServerOptions,
+): Promise<TestServer> {
+  const repository = createMemorySchoolRepository(REFERENCE_DATE);
+  const app: Express = createApp({
+    repository,
+    corsOrigins: ['*'],
+    demoMode: options?.demoMode ?? true,
+    devResetEnabled: options?.devResetEnabled ?? false,
+    perfLogging: options?.perfLogging ?? false,
+    assistant: options?.assistant,
+  });
+  return listenTestServer(app.listen(0), repository);
 }
 
 export function jsonInit(
@@ -98,4 +118,28 @@ export function jsonInit(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   };
+}
+
+/**
+ * Servidor de test con el `SchoolRepository` envuelto en un contador de
+ * operaciones (`CountingSchoolRepository`, issue #104) para detectar N+1
+ * ocultos por la memoria. El contador expone `getCounts()` después de una o
+ * varias peticiones.
+ */
+export async function startCountingTestServer(
+  options?: StartServerOptions,
+): Promise<TestServer & { getCounts: () => Readonly<Record<string, number>> }> {
+  const repository = createMemorySchoolRepository(REFERENCE_DATE);
+  const counter = new CountingSchoolRepository(repository);
+  const app: Express = createApp({
+    repository: counter,
+    corsOrigins: ['*'],
+    demoMode: options?.demoMode ?? true,
+    devResetEnabled: options?.devResetEnabled ?? false,
+    perfLogging: options?.perfLogging ?? false,
+    assistant: options?.assistant,
+  });
+  const server = await listenTestServer(app.listen(0), repository);
+  // Añade el acceso al contador sobre el servidor de test base.
+  return Object.assign(server, { getCounts: () => counter.getCounts() });
 }
