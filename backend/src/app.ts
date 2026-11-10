@@ -20,8 +20,15 @@ import {
 } from './infrastructure/http/errorMiddleware.js';
 
 export type CreateAppAssistantOptions = {
-  /** Modelo del asistente; `undefined` ⇒ `POST /v1/assistant/messages` → 503. */
+  /** Modelo del asistente; `undefined` ��' `POST /v1/assistant/messages` ��' 503. */
   model?: LanguageModel;
+  /**
+   * Trace de tools del asistente (issue #103): NUNCA por defecto. El gate
+   * real en `createApp` es AND de: `demoMode` activo, `traceEnabled` (env
+   * `ASSISTANT_TRACE_ENABLED`) y header `x-assistant-trace` en la petici��n.
+   * Exigir demoMode evita exponer IDs en un VPS aunque alguien active el env.
+   */
+  traceEnabled?: boolean;
   assistantConfig: Pick<
     AssistantConfig,
     'maxSteps' | 'timeoutMs' | 'conversationTtlMs' | 'conversationMaxMessages'
@@ -89,6 +96,11 @@ export function createApp(options: CreateAppOptions): Express {
           maxSteps: options.assistant.assistantConfig.maxSteps,
           timeoutMs: options.assistant.assistantConfig.timeoutMs,
         },
+        // Gate triple del trace (issue #103): demoMode Y env Y header. El
+        // trace nunca se expone en el VPS ni por defecto, aunque alguien
+        // active ASSISTANT_TRACE_ENABLED.
+        traceEnabled:
+          options.demoMode && (options.assistant.traceEnabled ?? false),
         model: options.assistant.model,
       }),
     );

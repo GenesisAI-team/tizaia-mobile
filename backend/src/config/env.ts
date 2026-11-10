@@ -31,6 +31,17 @@ const envSchema = z.object({
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   CONVERSATION_TTL_MS: z.coerce.number().int().positive().default(1_800_000),
   CONVERSATION_MAX_MESSAGES: z.coerce.number().int().positive().default(24),
+  // Trace de la herramienta asistente (issue #103). NUNCA activado por
+  // defecto y sin efecto salvo que además la petición envíe el header
+  // `x-assistant-trace`. Solo expone nombre + entrada de cada tool al
+  // evaluador; la respuesta por defecto queda intacta.
+  ASSISTANT_TRACE_ENABLED: z
+    .string()
+    .default('false')
+    .refine(
+      (value) => value === 'true' || value === 'false',
+      'ASSISTANT_TRACE_ENABLED debe ser "true" o "false"',
+    ),
 });
 
 export type AssistantConfig = {
@@ -42,6 +53,11 @@ export type AssistantConfig = {
   timeoutMs: number;
   conversationTtlMs: number;
   conversationMaxMessages: number;
+  /**
+   * Trace de tools habilitado por entorno (issue #103). Siempre requiere
+   * además el header `x-assistant-trace` en la petición; por defecto `false`.
+   */
+  traceEnabled: boolean;
 };
 
 export type AppConfig = {
@@ -77,6 +93,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       timeoutMs: parsed.data.AI_TIMEOUT_MS,
       conversationTtlMs: parsed.data.CONVERSATION_TTL_MS,
       conversationMaxMessages: parsed.data.CONVERSATION_MAX_MESSAGES,
+      traceEnabled: parsed.data.ASSISTANT_TRACE_ENABLED === 'true',
     },
   };
 }

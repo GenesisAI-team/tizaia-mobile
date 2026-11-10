@@ -2,3 +2,5 @@ pnpm-lock.yaml
 dist/
 node_modules/
 coverage/
+# Artefactos del evaluador del asistente (issue #103)
+eval-results/
