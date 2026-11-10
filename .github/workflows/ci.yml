@@ -100,7 +100,11 @@ jobs:
           HEALTH=$(curl -s http://localhost:3000/health)
           echo "$HEALTH"
           echo "$HEALTH" | grep -q '"status":"ok"' || { echo "FAIL: /health missing status ok"; exit 1; }
-          echo "$HEALTH" | grep -q '"teacher"' || { echo "FAIL: /health missing teacher"; exit 1; }
+          # GEN-43: sonda mínima sin datos docentes; demo refleja demoMode real.
+          echo "$HEALTH" | grep -q '"uptimeSeconds"' || { echo "FAIL: /health missing uptimeSeconds"; exit 1; }
+          echo "$HEALTH" | grep -q '"demo"' || { echo "FAIL: /health missing demo"; exit 1; }
+          echo "$HEALTH" | grep -q '"teacher"' && { echo "FAIL: /health must not expose teacher (GEN-43)"; exit 1; }
+          echo "OK: /health minimal probe"
 
       - name: Verify /v1/bootstrap
         run: |
