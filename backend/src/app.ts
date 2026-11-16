@@ -79,7 +79,8 @@ export function createApp(options: CreateAppOptions): Express {
     });
   }
 
-  app.use(createHealthRouter(service));
+  // GEN-43: la sonda de vida no depende del dominio ni del repositorio.
+  app.use(createHealthRouter({ demoMode: options.demoMode }));
   app.use(createSystemRouter(service, options));
   app.use(createClassesRouter(service));
   app.use(createStudentsRouter(service));

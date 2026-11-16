@@ -272,12 +272,12 @@ curl -X POST http://localhost:3000/v1/assistant/messages `
 
 ### Sistema
 
-| Método | Ruta            | Notas                                                                                  |
-| ------ | --------------- | -------------------------------------------------------------------------------------- |
-| GET    | `/health`       | Sonda de vida (healthcheck Docker)                                                     |
-| GET    | `/v1/bootstrap` | Contexto global mínimo (`teacher` + `activeClassId` + `classes`) — sin overfetch (#76) |
-| GET    | `/v1/me`        | Docente activo y clase activa                                                          |
-| POST   | `/v1/dev/reset` | Solo con `ENABLE_DEV_RESET=true`; si no responde 404                                   |
+| Método | Ruta            | Notas                                                                                                                        |
+| ------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/health`       | Sonda de vida mínima (healthcheck Docker): solo `status`, `uptimeSeconds` y `demo` real — sin datos docentes ni PII (GEN-43) |
+| GET    | `/v1/bootstrap` | Contexto global mínimo (`teacher` + `activeClassId` + `classes`) — sin overfetch (#76)                                       |
+| GET    | `/v1/me`        | Docente activo y clase activa                                                                                                |
+| POST   | `/v1/dev/reset` | Solo con `ENABLE_DEV_RESET=true`; si no responde 404                                                                         |
 
 > **#76 — Bootstrap mínimo:** `GET /v1/bootstrap` ya no devuelve `students/attendance/assignments/submissions/annotations/mails/contacts/schoolDays`. Es solo `teacher/activeClassId/classes` (≈3 objetos vs 3300 antes). Cada pantalla carga su agregado por caso de uso en 1 request; ver **Agregados por clase**.
 
