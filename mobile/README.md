@@ -13,6 +13,8 @@ En la última comprobación Gradle inició correctamente, pero el build nativo f
 
 ## Desarrollo
 
+Todos los comandos se ejecutan desde `mobile/`:
+
 ```powershell
 pnpm install --frozen-lockfile
 Copy-Item .env.example .env
@@ -26,18 +28,39 @@ Para iniciar Expo limpiando la caché:
 pnpm start:clear
 ```
 
-Las variables `EXPO_PUBLIC_*` son configuración pública del cliente; no guardar secretos. El proyecto solo genera Android (`android/`); no se mantiene soporte iOS.
+## Configuración de entorno del cliente (`.env`)
+
+- La plantilla canónica del ejemplo de entorno es
+  [`mobile/.env.example`](.env.example) y el `.env` que consume Expo también
+  vive en `mobile/`: Expo CLI resuelve los `.env` desde el directorio del
+  proyecto, no desde la raíz del repositorio. Copiar la plantilla
+  literalmente desde `mobile/` (el comando crea `mobile/.env`).
+- `.env` está excluido de Git (`.gitignore` raíz y de `mobile/`); solo se
+  versiona la plantilla `.env.example`.
+- Las variables `EXPO_PUBLIC_*` se inyectan como valores públicos en el
+  bundle de la app (viajan dentro del JavaScript que llega al dispositivo).
+  Sirven únicamente para configuración no secreta: nunca guardar tokens,
+  claves privadas ni service-role keys. La clave de Supabase usada aquí es
+  la anon/publishable.
+- Tras editar el `.env`, hacer **full reload** de la app para que Metro
+  reconstruya el bundle con los nuevos valores (no hace falta limpiar
+  caché).
+- El proyecto solo genera Android (`android/`); no se mantiene soporte iOS.
 
 ## Conexión al backend propio (MOB-API-001)
 
-La app consume la API en memoria de #67 vía `EXPO_PUBLIC_API_BASE_URL`
-(default `http://10.0.2.2:3000`).
+La app consume la API en memoria de #67 vía `EXPO_PUBLIC_API_BASE_URL`.
+Definida en `mobile/.env`; si se omite o queda vacía, el código aplica el
+fallback `http://10.0.2.2:3000` (`src/infrastructure/config/env.ts`), por lo
+que en Android Emulator la variable es opcional. Defínela en `.env` para
+cambiar de entorno sin tocar código:
 
-| Entorno móvil                    | URL del backend                   |
+| Entorno móvil                    | `EXPO_PUBLIC_API_BASE_URL`        |
 | -------------------------------- | --------------------------------- |
-| Emulador Android                 | `http://10.0.2.2:3000`            |
+| Emulador Android                 | `http://10.0.2.2:3000` (fallback) |
 | iOS Simulator (fuera de alcance) | `http://localhost:3000`           |
-| Dispositivo físico               | `http://<IP-LAN-del-equipo>:3000` |
+| Dispositivo físico en la LAN     | `http://<IP-LAN-del-equipo>:3000` |
+| Backend desplegado en VPS        | `https://<dominio-del-backend>`   |
 
 Flujo de verificación manual:
 
