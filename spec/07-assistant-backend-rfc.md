@@ -215,6 +215,11 @@ posterior.
 - Proveedor y modelo concretos de IA para el despliegue real.
 - RAG para datos no estructurados.
 - Persistencia real (Supabase) y escalado horizontal.
+- Puerto agregado `getActiveTeacherContext` en `SchoolRepository` (una única
+  lectura de docente + clase activa): exige Supabase y evidencia de latencia
+  (GH #102). La fase mínima ya ejecutada paraleliza las dos lecturas
+  independientes en `SchoolService.me()` (GEN-39), sin cambios de puerto,
+  sin caché del contexto activo y sin APIs nuevas.
 
 ## 11. Consecuencias y trazabilidad
 
